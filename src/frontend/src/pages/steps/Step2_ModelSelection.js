@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import api from "../../api";
+import { useParams } from "react-router-dom";
 
 function Step2_ModelSelection({ config, setConfig, setStep }) {
+  const { projectId } = useParams();
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(config.model.templateName || "");
   const [customFile, setCustomFile] = useState(null);
@@ -43,7 +45,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
     if (!customFile) return setError("Please select a Python file");
     const form = new FormData();
     form.append("file", customFile);
-    form.append("project_id", config.metadata.id || config.id);
+    form.append("project_id", projectId);
     try {
       const res = await api.post("/templates/upload", form, {
         headers: { "Content-Type": "multipart/form-data" },

@@ -12,7 +12,15 @@ function Step4_DesignVariables({ config, setConfig, setStep }) {
 
   const updateVar = (idx, field, value) => {
     const newVars = [...vars];
-    newVars[idx][field] = value;
+    if (field === "values") {
+      const arr = value.split(",").map((val) => {
+        const trimmed = val.trim();
+        return isNaN(Number(trimmed)) ? trimmed : Number(trimmed);
+      });
+      newVars[idx][field] = arr;
+    } else {
+      newVars[idx][field] = value;
+    }
     setVars(newVars);
   };
 
@@ -21,6 +29,12 @@ function Step4_DesignVariables({ config, setConfig, setStep }) {
   };
 
   const onNext = () => {
+    for (const v of vars) {
+      if (v.name.trim() === "") {
+        alert("Variable name required");
+        return;
+      }
+    }
     setConfig((prev) => ({ ...prev, designVariables: vars }));
     setStep(5);
   };

@@ -5,7 +5,7 @@ from uuid import UUID
 from database import SessionLocal
 from dependencies import get_current_user, get_db
 from models import Project, User
-from schemas import ProjectCreate, ProjectOut
+from schemas import ProjectCreate, ProjectOut, ProjectConfig
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -67,10 +67,15 @@ def get_project_config(project_id: UUID, db: Session = Depends(get_db), current_
 
 
 @router.put("/{project_id}/config", status_code=204)
-def update_project_config(project_id: UUID, payload: dict = Body(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_project_config(
+    project_id: UUID,
+    payload: ProjectConfig,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     project = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    project.config_json = payload
+    project.config_json = payload.dict()
     db.commit()
     return
