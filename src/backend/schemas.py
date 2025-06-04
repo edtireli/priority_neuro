@@ -128,3 +128,33 @@ class ProjectConfig(BaseModel):
     designVariables: List[DesignVariable]
     objective: ObjectiveConfig
     constraints: ConstraintsConfig
+
+
+class JobCreate(BaseModel):
+    job_name: str
+    mode: Literal["single_shot", "sequential"]
+    compute_type: Literal["cpu", "gpu"]
+    advanced_options: Dict[str, Any] | None = None
+
+
+class JobOut(BaseModel):
+    id: UUID
+    project_id: UUID
+    job_name: str
+    mode: Literal["single_shot", "sequential"]
+    compute_type: Literal["cpu", "gpu"]
+    status: Literal["queued", "running", "succeeded", "failed"]
+    submitted_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+
+    class Config:
+        orm_mode = True
+
+
+class JobStatusOut(BaseModel):
+    id: UUID
+    status: Literal["queued", "running", "succeeded", "failed"]
+    submitted_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None

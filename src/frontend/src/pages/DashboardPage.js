@@ -87,11 +87,12 @@ const DashboardPage = () => {
             <th>Updated At</th>
             <th></th>
             <th></th>
+            <th></th>
           </tr>
         </thead>
-        <tbody>
-          {projects.map((p) => (
-            <tr key={p.id}>
+      <tbody>
+        {projects.map((p) => (
+          <tr key={p.id}>
               <td>{p.name}</td>
               <td>{p.description}</td>
               <td>{new Date(p.created_at).toLocaleString()}</td>
@@ -104,9 +105,12 @@ const DashboardPage = () => {
                   {p.config_json ? "Edit Configuration" : "Configure"}
                 </NavLink>
               </td>
+              <td>
+                <NavLink to={`/projects/${p.id}/jobs`}>Run Optimisation</NavLink>
+              </td>
             </tr>
-          ))}
-        </tbody>
+        ))}
+      </tbody>
       </table>
     </div>
   );
