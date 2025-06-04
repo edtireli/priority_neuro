@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 
 const DashboardPage = () => {
@@ -37,6 +37,7 @@ const DashboardPage = () => {
       const resp = await api.post("/projects", newProj);
       setProjects([resp.data, ...projects]);
       setNewProj({ name: "", description: "" });
+      navigate(`/projects/${resp.data.id}/configure`);
     } catch {
       setError("Failed to create project");
     }
@@ -85,6 +86,7 @@ const DashboardPage = () => {
             <th>Created At</th>
             <th>Updated At</th>
             <th></th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -96,6 +98,11 @@ const DashboardPage = () => {
               <td>{new Date(p.updated_at).toLocaleString()}</td>
               <td>
                 <button onClick={() => handleDelete(p.id)}>Delete</button>
+              </td>
+              <td>
+                <NavLink to={`/projects/${p.id}/configure`}>
+                  {p.config_json ? "Edit Configuration" : "Configure"}
+                </NavLink>
               </td>
             </tr>
           ))}

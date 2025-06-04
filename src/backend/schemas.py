@@ -46,6 +46,7 @@ class ProjectOut(BaseModel):
     user_id: UUID
     name: str
     description: str | None
+    config_json: dict | None
     created_at: datetime
     updated_at: datetime
 
