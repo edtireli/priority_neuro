@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProjectWizard from "./pages/ProjectWizard";
+import ProjectJobsPage from "./pages/ProjectJobsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./contexts/AuthContext";
 
@@ -27,6 +28,14 @@ const App = () => {
         element={
           <ProtectedRoute>
             <ProjectWizard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:projectId/jobs"
+        element={
+          <ProtectedRoute>
+            <ProjectJobsPage />
           </ProtectedRoute>
         }
       />

@@ -7,3 +7,5 @@ python-jose[cryptography]
 python-dotenv
 argon2-cffi
 pydantic
+celery
+redis

@@ -12,6 +12,12 @@ alembic upgrade head
 ./run.sh
 ```
 
+To run optimisation jobs:
+```
+redis-server &
+cd src/backend && ./start-celery.sh &
+```
+
 Test the API with `/health`, `/api/auth/register`, and `/api/auth/login`.
 
 ## Frontend Setup
@@ -23,3 +29,5 @@ npm start
 ```
 
 Ensure the backend API is running at http://localhost:8000/api.
+
+Navigate to a project and click "Run Optimisation" to start a job and view results.
