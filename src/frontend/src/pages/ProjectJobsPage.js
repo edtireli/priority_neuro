@@ -13,6 +13,7 @@ function ProjectJobsPage() {
     advanced_options: "{}",
   });
   const [error, setError] = useState("");
+  const [resultView, setResultView] = useState(null);
   const [polling, setPolling] = useState({});
 
   useEffect(() => {
@@ -95,7 +96,7 @@ function ProjectJobsPage() {
     try {
       const res = await api.get(`/projects/${projectId}/jobs/${jobId}/results`);
       const data = JSON.parse(res.data);
-      alert("Optimal Design:\n" + JSON.stringify(data.optimalDesign, null, 2));
+      setResultView(data);
     } catch (err) {
       alert("Failed to fetch results");
     }
@@ -165,6 +166,13 @@ function ProjectJobsPage() {
           ))}
         </tbody>
       </table>
+      {resultView && (
+        <div style={{ marginTop: "1rem" }}>
+          <h4>Optimal Design:</h4>
+          <pre>{JSON.stringify(resultView.optimalDesign, null, 2)}</pre>
+          <p>Expected Information Gain: {resultView.utilityValue.toFixed(2)} nats</p>
+        </div>
+      )}
     </div>
   );
 }
