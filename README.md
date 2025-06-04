@@ -18,6 +18,30 @@ redis-server &
 cd src/backend && ./start-celery.sh &
 ```
 
+Key hyperparameters can be specified under `advanced_options` in the project configuration JSON:
+
+- `n_train`: number of training samples for the neural density estimator
+- `epochs`: training epochs for the flow
+- `bo_budget`: number of Bayesian optimisation iterations
+- `M_test`: Monte Carlo samples when estimating EIG
+- `gp_restarts`: restarts for GP hyperparameter optimisation
+
+Pipeline overview:
+
+1. `build_training_set` – draw `(\theta, d, y)` from the prior and generative model.
+2. `train_flow` – train a normalising flow to approximate `p(\theta|y,d)`.
+3. `optimize_design` – use Bayesian optimisation with a GP surrogate to maximise EIG.
+4. `estimate_eig` – evaluate the best design with Monte Carlo samples.
+5. Results saved to `result.json` with `optimalDesign` and `utilityValue`.
+
+### Running tests
+
+```
+cd src/backend
+pytest tests/test_eig_estimator.py
+pytest tests/test_jobs_boed.py
+```
+
 Test the API with `/health`, `/api/auth/register`, and `/api/auth/login`.
 
 ## Frontend Setup
