@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -54,5 +54,23 @@ def delete_project(project_id: UUID, db: Session = Depends(get_db), current_user
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     db.delete(project)
+    db.commit()
+    return
+
+
+@router.get("/{project_id}/config")
+def get_project_config(project_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"config": project.config_json}
+
+
+@router.put("/{project_id}/config", status_code=204)
+def update_project_config(project_id: UUID, payload: dict = Body(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project.config_json = payload
     db.commit()
     return

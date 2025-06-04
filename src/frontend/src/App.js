@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
+import ProjectWizard from "./pages/ProjectWizard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./contexts/AuthContext";
 
@@ -18,6 +19,14 @@ const App = () => {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:projectId/configure/*"
+        element={
+          <ProtectedRoute>
+            <ProjectWizard />
           </ProtectedRoute>
         }
       />
