@@ -1,21 +1,32 @@
-import { useEffect, useState } from "react";
+import React, { useContext } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import DashboardPage from "./pages/DashboardPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthContext } from "./contexts/AuthContext";
 
-function App() {
-  const [status, setStatus] = useState("Loading...");
-
-  useEffect(() => {
-    fetch("http://localhost:8000/health")
-      .then((res) => res.json())
-      .then((data) => setStatus(data.status))
-      .catch(() => setStatus("Error"));
-  }, []);
+const App = () => {
+  const { authToken } = useContext(AuthContext);
 
   return (
-    <div style={{ fontFamily: "sans-serif", textAlign: "center", marginTop: "2rem" }}>
-      <h1>Backend Health:</h1>
-      <p>{status}</p>
-    </div>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/"
+        element={authToken ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
+      />
+    </Routes>
   );
-}
+};
 
 export default App;

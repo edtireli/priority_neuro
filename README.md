@@ -13,3 +13,13 @@ alembic upgrade head
 ```
 
 Test the API with `/health`, `/api/auth/register`, and `/api/auth/login`.
+
+## Frontend Setup
+
+```
+cd src/frontend
+npm install
+npm start
+```
+
+Ensure the backend API is running at http://localhost:8000/api.
