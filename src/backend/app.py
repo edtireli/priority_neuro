@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from routers.auth import router as auth_router
+from routers.projects import router as projects_router
 
 app = FastAPI()
 
@@ -20,7 +22,5 @@ async def health_check():
     return {"status": "ok"}
 
 
-@app.get("/")
-async def read_root():
-    """Default welcome route."""
-    return {"message": "Hello World"}
+app.include_router(auth_router)
+app.include_router(projects_router)

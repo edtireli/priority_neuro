@@ -1,2 +1,9 @@
-fastapi[all]==0.115.12
-uvicorn==0.34.3
+fastapi
+uvicorn
+sqlalchemy
+alembic
+psycopg2-binary
+python-jose[cryptography]
+python-dotenv
+argon2-cffi
+pydantic
