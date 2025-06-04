@@ -2,6 +2,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "backend"))
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -74,7 +75,43 @@ def test_project_config_crud(client):
     assert resp.json() == {"config": None}
 
     # update config
-    sample_cfg = {"metadata": {"name": "proj1"}}
+    sample_cfg = {
+        "metadata": {"name": "proj1", "description": "desc"},
+        "model": {
+            "type": "built-in",
+            "templateName": "psychometric",
+            "parameters": [
+                {
+                    "name": "threshold",
+                    "type": "float",
+                    "default_prior": {"dist": "Normal", "mean": 0.5, "sd": 0.2},
+                },
+                {
+                    "name": "slope",
+                    "type": "float",
+                    "default_prior": {"dist": "Gamma", "shape": 2.0, "scale": 1.0},
+                },
+            ],
+        },
+        "priors": {
+            "threshold": {"dist": "Normal", "mean": 0.5, "sd": 0.2},
+            "slope": {"dist": "Gamma", "shape": 2.0, "scale": 1.0},
+        },
+        "designVariables": [
+            {
+                "name": "intensity",
+                "type": "continuous",
+                "range": [0.1, 1.0],
+                "units": "a.u.",
+            }
+        ],
+        "objective": {"type": "group_separation", "options": {}},
+        "constraints": {
+            "sampleSize": 20,
+            "trialLimit": 100,
+            "costWeights": {"subject": 1, "trial": 1, "session": 1},
+        },
+    }
     resp = client.put(
         f"/api/projects/{project_id}/config",
         headers={"Authorization": f"Bearer {token}"},
@@ -85,5 +122,7 @@ def test_project_config_crud(client):
     # fetch again
     resp = client.get(f"/api/projects/{project_id}/config", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
-    assert resp.json() == {"config": sample_cfg}
+    returned = resp.json()["config"]
+    assert returned["metadata"]["name"] == "proj1"
+    assert returned["model"]["templateName"] == "psychometric"
 

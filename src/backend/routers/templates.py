@@ -28,10 +28,18 @@ async def upload_custom_model(project_id: str, file: UploadFile = File(...)):
     file_path = os.path.join(upload_dir, file.filename)
     with open(file_path, "wb") as f:
         f.write(await file.read())
-    spec = importlib.util.spec_from_file_location("custom_model", file_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    try:
+        spec = importlib.util.spec_from_file_location("custom_model", file_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error importing model: {e}")
     if not hasattr(module, "parameter_schema") or not callable(module.parameter_schema):
-        raise HTTPException(status_code=400, detail="Model file must define parameter_schema()")
-    schema = module.parameter_schema()
+        raise HTTPException(status_code=400, detail="Model file must define a callable parameter_schema()")
+    try:
+        schema = module.parameter_schema()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"parameter_schema() raised error: {e}")
+    if not isinstance(schema, dict) or "parameters" not in schema or not isinstance(schema["parameters"], list):
+        raise HTTPException(status_code=400, detail="parameter_schema() must return a dict with a 'parameters' list")
     return {"schema": schema}

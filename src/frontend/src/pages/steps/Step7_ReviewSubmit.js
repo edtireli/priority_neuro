@@ -12,8 +12,9 @@ function Step7_ReviewSubmit({ config, projectId }) {
     try {
       await api.put(`/projects/${projectId}/config`, config);
       navigate("/dashboard");
-    } catch {
-      setError("Failed to save configuration");
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      setError(detail || "Failed to save configuration");
     } finally {
       setSubmitting(false);
     }
