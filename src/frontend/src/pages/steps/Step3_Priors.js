@@ -1,5 +1,6 @@
 import React from "react";
 import { useForm, Controller } from "react-hook-form";
+import { TextField, Button, Grid, Box } from "@mui/material";
 
 function Step3_Priors({ config, setConfig, setStep }) {
   const parameters = config.model.parameters || [];
@@ -22,8 +23,8 @@ function Step3_Priors({ config, setConfig, setStep }) {
     for (const [key, val] of Object.entries(data)) {
       try {
         parsed[key] = JSON.parse(val);
-      } catch {
-        setError(key, { type: "manual", message: "Invalid JSON" });
+      } catch (err) {
+        setError(key, { type: "manual", message: err.message });
         return;
       }
     }
@@ -34,41 +35,46 @@ function Step3_Priors({ config, setConfig, setStep }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <h3>Specify Priors</h3>
-      {parameters.map((param) => (
-        <div key={param.name} style={{ marginBottom: "1rem" }}>
-          <label>
-            {param.name} ({param.type})
-          </label>
-          <Controller
-            name={param.name}
-            control={control}
-            rules={{
-              required: "Required",
-              validate: (v) => {
-                try {
-                  JSON.parse(v);
-                  return true;
-                } catch {
-                  return "Invalid JSON";
-                }
-              },
-            }}
-            render={({ field }) => (
-              <input {...field} placeholder={JSON.stringify(param.default_prior)} />
-            )}
-          />
-          {errors[param.name] && (
-            <p style={{ color: "red" }}>{errors[param.name].message}</p>
-          )}
-          <small>
-            Enter JSON for prior (e.g., {"{"}"dist":"Normal","mean":0.5,"sd":0.2"{"}"})
-          </small>
-        </div>
-      ))}
-      <button type="button" onClick={() => setStep((s) => s - 1)}>
-        Back
-      </button>
-      <button type="submit">Next</button>
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        {parameters.map((param) => (
+          <Grid item xs={12} key={param.name}>
+            <Controller
+              name={param.name}
+              control={control}
+              rules={{
+                required: "Required",
+                validate: (v) => {
+                  try {
+                    JSON.parse(v);
+                    return true;
+                  } catch (e) {
+                    return `Invalid JSON: ${e.message}`;
+                  }
+                },
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  label={`${param.name} (${param.type})`}
+                  placeholder={JSON.stringify(param.default_prior)}
+                  error={!!errors[param.name]}
+                  helperText={errors[param.name]?.message || "Enter JSON for prior"}
+                  onFocus={() => clearErrors(param.name)}
+                />
+              )}
+            />
+          </Grid>
+        ))}
+      </Grid>
+      <Box display="flex" justifyContent="flex-end" gap={1}>
+        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
+          Back
+        </Button>
+        <Button variant="contained" color="primary" type="submit">
+          Next
+        </Button>
+      </Box>
     </form>
   );
 }
