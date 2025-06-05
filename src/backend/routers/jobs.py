@@ -98,7 +98,6 @@ def get_job_results_detailed(
     with open(detailed_path, "r") as f:
         return json.load(f)
 
-
 @router.get("/{job_id}/log")
 def get_job_log(
     project_id: UUID,
