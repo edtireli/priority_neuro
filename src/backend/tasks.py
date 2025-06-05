@@ -7,6 +7,7 @@ from database import SessionLocal
 from models import Job, Project, JobStatus
 from fastapi.templating import Jinja2Templates
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+import asyncio
 import traceback
 from celery.signals import task_failure
 from sqlalchemy.orm import Session
@@ -56,7 +57,7 @@ def send_verification_email(email: str, full_name: str, token: str):
         subtype="html",
     )
     fm = FastMail(conf)
-    fm.send_message(message)
+    asyncio.run(fm.send_message(message))
 
 
 def simple_sample_design(design_vars):
