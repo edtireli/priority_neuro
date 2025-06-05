@@ -1,6 +1,15 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
+import {
+  Container,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Paper,
+  Alert,
+} from "@mui/material";
 
 const SignupPage = () => {
   const [form, setForm] = useState({
@@ -40,56 +49,66 @@ const SignupPage = () => {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "2rem auto" }}>
-      <h2>Sign Up</h2>
-      {success ? (
-        <p>
-          Account created. <Link to="/login">Login</Link>
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit}>
-          <div>
-            <label>Full Name:</label>
-            <input
+    <Container maxWidth="sm" sx={{ mt: 8 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h5" align="center" gutterBottom>
+          Sign Up
+        </Typography>
+        {success ? (
+          <Alert severity="success">
+            Account created. <Link to="/login">Login</Link>
+          </Alert>
+        ) : (
+          <Box component="form" onSubmit={handleSubmit}>
+            <TextField
+              label="Full Name"
               name="full_name"
+              fullWidth
+              margin="normal"
               value={form.full_name}
               onChange={handleChange}
               required
             />
-          </div>
-          <div>
-            <label>Institution:</label>
-            <input
+            <TextField
+              label="Institution"
               name="institution"
+              fullWidth
+              margin="normal"
               value={form.institution}
               onChange={handleChange}
             />
-          </div>
-          <div>
-            <label>Email:</label>
-            <input
+            <TextField
+              label="Email"
               name="email"
               type="email"
+              fullWidth
+              margin="normal"
               value={form.email}
               onChange={handleChange}
               required
             />
-          </div>
-          <div>
-            <label>Password:</label>
-            <input
+            <TextField
+              label="Password"
               name="password"
               type="password"
+              fullWidth
+              margin="normal"
               value={form.password}
               onChange={handleChange}
               required
             />
-          </div>
-          {error && <p style={{ color: "red" }}>{error}</p>}
-          <button type="submit">Sign Up</button>
-        </form>
-      )}
-    </div>
+            {error && (
+              <Typography color="error" sx={{ mt: 1 }}>
+                {error}
+              </Typography>
+            )}
+            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
+              Sign Up
+            </Button>
+          </Box>
+        )}
+      </Paper>
+    </Container>
   );
 };
 
