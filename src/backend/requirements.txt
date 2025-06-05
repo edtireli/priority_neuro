@@ -6,7 +6,7 @@ psycopg2-binary
 python-jose[cryptography]
 python-dotenv
 argon2-cffi
-pydantic<2
+pydantic>=2
 celery
 redis
 numpy
