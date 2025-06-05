@@ -72,7 +72,7 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 ## Configure Project Page
 
 A multi-step wizard for setting up BOED experiments is available at the route `/projects/:projectId/configure`.
-The wizard walks through metadata, model selection, priors, design variables (including a trial budget), objective settings and constraints before saving the configuration.
+The wizard walks through metadata, model selection, priors, design variables (including a trial budget and experimental mode), objective settings and constraints before saving the configuration. Sequential mode now allows batch size, iteration limits and pilot data upload. Misc settings include an optional high contrast mode.
 See `src/frontend/src/pages/ConfigureProject` for the implementation.
 
 ### Running Tests
