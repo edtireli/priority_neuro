@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -21,7 +21,7 @@ function App() {
   }, []);
 
   return (
-    <Router>
+    <>
       <Navbar isAuthenticated={isAuthenticated} userEmail={userEmail} />
       <Routes>
         <Route path="/login" element={<LoginPage onLogin={() => setIsAuthenticated(true)} />} />
@@ -44,7 +44,7 @@ function App() {
           }
         />
       </Routes>
-    </Router>
+    </>
   );
 }
 
