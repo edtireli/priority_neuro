@@ -4,6 +4,7 @@ from routers.auth import router as auth_router
 from routers.projects import router as projects_router
 from routers.templates import router as templates_router
 from routers.jobs import router as jobs_router
+from routers.data import router as data_router
 
 app = FastAPI()
 
@@ -28,3 +29,4 @@ app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(templates_router)
 app.include_router(jobs_router)
+app.include_router(data_router)

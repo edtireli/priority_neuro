@@ -24,6 +24,18 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 
 RESULTS_ROOT = os.getenv("RESULTS_ROOT", "results")
+UPLOADS_ROOT = os.getenv("UPLOADS_ROOT", "uploads")
+
+
+def simple_sample_design(design_vars):
+    d = {}
+    for dv in design_vars:
+        if dv["type"] == "continuous":
+            lo, hi = dv["range"]
+            d[dv["name"]] = float(np.random.uniform(lo, hi))
+        else:
+            d[dv["name"]] = dv["values"][0]
+    return d
 
 
 def sample_from_prior(prior_dict):
@@ -280,6 +292,46 @@ def run_optimisation_task(self, job_id_str: str):
         config = project.config_json
         adv = config.get("advanced_options", {})
 
+        results_dir = os.path.join(RESULTS_ROOT, str(project.id), str(job.id))
+        os.makedirs(results_dir, exist_ok=True)
+        job.results_folder = results_dir
+        db.commit()
+
+        if job.mode == RunMode.sequential:
+            batch_size = adv.get("batch_size", 5)
+            max_iter = job.maxIterations or adv.get("max_iterations")
+            job.maxIterations = max_iter
+            iter_no = job.iteration
+            if iter_no == 0:
+                designs = [simple_sample_design(config["designVariables"]) for _ in range(batch_size)]
+                idir = os.path.join(results_dir, f"iteration_{iter_no}")
+                os.makedirs(idir, exist_ok=True)
+                with open(os.path.join(idir, "designs.json"), "w") as f:
+                    json.dump(designs, f, indent=2)
+                job.iteration = iter_no + 1
+                db.commit()
+                return
+            data_path = os.path.join(UPLOADS_ROOT, "data", str(job.id), f"iteration_{iter_no-1}.json")
+            if not os.path.exists(data_path):
+                job.log = (job.log or "") + f"\nMissing data for iteration {iter_no-1}"
+                db.commit()
+                return
+            if max_iter is not None and iter_no >= max_iter:
+                with open(os.path.join(results_dir, "optimal.json"), "w") as f:
+                    json.dump({"final_iteration": iter_no}, f)
+                job.status = JobStatus.succeeded
+                job.completed_at = datetime.utcnow()
+                db.commit()
+                return
+            designs = [simple_sample_design(config["designVariables"]) for _ in range(batch_size)]
+            idir = os.path.join(results_dir, f"iteration_{iter_no}")
+            os.makedirs(idir, exist_ok=True)
+            with open(os.path.join(idir, "designs.json"), "w") as f:
+                json.dump(designs, f, indent=2)
+            job.iteration = iter_no + 1
+            db.commit()
+            return
+
         if config["model"]["templateName"] == "psychometric":
             model = PsychometricModel(config["model"]["parameters"], design_name=config["designVariables"][0]["name"])
         else:
@@ -368,8 +420,6 @@ def run_optimisation_task(self, job_id_str: str):
             "timestamp": datetime.utcnow().isoformat(),
         }
 
-        results_dir = os.path.join(RESULTS_ROOT, str(project.id), str(job.id))
-        os.makedirs(results_dir, exist_ok=True)
         result_path = os.path.join(results_dir, "result.json")
         detailed_path = os.path.join(results_dir, "result_detailed.json")
         with open(result_path, "w") as f:
@@ -380,7 +430,7 @@ def run_optimisation_task(self, job_id_str: str):
 
         job.status = JobStatus.succeeded
         job.completed_at = datetime.utcnow()
-        job.result_location = result_path
+        job.results_folder = results_dir
         db.commit()
     except MemoryError:
         if job:
