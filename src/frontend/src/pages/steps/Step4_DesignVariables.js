@@ -1,4 +1,12 @@
 import React, { useState } from "react";
+import {
+  TextField,
+  Button,
+  Grid,
+  Box,
+  Select,
+  MenuItem,
+} from "@mui/material";
 
 function Step4_DesignVariables({ config, setConfig, setStep }) {
   const [vars, setVars] = useState(config.designVariables || []);
@@ -43,53 +51,78 @@ function Step4_DesignVariables({ config, setConfig, setStep }) {
     <div>
       <h3>Define Design Variables</h3>
       {vars.map((v, idx) => (
-        <div key={idx} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
-          <label>Name:</label>
-          <input value={v.name} onChange={(e) => updateVar(idx, "name", e.target.value)} />
-          <label>Type:</label>
-          <select value={v.type} onChange={(e) => updateVar(idx, "type", e.target.value)}>
-            <option value="continuous">Continuous</option>
-            <option value="discrete">Discrete</option>
-          </select>
-          {v.type === "continuous" ? (
-            <>
-              <label>Range (min,max):</label>
-              <input
-                type="text"
-                value={v.range.join(",")}
-                onChange={(e) => {
-                  const [min, max] = e.target.value.split(",").map(Number);
-                  updateVar(idx, "range", [min, max]);
-                }}
+        <Box
+          key={idx}
+          sx={{ border: "1px solid #ccc", p: 2, mb: 2 }}
+        >
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                label="Name"
+                value={v.name}
+                onChange={(e) => updateVar(idx, "name", e.target.value)}
+                fullWidth
               />
-            </>
-          ) : (
-            <>
-              <label>Values (comma-separated):</label>
-              <input
-                type="text"
-                value={v.values?.join(",") || ""}
-                onChange={(e) => updateVar(idx, "values", e.target.value.split(","))}
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Select
+                value={v.type}
+                fullWidth
+                onChange={(e) => updateVar(idx, "type", e.target.value)}
+              >
+                <MenuItem value="continuous">Continuous</MenuItem>
+                <MenuItem value="discrete">Discrete</MenuItem>
+              </Select>
+            </Grid>
+            {v.type === "continuous" ? (
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  label="Range (min,max)"
+                  value={v.range.join(",")}
+                  onChange={(e) => {
+                    const [min, max] = e.target.value.split(",").map(Number);
+                    updateVar(idx, "range", [min, max]);
+                  }}
+                  fullWidth
+                />
+              </Grid>
+            ) : (
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  label="Values"
+                  value={v.values?.join(",") || ""}
+                  onChange={(e) => updateVar(idx, "values", e.target.value.split(","))}
+                  fullWidth
+                />
+              </Grid>
+            )}
+            <Grid item xs={12} sm={2}>
+              <TextField
+                label="Units"
+                value={v.units}
+                onChange={(e) => updateVar(idx, "units", e.target.value)}
+                fullWidth
               />
-            </>
-          )}
-          <label>Units:</label>
-          <input value={v.units} onChange={(e) => updateVar(idx, "units", e.target.value)} />
-          <button type="button" onClick={() => removeVar(idx)}>
-            Remove Variable
-          </button>
-        </div>
+            </Grid>
+            <Grid item xs={12} sm={1}>
+              <Button variant="outlined" onClick={() => removeVar(idx)}>
+                Remove
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
       ))}
-      <button type="button" onClick={addVariable}>
+      <Button variant="outlined" onClick={addVariable} sx={{ mb: 2 }}>
         Add Variable
-      </button>
-      <br />
-      <button type="button" onClick={() => setStep((s) => s - 1)}>
-        Back
-      </button>
-      <button type="button" onClick={onNext}>
-        Next
-      </button>
+      </Button>
+      <Box display="flex" justifyContent="flex-end" gap={1}>
+        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
+          Back
+        </Button>
+        <Button variant="contained" color="primary" onClick={onNext}>
+          Next
+        </Button>
+      </Box>
     </div>
   );
 }

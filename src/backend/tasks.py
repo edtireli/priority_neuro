@@ -5,16 +5,11 @@ import uuid
 from celery_app import celery
 from database import SessionLocal
 from models import Job, Project, JobStatus
+import traceback
+from celery.signals import task_failure
 from sqlalchemy.orm import Session
 import numpy as np
-import importlib.util as _importlib_util
-_expr_spec = _importlib_util.spec_from_file_location(
-    "models.expressions", os.path.join(os.path.dirname(__file__), "models", "expressions.py")
-)
-_expr_mod = _importlib_util.module_from_spec(_expr_spec)
-_expr_spec.loader.exec_module(_expr_mod)
-PsychometricModel = _expr_mod.PsychometricModel
-PoissonRateModel = _expr_mod.PoissonRateModel
+from models.expressions import PsychometricModel, PoissonRateModel
 from sklearn.model_selection import train_test_split
 import torch
 from torch import nn
@@ -306,10 +301,8 @@ def run_optimisation_task(self, job_id_str: str):
         evaluated_designs = eval_records
         top_designs = sorted(evaluated_designs, key=lambda r: r["utility"], reverse=True)[:10]
 
-        # draw samples
         n_samples = 2000
         prior_samples = [sample_from_prior(config["priors"]) for _ in range(n_samples)]
-        # simulate an observation under a random prior sample to condition posterior
         theta0 = sample_from_prior(config["priors"])
         y_obs = model.simulate(theta0, best_design)
         y_vec = [y_obs] if np.isscalar(y_obs) else list(y_obs)
@@ -317,34 +310,35 @@ def run_optimisation_task(self, job_id_str: str):
         context = torch.tensor([y_vec + design_vec], dtype=torch.float32).repeat(n_samples, 1)
         with torch.no_grad():
             post_samples_arr = flow.sample(n_samples, context=context).numpy()
-        post_samples = []
         param_names = sorted(config["priors"].keys())
+        post_samples = []
         for row in post_samples_arr:
             post_samples.append({name: float(row[i]) for i, name in enumerate(param_names)})
 
-        if len(param_names) > 6:
-            def to_hist(samples_list):
-                hists = {}
-                for name in param_names:
-                    values = [s[name] for s in samples_list]
-                    bins = np.linspace(min(values), max(values), 200)
-                    density, _ = np.histogram(values, bins=bins, density=True)
-                    hists[name] = {
-                        "bins": bins[:-1].tolist(),
-                        "density": density.tolist(),
-                    }
-                return hists
+        def to_hist(samples_list):
+            hists = {}
+            for name in param_names:
+                values = [s[name] for s in samples_list]
+                bins = np.linspace(min(values), max(values), 200)
+                density, _ = np.histogram(values, bins=bins, density=True)
+                hists[name] = {
+                    "bins": bins[:-1].tolist(),
+                    "density": density.tolist(),
+                }
+            return hists
 
+        raw_prior_samples = prior_samples
+        raw_post_samples = post_samples
+        if len(param_names) > 6:
             prior_samples = to_hist(prior_samples)
             post_samples = to_hist(post_samples)
 
-        # learning curve if requested
         learning_curve = None
         if config.get("objective", {}).get("type") == "training_efficiency":
             T = config.get("constraints", {}).get("trialLimit") or 20
             sessions = list(range(1, T + 1))
             perf_samples = []
-            for samp in post_samples:
+            for samp in raw_post_samples:
                 thr = samp.get("threshold", 0.0)
                 slope = samp.get("slope", 1.0)
                 perf = 1 / (1 + np.exp(-(np.array(sessions) - thr) / slope))
@@ -379,10 +373,7 @@ def run_optimisation_task(self, job_id_str: str):
         result_path = os.path.join(results_dir, "result.json")
         detailed_path = os.path.join(results_dir, "result_detailed.json")
         with open(result_path, "w") as f:
-            json.dump({
-                "optimalDesign": best_design,
-                "utilityValue": best_u,
-            }, f, indent=2)
+            json.dump({"optimalDesign": best_design, "utilityValue": best_u}, f, indent=2)
 
         with open(detailed_path, "w") as f:
             json.dump(result, f, indent=2)
@@ -391,11 +382,32 @@ def run_optimisation_task(self, job_id_str: str):
         job.completed_at = datetime.utcnow()
         job.result_location = result_path
         db.commit()
-    except Exception as e:
+    except MemoryError:
         if job:
             job.status = JobStatus.failed
             job.completed_at = datetime.utcnow()
-            job.log = str(e)
+            job.log = "Out of memory: " + traceback.format_exc()
+            db.commit()
+    except Exception:
+        if job:
+            job.status = JobStatus.failed
+            job.completed_at = datetime.utcnow()
+            job.log = traceback.format_exc()
             db.commit()
     finally:
         db.close()
+
+
+@task_failure.connect
+def capture_failure(sender=None, task_id=None, exception=None, args=None, kwargs=None, **others):
+    job_id = task_id
+    db = SessionLocal()
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if job:
+        job.status = JobStatus.failed
+        job.log = f"Uncaught exception: {traceback.format_exc()}"
+        job.completed_at = datetime.utcnow()
+        db.commit()
+    db.close()
+
+
