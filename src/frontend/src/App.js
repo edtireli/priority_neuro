@@ -1,67 +1,51 @@
-import React, { useContext } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
 import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
-import DashboardPage from "./pages/DashboardPage";
-import ProjectWizard from "./pages/ProjectWizard";
-import ProjectJobsPage from "./pages/ProjectJobsPage";
-import ResultsPage from "./pages/ResultsPage";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Header from "./components/Header";
-import EmailVerificationPage from "./pages/EmailVerificationPage";
-import ResendVerificationPage from "./pages/ResendVerificationPage";
-import { AuthContext } from "./contexts/AuthContext";
+import RegisterPage from "./pages/RegisterPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
+import Dashboard from "./pages/Dashboard";
+import PrivateRoute from "./components/PrivateRoute";
 
-const App = () => {
-  const { authToken } = useContext(AuthContext);
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      setUserEmail(payload.sub_email || payload.sub);
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   return (
-    <>
-      <Header />
+    <Router>
+      <Navbar isAuthenticated={isAuthenticated} userEmail={userEmail} />
       <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/verify-email" element={<EmailVerificationPage />} />
-      <Route path="/resend-verification" element={<ResendVerificationPage />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/projects/:projectId/configure/*"
-        element={
-          <ProtectedRoute>
-            <ProjectWizard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/projects/:projectId/jobs"
-        element={
-          <ProtectedRoute>
-            <ProjectJobsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/projects/:projectId/jobs/:jobId/results"
-        element={
-          <ProtectedRoute>
-            <ResultsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/"
-        element={authToken ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
-      />
-    </Routes>
-    </>
+        <Route path="/login" element={<LoginPage onLogin={() => setIsAuthenticated(true)} />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route
+          path="/"
+          element={
+            <PrivateRoute authenticated={isAuthenticated}>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute authenticated={isAuthenticated}>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
+    </Router>
   );
-};
+}
 
 export default App;

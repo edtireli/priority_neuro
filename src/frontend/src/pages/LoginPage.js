@@ -1,7 +1,6 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
-import { AuthContext } from "../contexts/AuthContext";
 import {
   Container,
   TextField,
@@ -11,9 +10,8 @@ import {
   Paper,
 } from "@mui/material";
 
-const LoginPage = () => {
+const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,7 +31,8 @@ const LoginPage = () => {
     }
     try {
       const resp = await api.post("/auth/login", { email, password });
-      login(resp.data.access_token);
+      localStorage.setItem("token", resp.data.access_token);
+      if (onLogin) onLogin();
       navigate("/dashboard");
     } catch (err) {
       if (
@@ -90,7 +89,7 @@ const LoginPage = () => {
         </Button>
       </Box>
         <Typography align="center" sx={{ mt: 2 }}>
-          No account? <Link to="/signup">Sign up</Link>
+          Don't have an account? <Link to="/register">Register</Link>
         </Typography>
       </Paper>
     </Container>
