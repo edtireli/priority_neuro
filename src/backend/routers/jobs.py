@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 import os
+import json
 
 from dependencies import get_current_user, get_db
 from models import Job, Project, JobStatus, RunMode, ComputeType
@@ -76,6 +77,27 @@ def get_job_results(
     with open(job.result_location, "r") as f:
         data = f.read()
     return data
+
+
+@router.get("/{job_id}/results-detailed")
+def get_job_results_detailed(
+    project_id: UUID,
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
+    if not job or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status != JobStatus.succeeded:
+        raise HTTPException(status_code=400, detail="Results not available until job succeeds")
+    if not job.result_location or not os.path.exists(job.result_location):
+        raise HTTPException(status_code=500, detail="Result file missing")
+    detailed_path = os.path.join(os.path.dirname(job.result_location), "result_detailed.json")
+    if not os.path.exists(detailed_path):
+        raise HTTPException(status_code=500, detail="Detailed result file missing")
+    with open(detailed_path, "r") as f:
+        return json.load(f)
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 def cancel_job(
