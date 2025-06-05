@@ -14,6 +14,7 @@ from sqlalchemy.pool import StaticPool
 from app import app
 from database import Base
 from dependencies import get_db
+from models import User
 from tasks import run_optimisation_task
 
 engine = create_engine(
@@ -48,6 +49,10 @@ def get_auth_token(client):
         "/api/auth/register",
         json={"email": "test2@example.com", "full_name": "Test", "institution": "Inst", "password": "Pass1234"},
     )
+    db = TestingSessionLocal()
+    token_val = db.query(User).filter(User.email == "test2@example.com").first().verification_token
+    db.close()
+    client.post("/api/auth/verify", json={"token": token_val})
     login = client.post("/api/auth/login", json={"email": "test2@example.com", "password": "Pass1234"})
     return login.json()["access_token"]
 

@@ -12,6 +12,7 @@ from app import app
 from database import Base
 from dependencies import get_db
 import tasks
+from models import User
 
 engine = create_engine(os.environ["DATABASE_URL"], connect_args={"check_same_thread": False}, poolclass=StaticPool)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -37,6 +38,10 @@ def client(tmp_path, monkeypatch):
 
 def get_token(client):
     client.post("/api/auth/register", json={"email":"t2@example.com","full_name":"T","institution":"I","password":"pass"})
+    db = TestingSessionLocal()
+    token_val = db.query(User).filter(User.email == "t2@example.com").first().verification_token
+    db.close()
+    client.post("/api/auth/verify", json={"token": token_val})
     login = client.post("/api/auth/login", json={"email":"t2@example.com","password":"pass"})
     return login.json()["access_token"]
 

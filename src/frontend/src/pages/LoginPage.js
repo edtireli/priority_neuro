@@ -17,6 +17,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [unverified, setUnverified] = useState(false);
 
   const validate = () => {
     if (!email || !password) return false;
@@ -35,7 +36,17 @@ const LoginPage = () => {
       login(resp.data.access_token);
       navigate("/dashboard");
     } catch (err) {
-      setError("Invalid email or password");
+      if (
+        err.response &&
+        err.response.status === 401 &&
+        err.response.data.detail &&
+        err.response.data.detail.includes("Email not verified")
+      ) {
+        setUnverified(true);
+        setError(err.response.data.detail);
+      } else {
+        setError("Invalid email or password");
+      }
     }
   };
 
@@ -64,15 +75,20 @@ const LoginPage = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          {error && (
-            <Typography color="error" sx={{ mt: 1 }}>
-              {error}
-            </Typography>
-          )}
-          <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-            Login
-          </Button>
-        </Box>
+        {error && (
+          <Typography color="error" sx={{ mt: 1 }}>
+            {error}
+          </Typography>
+        )}
+        {unverified && (
+          <Typography align="center" sx={{ mt: 1 }}>
+            <Link to="/resend-verification">Resend Verification Email</Link>
+          </Typography>
+        )}
+        <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
+          Login
+        </Button>
+      </Box>
         <Typography align="center" sx={{ mt: 2 }}>
           No account? <Link to="/signup">Sign up</Link>
         </Typography>

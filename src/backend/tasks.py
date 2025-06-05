@@ -5,6 +5,8 @@ import uuid
 from celery_app import celery
 from database import SessionLocal
 from models import Job, Project, JobStatus
+from fastapi.templating import Jinja2Templates
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 import traceback
 from celery.signals import task_failure
 from sqlalchemy.orm import Session
@@ -25,6 +27,35 @@ from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 
 RESULTS_ROOT = os.getenv("RESULTS_ROOT", "results")
 UPLOADS_ROOT = os.getenv("UPLOADS_ROOT", "uploads")
+
+conf = ConnectionConfig(
+    MAIL_USERNAME="your_smtp_username",
+    MAIL_PASSWORD="your_smtp_password",
+    MAIL_FROM="no-reply@yourdomain.com",
+    MAIL_SERVER="smtp.yourprovider.com",
+    MAIL_PORT=587,
+    MAIL_TLS=True,
+    MAIL_SSL=False,
+    USE_CREDENTIALS=True,
+)
+templates = Jinja2Templates(directory="./email_templates")
+
+
+@celery.task(name="send_verification_email")
+def send_verification_email(email: str, full_name: str, token: str):
+    verify_link = f"http://localhost:3000/verify-email?token={token}"
+    html_content = templates.get_template("verify_email.html").render(
+        full_name=full_name,
+        verify_link=verify_link,
+    )
+    message = MessageSchema(
+        subject="Please verify your email",
+        recipients=[email],
+        body=html_content,
+        subtype="html",
+    )
+    fm = FastMail(conf)
+    fm.send_message(message)
 
 
 def simple_sample_design(design_vars):

@@ -12,6 +12,7 @@ from app import app
 from database import Base
 from dependencies import get_db
 from tasks import run_optimisation_task
+from models import User
 
 engine = create_engine(
     os.environ["DATABASE_URL"],
@@ -46,6 +47,10 @@ def get_token(client):
         "/api/auth/register",
         json={"email": "t@example.com", "full_name": "T", "institution": "I", "password": "pass"},
     )
+    db = TestingSessionLocal()
+    token_val = db.query(User).filter(User.email == "t@example.com").first().verification_token
+    db.close()
+    client.post("/api/auth/verify", json={"token": token_val})
     login = client.post("/api/auth/login", json={"email": "t@example.com", "password": "pass"})
     return login.json()["access_token"]
 

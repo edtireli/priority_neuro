@@ -37,6 +37,18 @@ class TokenData(BaseModel):
     sub: UUID | None = None
 
 
+class VerificationToken(BaseModel):
+    token: str = Field(..., example="uuid4-token-here")
+
+
+class MessageOut(BaseModel):
+    message: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class ProjectCreate(BaseModel):
     name: str
     description: str | None = None
