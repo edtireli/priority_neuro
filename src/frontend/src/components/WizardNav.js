@@ -4,11 +4,14 @@ function WizardNav({ step, setStep }) {
   const labels = [
     "1. Metadata",
     "2. Model Selection",
-    "3. Priors",
-    "4. Design Variables",
-    "5. Objective",
-    "6. Constraints",
-    "7. Review & Submit",
+    "3. Groups",
+    "4. Priors",
+    "5. Design Vars",
+    "6. Objective",
+    "7. Constraints",
+    "8. Misc",
+    "9. Review",
+    "10. Submit",
   ];
   return (
     <nav style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>

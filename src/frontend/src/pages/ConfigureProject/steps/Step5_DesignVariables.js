@@ -8,8 +8,9 @@ import {
   MenuItem,
 } from "@mui/material";
 
-function Step4_DesignVariables({ config, setConfig, setStep }) {
+function Step5_DesignVariables({ config, setConfig, setStep }) {
   const [vars, setVars] = useState(config.designVariables || []);
+  const [trialBudget, setTrialBudget] = useState(config.trialBudget || 100);
 
   const addVariable = () => {
     setVars((prev) => [
@@ -43,8 +44,12 @@ function Step4_DesignVariables({ config, setConfig, setStep }) {
         return;
       }
     }
-    setConfig((prev) => ({ ...prev, designVariables: vars }));
-    setStep(5);
+    if (trialBudget < 1) {
+      alert("Trial budget must be >=1");
+      return;
+    }
+    setConfig((prev) => ({ ...prev, designVariables: vars, trialBudget }));
+    setStep(6);
   };
 
   return (
@@ -115,6 +120,15 @@ function Step4_DesignVariables({ config, setConfig, setStep }) {
       <Button variant="outlined" onClick={addVariable} sx={{ mb: 2 }}>
         Add Variable
       </Button>
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          label="Total Trial Budget"
+          type="number"
+          value={trialBudget}
+          onChange={(e) => setTrialBudget(Number(e.target.value))}
+          inputProps={{ min: 1 }}
+        />
+      </Box>
       <Box display="flex" justifyContent="flex-end" gap={1}>
         <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
           Back
@@ -127,4 +141,4 @@ function Step4_DesignVariables({ config, setConfig, setStep }) {
   );
 }
 
-export default Step4_DesignVariables;
+export default Step5_DesignVariables;

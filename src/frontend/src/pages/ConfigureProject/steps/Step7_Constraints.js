@@ -1,7 +1,7 @@
 import React from "react";
 import { TextField, Button, Grid, Box } from "@mui/material";
 
-function Step6_Constraints({ config, setConfig, setStep }) {
+function Step7_Constraints({ config, setConfig, setStep }) {
   const [constraints, setConstraints] = React.useState(
     config.constraints || {
       sampleSize: null,
@@ -16,7 +16,7 @@ function Step6_Constraints({ config, setConfig, setStep }) {
 
   const onNext = () => {
     setConfig((prev) => ({ ...prev, constraints }));
-    setStep(7);
+    setStep(8);
   };
 
   return (
@@ -99,4 +99,4 @@ function Step6_Constraints({ config, setConfig, setStep }) {
   );
 }
 
-export default Step6_Constraints;
+export default Step7_Constraints;

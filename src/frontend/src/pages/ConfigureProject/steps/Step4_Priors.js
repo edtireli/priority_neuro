@@ -2,7 +2,7 @@ import React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { TextField, Button, Grid, Box } from "@mui/material";
 
-function Step3_Priors({ config, setConfig, setStep }) {
+function Step4_Priors({ config, setConfig, setStep }) {
   const parameters = config.model.parameters || [];
   const defaultValues = parameters.reduce((acc, param) => {
     acc[param.name] = JSON.stringify(
@@ -29,7 +29,7 @@ function Step3_Priors({ config, setConfig, setStep }) {
       }
     }
     setConfig((prev) => ({ ...prev, priors: parsed }));
-    setStep(4);
+    setStep(5);
   };
 
   return (
@@ -79,4 +79,4 @@ function Step3_Priors({ config, setConfig, setStep }) {
   );
 }
 
-export default Step3_Priors;
+export default Step4_Priors;
