@@ -12,7 +12,6 @@
     "@emotion/styled": "^11.11.3",
     "react-plotly.js": "^2.6.0",
     "plotly.js": "^2.26.0"
-    "@emotion/styled": "^11.11.3"
   },
   "scripts": {
     "start": "react-scripts start",
