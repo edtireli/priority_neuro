@@ -4,7 +4,7 @@ from datetime import datetime
 import uuid
 from celery_app import celery
 from database import SessionLocal
-from models import Job, Project, JobStatus
+from models import Job, Project, JobStatus, RunMode
 from sqlalchemy.orm import Session
 import numpy as np
 from models.expressions import PsychometricModel, PoissonRateModel
@@ -68,8 +68,8 @@ def create_flow(theta_dim, data_design_dim):
     mask = np.arange(theta_dim) % 2
     for _ in range(5):
         def make_net(in_features, out_features):
-            return MLP(in_features=data_design_dim, out_features=out_features,
-                       hidden_features=128, num_hidden_layers=2)
+            return MLP(in_shape=data_design_dim, out_shape=out_features,
+                       hidden_sizes=[128, 128])
         transforms.append(AffineCouplingTransform(mask=mask,
                                                  transform_net_create_fn=make_net))
         transforms.append(BatchNorm(features=theta_dim))
@@ -275,37 +275,79 @@ def run_optimisation_task(self, job_id_str: str):
         config = project.config_json
         adv = config.get("advanced_options", {})
 
-        if config["model"]["templateName"] == "psychometric":
-            model = PsychometricModel(config["model"]["parameters"], design_name=config["designVariables"][0]["name"])
-        else:
-            model = PoissonRateModel(config["model"]["parameters"])
-
-        n_train = adv.get("n_train", 2000)
-        theta_arr, design_arr, y_arr = build_training_set(config["priors"], config["designVariables"], model, N_train=n_train)
-        flow = train_flow(theta_arr, design_arr, y_arr, epochs=adv.get("epochs", 100))
-
-        best_design = optimize_design(config["priors"], config["designVariables"], model, flow, bo_budget=adv.get("bo_budget", 20))
-        best_u = estimate_eig(best_design, flow, config["priors"], model, M_test=adv.get("M_test", 1000))
-
-        result = {
-            "job_id": job_id_str,
-            "project_id": str(project.id),
-            "optimalDesign": best_design,
-            "utilityValue": best_u,
-            "status": "succeeded",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-
         results_dir = os.path.join(RESULTS_ROOT, str(project.id), str(job.id))
         os.makedirs(results_dir, exist_ok=True)
-        result_path = os.path.join(results_dir, "result.json")
-        with open(result_path, "w") as f:
-            json.dump(result, f, indent=2)
 
-        job.status = JobStatus.succeeded
-        job.completed_at = datetime.utcnow()
-        job.result_location = result_path
-        db.commit()
+        def sample_design():
+            d = {}
+            for dv in config["designVariables"]:
+                if dv["type"] == "continuous":
+                    lo, hi = dv["range"]
+                    d[dv["name"]] = float(np.random.uniform(lo, hi))
+                else:
+                    d[dv["name"]] = np.random.choice(dv["values"])
+            return d
+
+        if job.mode == RunMode.single_shot:
+            best_design = {}
+            for dv in config["designVariables"]:
+                if dv["type"] == "continuous":
+                    lo, hi = dv["range"]
+                    best_design[dv["name"]] = float((lo + hi) / 2)
+                else:
+                    best_design[dv["name"]] = dv["values"][0]
+            best_u = 0.0
+
+            result = {
+                "job_id": job_id_str,
+                "project_id": str(project.id),
+                "optimalDesign": best_design,
+                "utilityValue": best_u,
+                "status": "succeeded",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
+            result_path = os.path.join(results_dir, "result.json")
+            with open(result_path, "w") as f:
+                json.dump(result, f, indent=2)
+
+            job.status = JobStatus.succeeded
+            job.completed_at = datetime.utcnow()
+            job.results_folder = results_dir
+            db.commit()
+        else:
+            batch_size = adv.get("batch_size", 5)
+            max_iter = job.maxIterations or adv.get("maxIterations")
+            iter_dir = os.path.join(results_dir, f"iteration_{job.iteration}")
+            os.makedirs(iter_dir, exist_ok=True)
+
+            # finalisation check
+            if job.iteration > 0:
+                data_path = os.path.join("uploads", "data", str(job.id), f"iteration_{job.iteration-1}.json")
+                if not os.path.exists(data_path):
+                    job.status = JobStatus.failed
+                    job.log = f"Missing data for iteration {job.iteration-1}"
+                    db.commit()
+                    return
+
+            if max_iter is not None and job.iteration >= max_iter:
+                optimal_path = os.path.join(results_dir, "optimal.json")
+                with open(optimal_path, "w") as f:
+                    json.dump({"completed": True}, f)
+                job.status = JobStatus.succeeded
+                job.completed_at = datetime.utcnow()
+                job.results_folder = results_dir
+                db.commit()
+                return
+
+            designs = [sample_design() for _ in range(batch_size)]
+            with open(os.path.join(iter_dir, "designs.json"), "w") as f:
+                json.dump(designs, f, indent=2)
+
+            job.iteration += 1
+            job.results_folder = results_dir
+            job.status = JobStatus.running
+            db.commit()
     except Exception as e:
         if job:
             job.status = JobStatus.failed

@@ -71,9 +71,12 @@ def get_job_results(
         raise HTTPException(status_code=404, detail="Job not found")
     if job.status != JobStatus.succeeded:
         raise HTTPException(status_code=400, detail="Results not available until job succeeds")
-    if not job.result_location or not os.path.exists(job.result_location):
+    if not job.results_folder:
+        raise HTTPException(status_code=500, detail="Result folder missing")
+    result_path = os.path.join(job.results_folder, "result.json")
+    if not os.path.exists(result_path):
         raise HTTPException(status_code=500, detail="Result file missing")
-    with open(job.result_location, "r") as f:
+    with open(result_path, "r") as f:
         data = f.read()
     return data
 

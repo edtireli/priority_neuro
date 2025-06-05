@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, func, Text, ForeignKey, JSON, Enum
+from sqlalchemy import Column, String, Boolean, DateTime, func, Text, ForeignKey, JSON, Enum, Integer
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 from database import Base
@@ -55,7 +55,9 @@ class Job(Base):
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    result_location = Column(String, nullable=True)
+    iteration = Column(Integer, nullable=False, default=0)
+    maxIterations = Column(Integer, nullable=True)
+    results_folder = Column(String, nullable=True)
     log = Column(String, nullable=True)
 
     project = relationship("Project", back_populates="jobs")
