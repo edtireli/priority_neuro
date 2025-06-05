@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from "react";
 import api from "../../api";
 import { useParams } from "react-router-dom";
+import {
+  TextField,
+  Button,
+  Grid,
+  Box,
+  Select,
+  MenuItem,
+  FormHelperText,
+  CircularProgress,
+  Alert,
+} from "@mui/material";
 
 function Step2_ModelSelection({ config, setConfig, setStep }) {
   const { projectId } = useParams();
@@ -9,12 +20,15 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
   const [customFile, setCustomFile] = useState(null);
   const [schema, setSchema] = useState(config.model.parameters || null);
   const [error, setError] = useState("");
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [loadingSchema, setLoadingSchema] = useState(false);
 
   useEffect(() => {
     api
       .get("/templates")
       .then((res) => setTemplates(res.data))
-      .catch(() => setError("Could not load templates"));
+      .catch(() => setError("Could not load templates"))
+      .finally(() => setLoadingTemplates(false));
   }, []);
 
   const chooseBuiltIn = (e) => {
@@ -22,6 +36,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
     setSelectedTemplate(name);
     setCustomFile(null);
     setError("");
+    setLoadingSchema(true);
     api
       .get(`/templates/${name}/schema`)
       .then((res) => {
@@ -31,7 +46,8 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
           model: { type: "built-in", templateName: name, parameters: res.data.parameters },
         }));
       })
-      .catch(() => setError("Could not fetch template schema"));
+      .catch(() => setError("Could not fetch template schema"))
+      .finally(() => setLoadingSchema(false));
   };
 
   const uploadCustom = (e) => {
@@ -46,6 +62,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
     const form = new FormData();
     form.append("file", customFile);
     form.append("project_id", projectId);
+    setLoadingSchema(true);
     try {
       const res = await api.post("/templates/upload", form, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -57,6 +74,8 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       }));
     } catch {
       setError("Upload failed or invalid model file");
+    } finally {
+      setLoadingSchema(false);
     }
   };
 
@@ -68,44 +87,60 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
   return (
     <div>
       <h3>Choose Model</h3>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <div>
-        <label>Built-in Templates:</label>
-        <select value={selectedTemplate} onChange={chooseBuiltIn}>
-          <option value="">-- Select a template --</option>
-          {templates.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
-      </div>
-      {schema && selectedTemplate && (
-        <div>
-          <h4>Template Schema:</h4>
-          <pre>{JSON.stringify(schema, null, 2)}</pre>
-        </div>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {loadingTemplates ? (
+        <Box display="flex" justifyContent="center" my={4}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid item xs={12} md={6}>
+            <Select
+              fullWidth
+              value={selectedTemplate}
+              displayEmpty
+              onChange={chooseBuiltIn}
+            >
+              <MenuItem value="">
+                <em>-- Select a template --</em>
+              </MenuItem>
+              {templates.map((name) => (
+                <MenuItem key={name} value={name}>
+                  {name}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>Built-in Templates</FormHelperText>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Button variant="outlined" component="label">
+              Upload Custom Model
+              <input type="file" accept=".py" hidden onChange={uploadCustom} />
+            </Button>
+            <Button onClick={submitCustom} sx={{ ml: 1 }} variant="contained">
+              Upload & Validate
+            </Button>
+          </Grid>
+        </Grid>
       )}
-      <hr />
-      <div>
-        <label>Or Upload Custom Model (Python file):</label>
-        <input type="file" accept=".py" onChange={uploadCustom} />
-        <button type="button" onClick={submitCustom}>
-          Upload & Validate
-        </button>
-      </div>
-      {schema && config.model.type === "custom" && (
-        <div>
-          <h4>Custom Schema:</h4>
-          <pre>{JSON.stringify(schema, null, 2)}</pre>
-        </div>
+      {loadingSchema && (
+        <Box display="flex" justifyContent="center" my={2}>
+          <CircularProgress />
+        </Box>
       )}
-      <button type="button" onClick={() => setStep((s) => s - 1)}>
-        Back
-      </button>
-      <button type="button" onClick={onNext}>
-        Next
-      </button>
+      {schema && (
+        <Box my={2}>
+          <pre>{JSON.stringify(schema, null, 2)}</pre>
+        </Box>
+      )}
+      <Box display="flex" justifyContent="flex-end" gap={1}>
+        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
+          Back
+        </Button>
+        <Button variant="contained" color="primary" onClick={onNext}>
+          Next
+        </Button>
+      </Box>
     </div>
   );
 }

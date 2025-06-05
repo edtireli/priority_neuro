@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import api from "../../api";
 import { useNavigate } from "react-router-dom";
+import { Button, Box, CircularProgress, Alert } from "@mui/material";
 
 function Step7_ReviewSubmit({ config, projectId }) {
   const [submitting, setSubmitting] = useState(false);
@@ -26,11 +27,19 @@ function Step7_ReviewSubmit({ config, projectId }) {
       <pre style={{ background: "#f0f0f0", padding: "1rem" }}>
         {JSON.stringify(config, null, 2)}
       </pre>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <button type="button" onClick={() => navigate("/dashboard")}>Cancel</button>
-      <button type="button" onClick={handleSubmit} disabled={submitting}>
-        {submitting ? "Saving…" : "Save Configuration"}
-      </button>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Box display="flex" justifyContent="flex-end" gap={1}>
+        <Button variant="contained" onClick={() => navigate("/dashboard")}>Cancel</Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={submitting}
+          startIcon={submitting && <CircularProgress size={20} />}
+        >
+          {submitting ? "Saving" : "Save Configuration"}
+        </Button>
+      </Box>
     </div>
   );
 }

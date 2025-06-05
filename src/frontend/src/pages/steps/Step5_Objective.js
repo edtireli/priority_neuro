@@ -1,4 +1,5 @@
 import React from "react";
+import { Radio, RadioGroup, FormControlLabel, Button, Box } from "@mui/material";
 
 function Step5_Objective({ config, setConfig, setStep }) {
   const [type, setType] = React.useState(config.objective.type || "");
@@ -12,39 +13,31 @@ function Step5_Objective({ config, setConfig, setStep }) {
   return (
     <div>
       <h3>Select Objective</h3>
-      <label>
-        <input
-          type="radio"
+      <RadioGroup value={type} onChange={(e) => setType(e.target.value)}>
+        <FormControlLabel
           value="group_separation"
-          checked={type === "group_separation"}
-          onChange={() => setType("group_separation")}
+          control={<Radio />}
+          label="Maximize Group Separation"
         />
-        Maximize Group Separation
-      </label>
-      <label>
-        <input
-          type="radio"
+        <FormControlLabel
           value="information_gain"
-          checked={type === "information_gain"}
-          onChange={() => setType("information_gain")}
+          control={<Radio />}
+          label="Maximize Information Gain"
         />
-        Maximize Information Gain
-      </label>
-      <label>
-        <input
-          type="radio"
+        <FormControlLabel
           value="training_efficiency"
-          checked={type === "training_efficiency"}
-          onChange={() => setType("training_efficiency")}
+          control={<Radio />}
+          label="Minimize Training Time"
         />
-        Minimize Training Time
-      </label>
-      <button type="button" onClick={() => setStep((s) => s - 1)}>
-        Back
-      </button>
-      <button type="button" onClick={onNext} disabled={!type}>
-        Next
-      </button>
+      </RadioGroup>
+      <Box display="flex" justifyContent="flex-end" gap={1}>
+        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
+          Back
+        </Button>
+        <Button variant="contained" color="primary" onClick={onNext} disabled={!type}>
+          Next
+        </Button>
+      </Box>
     </div>
   );
 }
