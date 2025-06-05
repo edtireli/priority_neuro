@@ -8,20 +8,36 @@ from models import Job, Project, JobStatus, RunMode
 from sqlalchemy.orm import Session
 import numpy as np
 from models.expressions import PsychometricModel, PoissonRateModel
-from sklearn.model_selection import train_test_split
-import torch
-from torch import nn
-from torch.utils.data import DataLoader, TensorDataset
-from nflows.flows.base import Flow
-from nflows.distributions import StandardNormal
-from nflows.transforms import CompositeTransform
-from nflows.transforms.coupling import AffineCouplingTransform
-from nflows.transforms.normalization import BatchNorm
-from nflows.nn.nets import MLP
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, WhiteKernel
+# Heavy deps are imported lazily inside functions to keep tests lightweight
+try:
+    from sklearn.model_selection import train_test_split  # type: ignore
+    from sklearn.gaussian_process import GaussianProcessRegressor  # type: ignore
+    from sklearn.gaussian_process.kernels import RBF, WhiteKernel  # type: ignore
+    SKLEARN_AVAILABLE = True
+except Exception:  # pragma: no cover - optional dependency
+    SKLEARN_AVAILABLE = False
 
-RESULTS_ROOT = os.getenv("RESULTS_ROOT", "results")
+try:
+    import torch  # type: ignore
+    from torch import nn  # type: ignore
+    from torch.utils.data import DataLoader, TensorDataset  # type: ignore
+    TORCH_AVAILABLE = True
+except Exception:  # pragma: no cover - optional dependency
+    TORCH_AVAILABLE = False
+
+try:
+    from nflows.flows.base import Flow  # type: ignore
+    from nflows.distributions import StandardNormal  # type: ignore
+    from nflows.transforms import CompositeTransform  # type: ignore
+    from nflows.transforms.coupling import AffineCouplingTransform  # type: ignore
+    from nflows.transforms.normalization import BatchNorm  # type: ignore
+    from nflows.nn.nets import MLP  # type: ignore
+    NFLOWS_AVAILABLE = True
+except Exception:  # pragma: no cover - optional dependency
+    NFLOWS_AVAILABLE = False
+
+def get_results_root():
+    return os.getenv("RESULTS_ROOT", "results")
 
 
 def sample_from_prior(prior_dict):
@@ -64,6 +80,8 @@ def build_training_set(prior_dict, design_vars, model, N_train=10000):
 
 
 def create_flow(theta_dim, data_design_dim):
+    if not NFLOWS_AVAILABLE or not TORCH_AVAILABLE:
+        raise RuntimeError("Required packages for flow are missing")
     transforms = []
     mask = np.arange(theta_dim) % 2
     for _ in range(5):
@@ -79,6 +97,8 @@ def create_flow(theta_dim, data_design_dim):
 
 
 def train_flow(theta_arr, design_arr, y_arr, epochs=100, batch_size=128):
+    if not TORCH_AVAILABLE or not SKLEARN_AVAILABLE:
+        raise RuntimeError("Training requires torch and scikit-learn")
     X = np.concatenate([y_arr, design_arr], axis=1)
     theta_tensor = torch.tensor(theta_arr, dtype=torch.float32)
     x_tensor = torch.tensor(X, dtype=torch.float32)
@@ -149,6 +169,8 @@ def log_prior(theta, prior_dict):
 
 
 def estimate_eig(design, flow, prior_dict, model, M_test=2000):
+    if not TORCH_AVAILABLE:
+        raise RuntimeError("Torch is required for EIG estimation")
     post_minus_prior = []
     d_vec = [design[n] for n in sorted(design.keys())]
     for _ in range(M_test):
@@ -164,6 +186,8 @@ def estimate_eig(design, flow, prior_dict, model, M_test=2000):
 
 
 def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
+    if not SKLEARN_AVAILABLE:
+        raise RuntimeError("Scikit-learn is required for optimization")
     evaluated_d = []
     evaluated_u = []
 
@@ -275,7 +299,7 @@ def run_optimisation_task(self, job_id_str: str):
         config = project.config_json
         adv = config.get("advanced_options", {})
 
-        results_dir = os.path.join(RESULTS_ROOT, str(project.id), str(job.id))
+        results_dir = os.path.join(get_results_root(), str(project.id), str(job.id))
         os.makedirs(results_dir, exist_ok=True)
 
         def sample_design():

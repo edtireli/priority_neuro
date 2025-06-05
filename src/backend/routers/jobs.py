@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+import json
 from sqlalchemy.orm import Session
 from uuid import UUID
 import os
@@ -77,7 +78,7 @@ def get_job_results(
     if not os.path.exists(result_path):
         raise HTTPException(status_code=500, detail="Result file missing")
     with open(result_path, "r") as f:
-        data = f.read()
+        data = json.load(f)
     return data
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
