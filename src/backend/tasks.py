@@ -168,6 +168,7 @@ def estimate_eig(design, flow, prior_dict, model, M_test=2000):
 def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
     evaluated_d = []
     evaluated_u = []
+    evaluated_records = []
 
     def sample_design():
         d = {}
@@ -185,6 +186,7 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
         print(f"Iteration 0: evaluated EIG at design {d} = {u:.3f}")
         evaluated_d.append([d[name] for name in sorted(d.keys())])
         evaluated_u.append(u)
+        evaluated_records.append({"design": d, "utility": u})
 
     X = np.array(evaluated_d)
     y = np.array(evaluated_u)
@@ -250,6 +252,7 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
         print(f"Iteration {it-19}: proposed design {best_proposal}, EIG = {u_new:.3f}")
         evaluated_d.append([best_proposal[name] for name in sorted(best_proposal.keys())])
         evaluated_u.append(u_new)
+        evaluated_records.append({"design": best_proposal, "utility": u_new})
         X = np.array(evaluated_d)
         y = np.array(evaluated_u)
         gp.fit(X, y)
@@ -257,7 +260,7 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
             best_idx = len(evaluated_u)-1
             best_design = best_proposal
 
-    return best_design
+    return best_design, evaluated_records
 
 
 @celery.task(bind=True)
@@ -286,22 +289,93 @@ def run_optimisation_task(self, job_id_str: str):
         theta_arr, design_arr, y_arr = build_training_set(config["priors"], config["designVariables"], model, N_train=n_train)
         flow = train_flow(theta_arr, design_arr, y_arr, epochs=adv.get("epochs", 100))
 
-        best_design = optimize_design(config["priors"], config["designVariables"], model, flow, bo_budget=adv.get("bo_budget", 20))
+        best_design, eval_records = optimize_design(
+            config["priors"],
+            config["designVariables"],
+            model,
+            flow,
+            bo_budget=adv.get("bo_budget", 20),
+        )
         best_u = estimate_eig(best_design, flow, config["priors"], model, M_test=adv.get("M_test", 1000))
+
+        evaluated_designs = eval_records
+        top_designs = sorted(evaluated_designs, key=lambda r: r["utility"], reverse=True)[:10]
+
+        n_samples = 2000
+        prior_samples = [sample_from_prior(config["priors"]) for _ in range(n_samples)]
+        theta0 = sample_from_prior(config["priors"])
+        y_obs = model.simulate(theta0, best_design)
+        y_vec = [y_obs] if np.isscalar(y_obs) else list(y_obs)
+        design_vec = [best_design[n] for n in sorted(best_design.keys())]
+        context = torch.tensor([y_vec + design_vec], dtype=torch.float32).repeat(n_samples, 1)
+        with torch.no_grad():
+            post_samples_arr = flow.sample(n_samples, context=context).numpy()
+        param_names = sorted(config["priors"].keys())
+        post_samples = []
+        for row in post_samples_arr:
+            post_samples.append({name: float(row[i]) for i, name in enumerate(param_names)})
+
+        def to_hist(samples_list):
+            hists = {}
+            for name in param_names:
+                values = [s[name] for s in samples_list]
+                bins = np.linspace(min(values), max(values), 200)
+                density, _ = np.histogram(values, bins=bins, density=True)
+                hists[name] = {
+                    "bins": bins[:-1].tolist(),
+                    "density": density.tolist(),
+                }
+            return hists
+
+        raw_prior_samples = prior_samples
+        raw_post_samples = post_samples
+        if len(param_names) > 6:
+            prior_samples = to_hist(prior_samples)
+            post_samples = to_hist(post_samples)
+
+        learning_curve = None
+        if config.get("objective", {}).get("type") == "training_efficiency":
+            T = config.get("constraints", {}).get("trialLimit") or 20
+            sessions = list(range(1, T + 1))
+            perf_samples = []
+            for samp in raw_post_samples:
+                thr = samp.get("threshold", 0.0)
+                slope = samp.get("slope", 1.0)
+                perf = 1 / (1 + np.exp(-(np.array(sessions) - thr) / slope))
+                perf_samples.append(perf)
+            perf_arr = np.stack(perf_samples)
+            mean_perf = perf_arr.mean(axis=0)
+            lower = np.quantile(perf_arr, 0.025, axis=0)
+            upper = np.quantile(perf_arr, 0.975, axis=0)
+            learning_curve = {
+                "sessions": sessions,
+                "meanPerformance": mean_perf.tolist(),
+                "ciLower": lower.tolist(),
+                "ciUpper": upper.tolist(),
+            }
 
         result = {
             "job_id": job_id_str,
             "project_id": str(project.id),
             "optimalDesign": best_design,
             "utilityValue": best_u,
+            "evaluatedDesigns": evaluated_designs,
+            "topDesigns": top_designs,
+            "priorSamples": prior_samples,
+            "posteriorSamples": post_samples,
+            "learningCurve": learning_curve,
             "status": "succeeded",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         results_dir = os.path.join(RESULTS_ROOT, str(project.id), str(job.id))
         os.makedirs(results_dir, exist_ok=True)
         result_path = os.path.join(results_dir, "result.json")
+        detailed_path = os.path.join(results_dir, "result_detailed.json")
         with open(result_path, "w") as f:
+            json.dump({"optimalDesign": best_design, "utilityValue": best_u}, f, indent=2)
+
+        with open(detailed_path, "w") as f:
             json.dump(result, f, indent=2)
 
         job.status = JobStatus.succeeded

@@ -34,6 +34,29 @@ Pipeline overview:
 4. `estimate_eig` – evaluate the best design with Monte Carlo samples.
 5. Results saved to `result.json` with `optimalDesign` and `utilityValue`.
 
+## Results Visualization
+
+Running a job generates `result_detailed.json` containing:
+
+```json
+{
+  "optimalDesign": {"x": 0.5},
+  "utilityValue": 1.23,
+  "evaluatedDesigns": [{"design": {"x":0.1}, "utility":0.5}, ...],
+  "topDesigns": [...],
+  "priorSamples": [ {"threshold":0.4, "slope":0.9}, ... ],
+  "posteriorSamples": [ {"threshold":0.45, "slope":0.8}, ... ],
+  "learningCurve": {
+    "sessions": [1,2,...],
+    "meanPerformance": [...],
+    "ciLower": [...],
+    "ciUpper": [...]
+  }
+}
+```
+
+Open `/projects/{pid}/jobs/{jid}/results` to view the basic result or `/results-detailed` for visualisation. The frontend uses `react-plotly.js` to render utility surfaces, histograms comparing prior and posterior, and predicted learning curves. Use the "View Results" button from the jobs table to open the page. A "Download CSV" option exports evaluated designs.
+
 ### Running tests
 
 ```
