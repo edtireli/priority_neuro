@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import api from "../../api";
+import api from "../../../api";
 import { useParams } from "react-router-dom";
 import {
   TextField,
@@ -11,6 +11,8 @@ import {
   FormHelperText,
   CircularProgress,
   Alert,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 
 function Step2_ModelSelection({ config, setConfig, setStep }) {
@@ -19,6 +21,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
   const [selectedTemplate, setSelectedTemplate] = useState(config.model.templateName || "");
   const [customFile, setCustomFile] = useState(null);
   const [schema, setSchema] = useState(config.model.parameters || null);
+  const [dvs, setDvs] = useState(config.model.dependentVariables || []);
   const [error, setError] = useState("");
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [loadingSchema, setLoadingSchema] = useState(false);
@@ -32,6 +35,14 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const templateOutcomes = {
+    Psychometric: ["Choice", "Reaction Time"],
+    "Drift-Diffusion RT-Accuracy model": ["Choice", "Reaction Time"],
+    "Poisson Rate Model": ["Spike Count", "Firing Rate"],
+    "Gaussian Process Calcium Model": ["ΔF/F trace", "Peak Amplitude", "Time to Peak"],
+    "Hybrid Psychometric/Poisson": ["Choice", "Spike Count"],
+  };
+
   const chooseBuiltIn = (e) => {
     const name = e.target.value;
     setSelectedTemplate(name);
@@ -42,9 +53,15 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       .get(`/templates/${name}/schema`)
       .then((res) => {
         setSchema(res.data);
+        setDvs(templateOutcomes[name] || []);
         setConfig((prev) => ({
           ...prev,
-          model: { type: "built-in", templateName: name, parameters: res.data.parameters },
+          model: {
+            type: "built-in",
+            templateName: name,
+            parameters: res.data.parameters,
+            dependentVariables: templateOutcomes[name] || [],
+          },
         }));
       })
       .catch(() => setError("Could not fetch template schema"))
@@ -81,8 +98,19 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
   };
 
   const onNext = () => {
-    if (schema) setStep(3);
-    else setError("Please select a template or upload a valid custom model");
+    if (!schema) {
+      setError("Please select a template or upload a valid custom model");
+      return;
+    }
+    if (dvs.length === 0) {
+      setError("Select at least one outcome variable");
+      return;
+    }
+    setConfig((prev) => ({
+      ...prev,
+      model: { ...prev.model, dependentVariables: dvs },
+    }));
+    setStep(3);
   };
 
   return (
@@ -132,6 +160,27 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       {schema && (
         <Box my={2}>
           <pre>{JSON.stringify(schema, null, 2)}</pre>
+          <FormHelperText sx={{ mt: 2 }}>Outcome Variables</FormHelperText>
+          <Box>
+            {dvs.map((dv) => (
+              <FormControlLabel
+                key={dv}
+                control={
+                  <Checkbox
+                    checked={dvs.includes(dv)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setDvs((prev) => [...prev, dv]);
+                      } else {
+                        setDvs((prev) => prev.filter((x) => x !== dv));
+                      }
+                    }}
+                  />
+                }
+                label={dv}
+              />
+            ))}
+          </Box>
         </Box>
       )}
       <Box display="flex" justifyContent="flex-end" gap={1}>

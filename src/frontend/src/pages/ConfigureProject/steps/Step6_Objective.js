@@ -1,13 +1,13 @@
 import React from "react";
 import { Radio, RadioGroup, FormControlLabel, Button, Box } from "@mui/material";
 
-function Step5_Objective({ config, setConfig, setStep }) {
+function Step6_Objective({ config, setConfig, setStep }) {
   const [type, setType] = React.useState(config.objective.type || "");
   const [options, setOptions] = React.useState(config.objective.options || {});
 
   const onNext = () => {
     setConfig((prev) => ({ ...prev, objective: { type, options } }));
-    setStep(6);
+    setStep(7);
   };
 
   return (
@@ -42,4 +42,4 @@ function Step5_Objective({ config, setConfig, setStep }) {
   );
 }
 
-export default Step5_Objective;
+export default Step6_Objective;

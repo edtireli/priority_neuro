@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../api";
-import WizardNav from "../components/WizardNav";
+import api from "../../api";
+import WizardNav from "../../components/WizardNav";
 import Step1_Metadata from "./steps/Step1_Metadata";
 import Step2_ModelSelection from "./steps/Step2_ModelSelection";
-import Step3_Priors from "./steps/Step3_Priors";
-import Step4_DesignVariables from "./steps/Step4_DesignVariables";
-import Step5_Objective from "./steps/Step5_Objective";
-import Step6_Constraints from "./steps/Step6_Constraints";
-import Step7_ReviewSubmit from "./steps/Step7_ReviewSubmit";
+import Step3_Groups from "./steps/Step3_Groups";
+import Step4_Priors from "./steps/Step4_Priors";
+import Step5_DesignVariables from "./steps/Step5_DesignVariables";
+import Step6_Objective from "./steps/Step6_Objective";
+import Step7_Constraints from "./steps/Step7_Constraints";
+import Step8_MiscSettings from "./steps/Step8_MiscSettings";
+import Step9_Review from "./steps/Step9_Review";
+import Step10_Submit from "./steps/Step10_Submit";
 
 function ProjectWizard() {
   const { projectId } = useParams();
@@ -26,10 +29,12 @@ function ProjectWizard() {
           setConfig({
             metadata: {},
             model: {},
+            groups: [],
             priors: {},
             designVariables: [],
             objective: {},
             constraints: {},
+            misc: {},
           });
       })
       .catch(() => navigate("/dashboard"))
@@ -53,28 +58,39 @@ function ProjectWizard() {
         />
       )}
       {step === 3 && (
-        <Step3_Priors config={config} setConfig={setConfig} setStep={setStep} />
+        <Step3_Groups config={config} setConfig={setConfig} setStep={setStep} />
       )}
       {step === 4 && (
-        <Step4_DesignVariables
+        <Step4_Priors
           config={config}
           setConfig={setConfig}
           setStep={setStep}
         />
       )}
       {step === 5 && (
-        <Step5_Objective config={config} setConfig={setConfig} setStep={setStep} />
-      )}
-      {step === 6 && (
-        <Step6_Constraints
+        <Step5_DesignVariables
           config={config}
           setConfig={setConfig}
           setStep={setStep}
         />
       )}
-      {step === 7 && (
-        <Step7_ReviewSubmit config={config} projectId={projectId} />
+      {step === 6 && (
+        <Step6_Objective config={config} setConfig={setConfig} setStep={setStep} />
       )}
+      {step === 7 && (
+        <Step7_Constraints
+          config={config}
+          setConfig={setConfig}
+          setStep={setStep}
+        />
+      )}
+      {step === 8 && (
+        <Step8_MiscSettings config={config} setConfig={setConfig} setStep={setStep} />
+      )}
+      {step === 9 && (
+        <Step9_Review config={config} setStep={setStep} />
+      )}
+      {step === 10 && <Step10_Submit config={config} />}
     </div>
   );
 }

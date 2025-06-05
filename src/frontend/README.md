@@ -68,3 +68,19 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## Configure Project Page
+
+A multi-step wizard for setting up BOED experiments is available at the route `/projects/:projectId/configure`.
+The wizard walks through metadata, model selection, priors, design variables (including a trial budget), objective settings and constraints before saving the configuration.
+See `src/frontend/src/pages/ConfigureProject` for the implementation.
+
+### Running Tests
+
+Install dependencies with `npm install` and then run:
+
+```bash
+npm test -- --watchAll=false
+```
+
+Backend tests can be executed with `pytest` from the repository root.

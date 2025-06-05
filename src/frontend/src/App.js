@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import Dashboard from "./pages/Dashboard";
+import ConfigureProjectPage from "./pages/ConfigureProject";
 import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
@@ -40,6 +41,14 @@ function App() {
           element={
             <PrivateRoute authenticated={isAuthenticated}>
               <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/projects/:projectId/configure"
+          element={
+            <PrivateRoute authenticated={isAuthenticated}>
+              <ConfigureProjectPage />
             </PrivateRoute>
           }
         />
