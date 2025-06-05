@@ -11,22 +11,26 @@ import {
 function Step5_DesignVariables({ config, setConfig, setStep }) {
   const [vars, setVars] = useState(config.designVariables || []);
   const [trialBudget, setTrialBudget] = useState(config.trialBudget || 100);
+  const [mode, setMode] = useState(config.experimentalMode || "batch");
+  const [seq, setSeq] = useState(
+    config.sequentialSettings || { pilotFile: null, batchSize: 10, maxIter: "" }
+  );
 
   const addVariable = () => {
     setVars((prev) => [
       ...prev,
-      { name: "", type: "continuous", range: [0, 1], units: "" },
+      { name: "", type: "continuous", range: [0, 1], step: 1, values: [], units: "" },
     ]);
   };
 
   const updateVar = (idx, field, value) => {
     const newVars = [...vars];
     if (field === "values") {
-      const arr = value.split(",").map((val) => {
-        const trimmed = val.trim();
-        return isNaN(Number(trimmed)) ? trimmed : Number(trimmed);
-      });
-      newVars[idx][field] = arr;
+      if (typeof value === "string") {
+        newVars[idx][field] = value.split(",").map((v) => v.trim());
+      } else {
+        newVars[idx][field] = value;
+      }
     } else {
       newVars[idx][field] = value;
     }
@@ -48,7 +52,13 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
       alert("Trial budget must be >=1");
       return;
     }
-    setConfig((prev) => ({ ...prev, designVariables: vars, trialBudget }));
+    const nextCfg = {
+      designVariables: vars,
+      trialBudget,
+      experimentalMode: mode,
+    };
+    if (mode === "sequential") nextCfg.sequentialSettings = seq;
+    setConfig((prev) => ({ ...prev, ...nextCfg }));
     setStep(6);
   };
 
@@ -77,9 +87,10 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
               >
                 <MenuItem value="continuous">Continuous</MenuItem>
                 <MenuItem value="discrete">Discrete</MenuItem>
+                <MenuItem value="categorical">Categorical</MenuItem>
               </Select>
             </Grid>
-            {v.type === "continuous" ? (
+            {v.type === "continuous" && (
               <Grid item xs={12} sm={3}>
                 <TextField
                   label="Range (min,max)"
@@ -91,12 +102,44 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
                   fullWidth
                 />
               </Grid>
-            ) : (
+            )}
+            {v.type === "discrete" && (
+              <>
+                <Grid item xs={12} sm={2}>
+                  <TextField
+                    label="Min"
+                    type="number"
+                    value={v.range[0]}
+                    onChange={(e) => updateVar(idx, "range", [Number(e.target.value), v.range[1]])}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <TextField
+                    label="Max"
+                    type="number"
+                    value={v.range[1]}
+                    onChange={(e) => updateVar(idx, "range", [v.range[0], Number(e.target.value)])}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <TextField
+                    label="Step"
+                    type="number"
+                    value={v.step}
+                    onChange={(e) => updateVar(idx, "step", Number(e.target.value))}
+                    fullWidth
+                  />
+                </Grid>
+              </>
+            )}
+            {v.type === "categorical" && (
               <Grid item xs={12} sm={3}>
                 <TextField
-                  label="Values"
-                  value={v.values?.join(",") || ""}
-                  onChange={(e) => updateVar(idx, "values", e.target.value.split(","))}
+                  label="Levels"
+                  value={v.values.join(",")}
+                  onChange={(e) => updateVar(idx, "values", e.target.value)}
                   fullWidth
                 />
               </Grid>
@@ -129,6 +172,52 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
           inputProps={{ min: 1 }}
         />
       </Box>
+      <Box sx={{ mb: 2 }}>
+        <label style={{ marginRight: "1rem" }}>Experimental Mode:</label>
+        <Select value={mode} onChange={(e) => setMode(e.target.value)}>
+          <MenuItem value="batch">Batch</MenuItem>
+          <MenuItem value="sequential">Sequential</MenuItem>
+        </Select>
+      </Box>
+      {mode === "sequential" && (
+        <Box sx={{ mb: 2 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                type="number"
+                label="Batch Size"
+                value={seq.batchSize}
+                onChange={(e) => setSeq((p) => ({ ...p, batchSize: Number(e.target.value) }))}
+                inputProps={{ min: 1 }}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                type="number"
+                label="Max Iterations"
+                value={seq.maxIter}
+                onChange={(e) => setSeq((p) => ({ ...p, maxIter: e.target.value }))}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Button variant="outlined" component="label">
+                Upload Pilot Data
+                <input
+                  type="file"
+                  accept=".csv"
+                  hidden
+                  onChange={(e) =>
+                    setSeq((p) => ({ ...p, pilotFile: e.target.files[0] }))
+                  }
+                />
+              </Button>
+              {seq.pilotFile && <span style={{ marginLeft: 8 }}>{seq.pilotFile.name}</span>}
+            </Grid>
+          </Grid>
+        </Box>
+      )}
       <Box display="flex" justifyContent="flex-end" gap={1}>
         <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
           Back

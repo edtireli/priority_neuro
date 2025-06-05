@@ -8,6 +8,7 @@ function Step8_MiscSettings({ config, setConfig, setStep }) {
     gpuEnabled: false,
     notifyEmail: false,
     inAppNotify: false,
+    highContrast: false,
     emailAddress: config.metadata?.contact_email || "",
     jobName: "",
   });
@@ -74,6 +75,12 @@ function Step8_MiscSettings({ config, setConfig, setStep }) {
           <FormControlLabel
             control={<Checkbox checked={settings.inAppNotify} onChange={(e) => update("inAppNotify", e.target.checked)} />}
             label="Enable In-App Notification"
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <FormControlLabel
+            control={<Checkbox checked={settings.highContrast} onChange={(e) => update("highContrast", e.target.checked)} />}
+            label="High Contrast Mode"
           />
         </Grid>
         <Grid item xs={12}>
