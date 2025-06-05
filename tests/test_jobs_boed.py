@@ -30,6 +30,7 @@ def client(tmp_path, monkeypatch):
             db.close()
 
     monkeypatch.setenv("RESULTS_ROOT", str(tmp_path / "results"))
+    monkeypatch.setenv("UPLOADS_ROOT", str(tmp_path / "uploads"))
     monkeypatch.setattr("tasks.SessionLocal", TestingSessionLocal)
     app.dependency_overrides[get_db] = override_get_db
     Base.metadata.drop_all(bind=engine)
@@ -84,3 +85,38 @@ def test_real_optimisation(client, tmp_path):
     data = json.loads(results.text)
     assert data["utilityValue"] >= 0
     assert 0.0 <= data["optimalDesign"]["x"] <= 1.0
+
+def test_sequential_two_iterations(client, tmp_path):
+    token = get_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    proj = client.post("/api/projects", json={"name": "P2", "description": ""}, headers=headers).json()
+    pid = proj["id"]
+    config = {
+        "metadata": {"name": "P2", "description": ""},
+        "model": {"type": "built-in", "templateName": "psychometric", "parameters": [
+            {"name": "threshold", "type": "float", "default_prior": {"dist": "Uniform", "low":0.0, "high":1.0}}
+        ]},
+        "priors": {"threshold": {"dist": "Uniform", "low":0.0, "high":1.0}},
+        "designVariables": [{"name": "x", "type": "continuous", "range": [0.0, 1.0]}],
+        "advanced_options": {"batch_size": 1, "max_iterations": 2}
+    }
+    client.put(f"/api/projects/{pid}/config", json=config, headers=headers)
+    job = client.post(f"/api/projects/{pid}/jobs", json={"job_name": "S", "mode": "sequential", "compute_type": "cpu"}, headers=headers).json()
+    jid = job["id"]
+    run_optimisation_task.run(jid)
+    results_dir = tmp_path/"results"/pid/jid/"iteration_0"/"designs.json"
+    assert results_dir.exists()
+    upload_dir = tmp_path/"uploads"/"data"/jid
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    with open(upload_dir/"iteration_0.json", "w") as f:
+        json.dump({"y": 1}, f)
+    run_optimisation_task.run(jid)
+    results_dir1 = tmp_path/"results"/pid/jid/"iteration_1"/"designs.json"
+    assert results_dir1.exists()
+    with open(upload_dir/"iteration_1.json", "w") as f:
+        json.dump({"y": 1}, f)
+    run_optimisation_task.run(jid)
+    optimal = tmp_path/"results"/pid/jid/"optimal.json"
+    assert optimal.exists()
+    status = client.get(f"/api/projects/{pid}/jobs/{jid}/status", headers=headers).json()
+    assert status["status"] == "succeeded"
