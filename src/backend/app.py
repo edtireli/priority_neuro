@@ -1,20 +1,17 @@
 from dotenv import load_dotenv
 load_dotenv()
+import os
+DEVELOPER_MODE = os.getenv("DEVELOPER_MODE", "false").lower() in ("1", "true", "yes")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-DEVELOPER_MODE = os.getenv("DEVELOPER_MODE", "false").lower() in ("1", "true", "yes")
 
 from routers.auth import router as auth_router
 from routers.projects import router as projects_router
 from routers.templates import router as templates_router
 from routers.jobs import router as jobs_router
 from routers.data import router as data_router
-import os
 
-
-DEVELOPER_MODE = os.getenv("DEVELOPER_MODE", "false").lower() in ("1", "true", "yes")
 app = FastAPI()
 
 origins = ["http://localhost:3000"]
