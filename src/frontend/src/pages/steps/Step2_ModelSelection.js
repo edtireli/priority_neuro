@@ -29,6 +29,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       .then((res) => setTemplates(res.data))
       .catch(() => setError("Could not load templates"))
       .finally(() => setLoadingTemplates(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const chooseBuiltIn = (e) => {
