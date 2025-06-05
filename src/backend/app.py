@@ -5,6 +5,7 @@ from routers.projects import router as projects_router
 from routers.templates import router as templates_router
 from routers.jobs import router as jobs_router
 from routers.data import router as data_router
+from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
