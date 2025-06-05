@@ -26,6 +26,7 @@ function ProjectJobsPage() {
     advanced_options: "{}",
   });
   const [error, setError] = useState("");
+  // eslint-disable-next-line no-unused-vars
   const [resultView, setResultView] = useState(null);
   const [polling, setPolling] = useState({});
   const [logView, setLogView] = useState({ open: false, text: "" });
@@ -38,6 +39,7 @@ function ProjectJobsPage() {
     return () => {
       Object.values(polling).forEach(clearInterval);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchJobs = async () => {
