@@ -56,6 +56,6 @@ class Job(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     result_location = Column(String, nullable=True)
-    log = Column(String, nullable=True)
+    log = Column(String, nullable=True, default="")
 
     project = relationship("Project", back_populates="jobs")

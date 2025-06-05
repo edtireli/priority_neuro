@@ -77,6 +77,19 @@ def get_job_results(
         data = f.read()
     return data
 
+
+@router.get("/{job_id}/log")
+def get_job_log(
+    project_id: UUID,
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
+    if not job or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"log": job.log or ""}
+
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 def cancel_job(
     project_id: UUID,
@@ -91,5 +104,6 @@ def cancel_job(
         raise HTTPException(status_code=400, detail="Cannot cancel a completed job")
     celery.control.revoke(str(job.id), terminate=True)
     job.status = JobStatus.failed
+    job.log = (job.log or "") + "\nJob was cancelled by user."
     db.commit()
     return

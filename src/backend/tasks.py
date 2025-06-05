@@ -5,6 +5,8 @@ import uuid
 from celery_app import celery
 from database import SessionLocal
 from models import Job, Project, JobStatus
+import traceback
+from celery.signals import task_failure
 from sqlalchemy.orm import Session
 import numpy as np
 from models.expressions import PsychometricModel, PoissonRateModel
@@ -306,11 +308,32 @@ def run_optimisation_task(self, job_id_str: str):
         job.completed_at = datetime.utcnow()
         job.result_location = result_path
         db.commit()
-    except Exception as e:
+    except MemoryError:
         if job:
             job.status = JobStatus.failed
             job.completed_at = datetime.utcnow()
-            job.log = str(e)
+            job.log = "Out of memory: " + traceback.format_exc()
+            db.commit()
+    except Exception:
+        if job:
+            job.status = JobStatus.failed
+            job.completed_at = datetime.utcnow()
+            job.log = traceback.format_exc()
             db.commit()
     finally:
         db.close()
+
+
+@task_failure.connect
+def capture_failure(sender=None, task_id=None, exception=None, args=None, kwargs=None, **others):
+    job_id = task_id
+    db = SessionLocal()
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if job:
+        job.status = JobStatus.failed
+        job.log = f"Uncaught exception: {traceback.format_exc()}"
+        job.completed_at = datetime.utcnow()
+        db.commit()
+    db.close()
+
+
