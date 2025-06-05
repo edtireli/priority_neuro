@@ -2,6 +2,14 @@ import React, { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import { AuthContext } from "../contexts/AuthContext";
+import {
+  Container,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Paper,
+} from "@mui/material";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -32,34 +40,44 @@ const LoginPage = () => {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "2rem auto" }}>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email:</label>
-          <input
+    <Container maxWidth="sm" sx={{ mt: 8 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h5" align="center" gutterBottom>
+          Login
+        </Typography>
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Email"
+            margin="normal"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input
+          <TextField
+            fullWidth
+            label="Password"
+            margin="normal"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-        </div>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <button type="submit">Login</button>
-      </form>
-      <p>
-        No account? <Link to="/signup">Sign up</Link>
-      </p>
-    </div>
+          {error && (
+            <Typography color="error" sx={{ mt: 1 }}>
+              {error}
+            </Typography>
+          )}
+          <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
+            Login
+          </Button>
+        </Box>
+        <Typography align="center" sx={{ mt: 2 }}>
+          No account? <Link to="/signup">Sign up</Link>
+        </Typography>
+      </Paper>
+    </Container>
   );
 };
 
