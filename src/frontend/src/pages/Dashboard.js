@@ -6,9 +6,7 @@ import {
   Grid,
   Card,
   CardContent,
-  CardActions,
-  Button,
-  Box,
+  CardActionArea,
 } from "@mui/material";
 
 export default function Dashboard() {
@@ -53,25 +51,16 @@ export default function Dashboard() {
                 "&:hover": { transform: "scale(1.05)" },
               }}
             >
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography gutterBottom variant="h6" component="h2">
-                  {card.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {card.description}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Box sx={{ flexGrow: 1 }} />
-                <Button
-                  component={Link}
-                  to={card.to}
-                  variant="contained"
-                  size="small"
-                >
-                  Go
-                </Button>
-              </CardActions>
+              <CardActionArea component={Link} to={card.to} sx={{ height: "100%" }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography gutterBottom variant="h6" component="h2">
+                    {card.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {card.description}
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
             </Card>
           </Grid>
         ))}
