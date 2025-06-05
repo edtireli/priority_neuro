@@ -29,15 +29,15 @@ RESULTS_ROOT = os.getenv("RESULTS_ROOT", "results")
 UPLOADS_ROOT = os.getenv("UPLOADS_ROOT", "uploads")
 
 conf = ConnectionConfig(
-    mail_username="your_smtp_username",
-    mail_password="your_smtp_password",
-    mail_from="no-reply@yourdomain.com",
-    mail_server="smtp.yourprovider.com",
-    mail_port=587,
-    mail_starttls=True,
-    mail_ssl_tls=False,
-    use_credentials=True,
-    validate_certs=True,
+    MAIL_USERNAME="your_smtp_username",
+    MAIL_PASSWORD="your_smtp_password",
+    MAIL_FROM="no-reply@yourdomain.com",
+    MAIL_SERVER="smtp.yourprovider.com",
+    MAIL_PORT=587,
+    MAIL_STARTTLS=True,
+    MAIL_SSL_TLS=False,
+    USE_CREDENTIALS=True,
+    VALIDATE_CERTS=True,
 )
 templates = Jinja2Templates(directory="./email_templates")
 
