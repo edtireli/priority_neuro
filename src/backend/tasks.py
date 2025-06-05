@@ -57,10 +57,7 @@ def send_verification_email(email: str, full_name: str, token: str):
         subtype="html",
     )
     fm = FastMail(conf)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(fm.send_message(message))
-    loop.close()
+    asyncio.run(fm.send_message(message))
 
 
 def simple_sample_design(design_vars):
