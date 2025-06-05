@@ -7,15 +7,22 @@ import ProjectWizard from "./pages/ProjectWizard";
 import ProjectJobsPage from "./pages/ProjectJobsPage";
 import ResultsPage from "./pages/ResultsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Header from "./components/Header";
+import EmailVerificationPage from "./pages/EmailVerificationPage";
+import ResendVerificationPage from "./pages/ResendVerificationPage";
 import { AuthContext } from "./contexts/AuthContext";
 
 const App = () => {
   const { authToken } = useContext(AuthContext);
 
   return (
-    <Routes>
+    <>
+      <Header />
+      <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/verify-email" element={<EmailVerificationPage />} />
+      <Route path="/resend-verification" element={<ResendVerificationPage />} />
       <Route
         path="/dashboard"
         element={
@@ -53,6 +60,7 @@ const App = () => {
         element={authToken ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
       />
     </Routes>
+    </>
   );
 };
 

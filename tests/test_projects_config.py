@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 from app import app
 from database import Base
 from dependencies import get_db
+from models import User
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
@@ -52,6 +53,10 @@ def create_user(client):
         "password": "secret",
     }
     client.post("/api/auth/register", json=payload)
+    db = TestingSessionLocal()
+    token_val = db.query(User).filter(User.email == payload["email"]).first().verification_token
+    db.close()
+    client.post("/api/auth/verify", json={"token": token_val})
     login = client.post("/api/auth/login", json={"email": payload["email"], "password": payload["password"]})
     token = login.json()["access_token"]
     return token

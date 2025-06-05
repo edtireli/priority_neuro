@@ -56,7 +56,7 @@ const SignupPage = () => {
         </Typography>
         {success ? (
           <Alert severity="success">
-            Account created. <Link to="/login">Login</Link>
+            Account created. Please check your email to verify your account.
           </Alert>
         ) : (
           <Box component="form" onSubmit={handleSubmit}>

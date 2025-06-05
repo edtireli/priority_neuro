@@ -16,3 +16,5 @@ scikit-learn
 httpx
 email-validator
 python-multipart
+fastapi-mail
+jinja2

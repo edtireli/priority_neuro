@@ -12,6 +12,7 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 from app import app
 from database import Base
 from dependencies import get_db
+from models import User
 
 engine = create_engine(
     os.environ["DATABASE_URL"],
@@ -88,6 +89,10 @@ def test_config_endpoints_validation(client, tmp_path):
         "institution": "Inst",
         "password": "TestPass123"
     })
+    db = TestingSessionLocal()
+    token_val = db.query(User).filter(User.email == "test@example.com").first().verification_token
+    db.close()
+    client.post("/api/auth/verify", json={"token": token_val})
     login_res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "TestPass123"})
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

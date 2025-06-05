@@ -12,6 +12,9 @@ class User(Base):
     full_name = Column(String, nullable=False)
     institution = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
+    is_verified = Column(Boolean, default=False, nullable=False)
+    verification_token = Column(String, nullable=True)
+    verification_sent_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

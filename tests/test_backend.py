@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app import app
 from database import Base
+from models import User
 from dependencies import get_db
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -52,6 +53,10 @@ def test_register_login_and_me(client):
     }
     resp = client.post("/api/auth/register", json=user_payload)
     assert resp.status_code == 201
+    db = TestingSessionLocal()
+    token_val = db.query(User).filter(User.email == user_payload["email"]).first().verification_token
+    db.close()
+    client.post("/api/auth/verify", json={"token": token_val})
     login_resp = client.post("/api/auth/login", json={"email": user_payload["email"], "password": user_payload["password"]})
     assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]

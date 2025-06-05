@@ -52,17 +52,12 @@ const DashboardPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   if (loading) return <p>Loading...</p>;
 
   return (
     <div style={{ maxWidth: 600, margin: "2rem auto" }}>
       <h2>Projects</h2>
-      <button onClick={handleLogout}>Logout</button>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleCreate} style={{ marginTop: "1rem" }}>
         <input
