@@ -4,14 +4,14 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [authToken, setAuthToken] = useState(() =>
-    localStorage.getItem("authToken")
+    localStorage.getItem("token")
   );
 
   useEffect(() => {
     if (authToken) {
-      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("token", authToken);
     } else {
-      localStorage.removeItem("authToken");
+      localStorage.removeItem("token");
     }
   }, [authToken]);
 
