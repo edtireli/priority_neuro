@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
+import { AuthContext } from "../contexts/AuthContext";
 import {
   Container,
   TextField,
@@ -12,6 +13,7 @@ import {
 
 const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -32,6 +34,8 @@ const LoginPage = ({ onLogin }) => {
     try {
       const resp = await api.post("/auth/login", { email, password });
       localStorage.setItem("token", resp.data.access_token);
+      // keep AuthContext in sync
+      if (login) login(resp.data.access_token);
       if (onLogin) onLogin();
       navigate("/dashboard");
     } catch (err) {
