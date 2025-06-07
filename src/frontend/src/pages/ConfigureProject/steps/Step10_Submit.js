@@ -46,7 +46,7 @@ function Step10_Submit({ config }) {
       const res = await api.post(`/projects/${projectId}/jobs/`, form);
       const jobId = res.data.job_id || res.data.id;
       alert(`Job ${jobId} submitted successfully`);
-      navigate(`/projects/${projectId}/jobs`);
+      navigate(`/projects/${projectId}/jobs`); // redirect to job list
     } catch (err) {
       const detail = err.response?.data?.detail || err.message;
       setError(detail);
