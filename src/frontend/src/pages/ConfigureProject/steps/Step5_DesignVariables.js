@@ -67,7 +67,7 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
     <div>
       <h3>Define Design Variables</h3>
       <Typography sx={{ mb: 2 }}>
-        Step 5: Define design variables to optimize. Example: stimulusIntensity
+        Step 5: Define design variables to optimize, e.g. stimulusIntensity
         range 0–1.
       </Typography>
       {vars.map((v, idx) => (
