@@ -13,6 +13,14 @@ import {
   Alert,
   Checkbox,
   FormControlLabel,
+  Typography,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TableContainer,
+  Paper,
 } from "@mui/material";
 
 function Step2_ModelSelection({ config, setConfig, setStep }) {
@@ -23,6 +31,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
   );
   const [customFile, setCustomFile] = useState(null);
   const [schema, setSchema] = useState(config.model.parameters || null);
+  const [dvChoices, setDvChoices] = useState(config.model.dependentVariables || []);
   const [dvs, setDvs] = useState(config.model.dependentVariables || []);
   const [error, setError] = useState("");
   const [loadingTemplates, setLoadingTemplates] = useState(true);
@@ -49,6 +58,20 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
     "hybrid psychometric/poisson": ["Choice", "Spike Count"],
   };
 
+  const formatPrior = (prior) => {
+    if (!prior) return "";
+    if (prior.dist === "Normal") {
+      return `Normal(μ=${prior.mean},σ=${prior.sd})`;
+    }
+    if (prior.dist === "Gamma") {
+      return `Gamma(shape=${prior.shape},scale=${prior.scale})`;
+    }
+    if (prior.dist === "Beta") {
+      return `Beta(α=${prior.alpha},β=${prior.beta})`;
+    }
+    return prior.dist;
+  };
+
   const chooseBuiltIn = (e) => {
     const name = e.target.value;
     setSelectedTemplate(name);
@@ -60,15 +83,16 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       .then((res) => {
         const lookup =
           templateOutcomes[name] || templateOutcomes[name.toLowerCase()] || [];
-        setSchema(res.data);
+        const schemaData = res.data.schema || res.data;
+        setSchema(schemaData);
+        setDvChoices(lookup);
         setDvs(lookup);
         setConfig((prev) => ({
           ...prev,
           model: {
             type: "built-in",
             templateName: name,
-            parameters: res.data.parameters,
-            dependentVariables: lookup,
+            parameters: schemaData.parameters,
           },
         }));
       })
@@ -93,20 +117,32 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       const res = await api.post("/templates/upload", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setSchema(res.data.schema);
+      const schemaData = res.data.schema;
+      setSchema(schemaData);
+      setDvChoices([]);
+      setDvs([]);
       setConfig((prev) => ({
         ...prev,
         model: {
           type: "custom",
           customFileName: customFile.name,
-          parameters: res.data.schema.parameters,
+          parameters: schemaData.parameters,
         },
       }));
-    } catch {
+  } catch {
       setError("Upload failed or invalid model file");
     } finally {
       setLoadingSchema(false);
     }
+  };
+
+  const handleDvChange = (dv, checked) => {
+    setDvs((prev) => {
+      if (checked) {
+        return prev.includes(dv) ? prev : [...prev, dv];
+      }
+      return prev.filter((x) => x !== dv);
+    });
   };
 
   const onNext = () => {
@@ -127,6 +163,12 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
 
   return (
     <div>
+      <Typography sx={{ mb: 2 }}>
+        Step 2: Choose your computational model. You may pick one of our built-in
+        templates or upload your own Python model file. Built-ins include schema
+        and default priors; custom models must implement a get_schema() function
+        that returns name, description, parameters.
+      </Typography>
       <h3>Choose Model</h3>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -175,28 +217,55 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       )}
       {schema && (
         <Box my={2}>
-          <pre>{JSON.stringify(schema, null, 2)}</pre>
-          <FormHelperText sx={{ mt: 2 }}>Outcome Variables</FormHelperText>
-          <Box>
-            {dvs.map((dv) => (
-              <FormControlLabel
-                key={dv}
-                control={
-                  <Checkbox
-                    checked={dvs.includes(dv)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setDvs((prev) => [...prev, dv]);
-                      } else {
-                        setDvs((prev) => prev.filter((x) => x !== dv));
-                      }
-                    }}
-                  />
-                }
-                label={dv}
-              />
-            ))}
-          </Box>
+          {schema.description && (
+            <Typography sx={{ mb: 1 }}>{schema.description}</Typography>
+          )}
+          <TableContainer component={Paper} sx={{ mb: 2 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Parameter</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Default Prior</TableCell>
+                  <TableCell>Description</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {schema.parameters.map((param) => (
+                  <TableRow key={param.name}>
+                    <TableCell>{param.name}</TableCell>
+                    <TableCell>{param.type}</TableCell>
+                    <TableCell>{formatPrior(param.default_prior)}</TableCell>
+                    <TableCell>{param.description || "\u2013"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <Typography sx={{ mb: 1 }}>
+            Select one or more outcome measures that will be optimized.
+          </Typography>
+          {dvChoices.length === 0 ? (
+            <Typography>
+              No outcome variables defined. You can add them now or in the
+              Priors step.
+            </Typography>
+          ) : (
+            <Box>
+              {dvChoices.map((dv) => (
+                <FormControlLabel
+                  key={dv}
+                  control={
+                    <Checkbox
+                      checked={dvs.includes(dv)}
+                      onChange={(e) => handleDvChange(dv, e.target.checked)}
+                    />
+                  }
+                  label={dv}
+                />
+              ))}
+            </Box>
+          )}
         </Box>
       )}
       <Box display="flex" justifyContent="flex-end" gap={1}>
