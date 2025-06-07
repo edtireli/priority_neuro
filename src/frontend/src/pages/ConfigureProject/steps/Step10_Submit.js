@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import api from "../../../api";
 import { useNavigate, useParams } from "react-router-dom";
 import { Typography, Button, Box, CircularProgress, Alert } from "@mui/material";
+import stringifyError from "../../../utils/stringifyError";
 
 function Step10_Submit({ config }) {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ function Step10_Submit({ config }) {
       </Typography>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+          {stringifyError(error)}
         </Alert>
       )}
       <Box display="flex" justifyContent="flex-end" gap={1}>

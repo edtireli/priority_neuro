@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../../../api";
+import stringifyError from "../../../utils/stringifyError";
 import { useParams } from "react-router-dom";
 import {
   TextField,
@@ -169,7 +170,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       </Typography>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+          {stringifyError(error)}
         </Alert>
       )}
       {loadingTemplates ? (

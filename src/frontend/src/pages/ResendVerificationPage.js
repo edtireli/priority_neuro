@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
 import { Container, TextField, Button, Typography, Paper } from "@mui/material";
+import stringifyError from "../utils/stringifyError";
 
 const ResendVerificationPage = () => {
   const [email, setEmail] = useState("");
@@ -39,7 +40,7 @@ const ResendVerificationPage = () => {
         </form>
         {message && (
           <Typography align="center" sx={{ mt: 2 }}>
-            {message}
+            {stringifyError(message)}
           </Typography>
         )}
         <Typography align="center" sx={{ mt: 2 }}>

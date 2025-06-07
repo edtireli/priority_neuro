@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 import { NotificationContext } from "../contexts/NotificationContext";
+import stringifyError from "../utils/stringifyError";
 import {
   TextField,
   Button,
@@ -225,7 +226,11 @@ function ProjectJobsPage() {
             />
           </Grid>
         </Grid>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {stringifyError(error)}
+          </Alert>
+        )}
         <Box display="flex" justifyContent="flex-end">
           <Button
             variant="contained"
