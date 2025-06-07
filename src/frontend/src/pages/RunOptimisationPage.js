@@ -57,15 +57,18 @@ export default function RunOptimisationPage() {
     setStarting(true);
     setStartError("");
     try {
-      await api.post(`/projects/${projectId}/jobs`, {
+      const payload = {
         job_name: config?.misc?.jobName || "Job",
-        mode: config?.experimentalMode || "batch",
+        mode:
+          config?.experimentalMode === "sequential" ? "sequential" : "single_shot",
         compute_type: config?.misc?.gpuEnabled ? "gpu" : "cpu",
         advanced_options: config,
-      });
+      };
+      await api.post(`/projects/${projectId}/jobs`, payload);
       navigate(`/projects/${projectId}/jobs`);
     } catch (err) {
-      setStartError(err);
+      const detail = err.response?.status === 422 ? err.response.data.detail : err;
+      setStartError(detail);
     } finally {
       setStarting(false);
     }
