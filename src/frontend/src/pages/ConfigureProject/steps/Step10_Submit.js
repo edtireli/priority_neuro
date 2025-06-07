@@ -40,9 +40,7 @@ function Step10_Submit({ config }) {
         form.append("pilot_data", config.sequentialSettings.pilotFile);
       }
 
-      const res = await api.post(`/projects/${projectId}/jobs`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await api.post(`/projects/${projectId}/jobs`, form);
       const jobId = res.data.job_id || res.data.id;
       alert(`Job ${jobId} submitted successfully`);
       navigate(`/projects/${projectId}/jobs`);
