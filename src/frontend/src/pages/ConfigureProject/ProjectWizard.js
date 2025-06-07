@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Container, Typography, Card, CardContent } from "@mui/material";
+import {
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
+} from "@mui/material";
 import api from "../../api";
 import WizardNav from "../../components/WizardNav";
 import Step1_Metadata from "./steps/Step1_Metadata";
@@ -20,6 +33,9 @@ function ProjectWizard() {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState(null);
   const [step, setStep] = useState(1);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importError, setImportError] = useState("");
 
   useEffect(() => {
     api
@@ -46,13 +62,61 @@ function ProjectWizard() {
       .finally(() => setLoading(false));
   }, [projectId, navigate]);
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setImportText(text);
+    } catch (err) {
+      setImportError("Failed to read file");
+    }
+  };
+
+  const handleValidateLoad = () => {
+    try {
+      const parsed = JSON.parse(importText);
+      const required = [
+        "metadata",
+        "model",
+        "groups",
+        "priors",
+        "designVariables",
+        "objective",
+        "constraints",
+        "misc",
+        "trialBudget",
+        "experimentalMode",
+      ];
+      for (const key of required) {
+        if (!(key in parsed)) {
+          throw new Error(`Missing key '${key}'`);
+        }
+      }
+      setConfig(parsed);
+      setImportModalOpen(false);
+      setImportError("");
+      setStep(9);
+    } catch (err) {
+      setImportError(err.message);
+    }
+  };
+
+  const handleCancel = () => {
+    setImportError("");
+    setImportModalOpen(false);
+  };
+
   if (loading || !config) return <p>Loading wizard…</p>;
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" align="center" gutterBottom>
-        Configure Project
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h4">Configure Project</Typography>
+        <Button variant="outlined" onClick={() => setImportModalOpen(true)}>
+          Import JSON
+        </Button>
+      </Box>
       <WizardNav step={step} setStep={setStep} />
       <Card
         sx={{
@@ -118,10 +182,42 @@ function ProjectWizard() {
               setStep={setStep}
             />
           )}
-          {step === 9 && <Step9_Review config={config} setStep={setStep} />}
-          {step === 10 && <Step10_Submit config={config} />}
-        </CardContent>
+      {step === 9 && <Step9_Review config={config} setStep={setStep} />}
+      {step === 10 && <Step10_Submit config={config} />}
+      </CardContent>
       </Card>
+
+      <Dialog open={importModalOpen} onClose={handleCancel} maxWidth="sm" fullWidth>
+        <DialogTitle>Import Configuration JSON</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Configuration JSON"
+            multiline
+            fullWidth
+            minRows={6}
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+          <Box sx={{ mt: 2 }}>
+            <Button variant="outlined" component="label">
+              Choose file
+              <input type="file" accept=".json" hidden onChange={handleFileChange} />
+            </Button>
+          </Box>
+          {importError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {importError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancel}>Cancel</Button>
+          <Button variant="contained" onClick={handleValidateLoad}>
+            Validate &amp; Load
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
