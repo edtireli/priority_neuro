@@ -13,12 +13,32 @@ function Step10_Submit({ config }) {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const res = await api.post(`/projects/${projectId}/jobs`, config);
-      const jobId = res.data.job_id;
+      const payload = {
+        job_name: config.misc?.jobName || "Job",
+        mode: config.experimentalMode === "sequential" ? "sequential" : "single_shot",
+        compute_type: config.misc?.gpuEnabled ? "gpu" : "cpu",
+        advanced_options: {
+          metadata: config.metadata,
+          model: config.model,
+          groups: config.groups,
+          priors: config.priors,
+          designVariables: config.designVariables,
+          objective: config.objective,
+          constraints: config.constraints,
+          misc: config.misc,
+          trialBudget: config.trialBudget,
+          experimentalMode: config.experimentalMode,
+          ...(config.sequentialSettings && {
+            sequentialSettings: config.sequentialSettings,
+          }),
+        },
+      };
+      const res = await api.post(`/projects/${projectId}/jobs`, payload);
+      const jobId = res.data.job_id || res.data.id;
       alert(`Job ${jobId} submitted successfully`);
       navigate(`/projects/${projectId}/jobs`);
     } catch (err) {
-      const detail = err.response?.data?.detail || "Server error";
+      const detail = err.response?.data?.detail || err.message;
       setError(detail);
     } finally {
       setSubmitting(false);
