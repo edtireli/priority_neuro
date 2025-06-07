@@ -21,10 +21,24 @@ import api from "../api";
 export default function RunOptimisationPage() {
   const { projectId } = useParams();
   const [jobs, setJobs] = useState(null);
-  const [loadingError, setLoadingError] = useState(false);
+  const [loadingError, setLoadingError] = useState("");
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState("");
   const [filter, setFilter] = useState("all");
+
+  const renderError = (err) => {
+    if (!err) return null;
+    if (Array.isArray(err)) {
+      return (
+        <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
+          {err.map((e, i) => (
+            <li key={i}>{typeof e === "string" ? e : e.msg || JSON.stringify(e)}</li>
+          ))}
+        </ul>
+      );
+    }
+    return typeof err === "string" ? err : err.msg || JSON.stringify(err);
+  };
 
   // fetch jobs
   const fetchJobs = async () => {
@@ -32,9 +46,10 @@ export default function RunOptimisationPage() {
       const res = await api.get(`/projects/${projectId}/jobs`);
       const list = res.data.jobs || res.data; // backend returns list directly in some places
       setJobs(list);
-      setLoadingError(false);
-    } catch (e) {
-      setLoadingError(true);
+      setLoadingError("");
+    } catch (err) {
+      const detail = err.response?.data?.detail || err.message;
+      setLoadingError(detail);
     }
   };
 
@@ -57,8 +72,9 @@ export default function RunOptimisationPage() {
       });
       const newJob = res.data;
       setJobs((prev) => [newJob, ...(prev || [])]);
-    } catch (e) {
-      setStartError("Could not start job");
+    } catch (err) {
+      const detail = err.response?.data?.detail || err.message;
+      setStartError(detail);
     } finally {
       setStarting(false);
     }
@@ -98,13 +114,13 @@ export default function RunOptimisationPage() {
       </Box>
       {startError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {startError}
+          {renderError(startError)}
         </Alert>
       )}
       {jobs === null ? (
         <Box display="flex" justifyContent="center" my={4}>
           {loadingError ? (
-            <Alert severity="error">Failed to load jobs</Alert>
+            <Alert severity="error">{renderError(loadingError)}</Alert>
           ) : (
             <CircularProgress />
           )}
