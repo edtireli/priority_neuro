@@ -32,13 +32,10 @@ function Step10_Submit({ config }) {
         }),
       };
 
+
+      if (config.misc?.gpuEnabled) cfg.computeType = "gpu";
+
       const form = new FormData();
-      form.append("job_name", config.misc?.jobName || "Job");
-      form.append(
-        "mode",
-        config.experimentalMode === "sequential" ? "sequential" : "single_shot"
-      );
-      form.append("compute_type", config.misc?.gpuEnabled ? "gpu" : "cpu");
       form.append("config", JSON.stringify(cfg));
       if (config.sequentialSettings?.pilotFile) {
         form.append("pilot_data", config.sequentialSettings.pilotFile);
