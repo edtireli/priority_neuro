@@ -47,7 +47,7 @@ function Step3_Groups({ config, setConfig, setStep }) {
     <div>
       <h3>Define Experimental Groups</h3>
       <Typography sx={{ mb: 2 }}>
-        Step 3: Define experimental groups and sample sizes. Example:
+        Step 3: Define experimental groups and sample sizes, e.g.
         Control N=20, Treatment N=20.
       </Typography>
       {groups.map((g, idx) => (
