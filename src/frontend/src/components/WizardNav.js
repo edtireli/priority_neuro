@@ -1,26 +1,33 @@
 import React from "react";
+import { Stepper, Step, StepButton } from "@mui/material";
 
 function WizardNav({ step, setStep }) {
   const labels = [
-    "1. Metadata",
-    "2. Model Selection",
-    "3. Groups",
-    "4. Priors",
-    "5. Design Vars",
-    "6. Objective",
-    "7. Constraints",
-    "8. Misc",
-    "9. Review",
-    "10. Submit",
+    "Metadata",
+    "Model Selection",
+    "Groups",
+    "Priors",
+    "Design Vars",
+    "Objective",
+    "Constraints",
+    "Misc",
+    "Review",
+    "Submit",
   ];
+
   return (
-    <nav style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
+    <Stepper
+      nonLinear
+      activeStep={step - 1}
+      alternativeLabel
+      sx={{ mb: 3 }}
+    >
       {labels.map((label, idx) => (
-        <button key={idx} onClick={() => setStep(idx + 1)} disabled={idx + 1 > step}>
-          {label}
-        </button>
+        <Step key={label} completed={idx + 1 < step}>
+          <StepButton onClick={() => setStep(idx + 1)}>{label}</StepButton>
+        </Step>
       ))}
-    </nav>
+    </Stepper>
   );
 }
 

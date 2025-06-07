@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Container, Typography, Card, CardContent } from "@mui/material";
 import api from "../../api";
 import WizardNav from "../../components/WizardNav";
 import Step1_Metadata from "./steps/Step1_Metadata";
@@ -44,54 +45,80 @@ function ProjectWizard() {
   if (loading || !config) return <p>Loading wizard…</p>;
 
   return (
-    <div>
-      <h2>Configure Project</h2>
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Typography variant="h4" align="center" gutterBottom>
+        Configure Project
+      </Typography>
       <WizardNav step={step} setStep={setStep} />
-      {step === 1 && (
-        <Step1_Metadata config={config} setConfig={setConfig} setStep={setStep} />
-      )}
-      {step === 2 && (
-        <Step2_ModelSelection
-          config={config}
-          setConfig={setConfig}
-          setStep={setStep}
-        />
-      )}
-      {step === 3 && (
-        <Step3_Groups config={config} setConfig={setConfig} setStep={setStep} />
-      )}
-      {step === 4 && (
-        <Step4_Priors
-          config={config}
-          setConfig={setConfig}
-          setStep={setStep}
-        />
-      )}
-      {step === 5 && (
-        <Step5_DesignVariables
-          config={config}
-          setConfig={setConfig}
-          setStep={setStep}
-        />
-      )}
-      {step === 6 && (
-        <Step6_Objective config={config} setConfig={setConfig} setStep={setStep} />
-      )}
-      {step === 7 && (
-        <Step7_Constraints
-          config={config}
-          setConfig={setConfig}
-          setStep={setStep}
-        />
-      )}
-      {step === 8 && (
-        <Step8_MiscSettings config={config} setConfig={setConfig} setStep={setStep} />
-      )}
-      {step === 9 && (
-        <Step9_Review config={config} setStep={setStep} />
-      )}
-      {step === 10 && <Step10_Submit config={config} />}
-    </div>
+      <Card
+        sx={{
+          p: 2,
+          transition: "transform 0.2s",
+          "&:hover": { transform: "scale(1.01)" },
+        }}
+      >
+        <CardContent>
+          {step === 1 && (
+            <Step1_Metadata
+              config={config}
+              setConfig={setConfig}
+              setStep={setStep}
+            />
+          )}
+          {step === 2 && (
+            <Step2_ModelSelection
+              config={config}
+              setConfig={setConfig}
+              setStep={setStep}
+            />
+          )}
+          {step === 3 && (
+            <Step3_Groups
+              config={config}
+              setConfig={setConfig}
+              setStep={setStep}
+            />
+          )}
+          {step === 4 && (
+            <Step4_Priors
+              config={config}
+              setConfig={setConfig}
+              setStep={setStep}
+            />
+          )}
+          {step === 5 && (
+            <Step5_DesignVariables
+              config={config}
+              setConfig={setConfig}
+              setStep={setStep}
+            />
+          )}
+          {step === 6 && (
+            <Step6_Objective
+              config={config}
+              setConfig={setConfig}
+              setStep={setStep}
+            />
+          )}
+          {step === 7 && (
+            <Step7_Constraints
+              config={config}
+              setConfig={setConfig}
+              setStep={setStep}
+            />
+          )}
+          {step === 8 && (
+            <Step8_MiscSettings
+              config={config}
+              setConfig={setConfig}
+              setStep={setStep}
+            />
+          )}
+          {step === 9 && <Step9_Review config={config} setStep={setStep} />}
+          {step === 10 && <Step10_Submit config={config} />}
+        </CardContent>
+      </Card>
+    </Container>
   );
 }
 
