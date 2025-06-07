@@ -18,7 +18,9 @@ import {
 function Step2_ModelSelection({ config, setConfig, setStep }) {
   const { projectId } = useParams();
   const [templates, setTemplates] = useState([]);
-  const [selectedTemplate, setSelectedTemplate] = useState(config.model.templateName || "");
+  const [selectedTemplate, setSelectedTemplate] = useState(
+    config.model.templateName || "",
+  );
   const [customFile, setCustomFile] = useState(null);
   const [schema, setSchema] = useState(config.model.parameters || null);
   const [dvs, setDvs] = useState(config.model.dependentVariables || []);
@@ -32,15 +34,19 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       .then((res) => setTemplates(res.data))
       .catch(() => setError("Could not load templates"))
       .finally(() => setLoadingTemplates(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const templateOutcomes = {
-    Psychometric: ["Choice", "Reaction Time"],
-    "Drift-Diffusion RT-Accuracy model": ["Choice", "Reaction Time"],
-    "Poisson Rate Model": ["Spike Count", "Firing Rate"],
-    "Gaussian Process Calcium Model": ["ΔF/F trace", "Peak Amplitude", "Time to Peak"],
-    "Hybrid Psychometric/Poisson": ["Choice", "Spike Count"],
+    psychometric: ["Choice", "Reaction Time"],
+    "drift-diffusion rt-accuracy model": ["Choice", "Reaction Time"],
+    "poisson rate model": ["Spike Count", "Firing Rate"],
+    "gaussian process calcium model": [
+      "ΔF/F trace",
+      "Peak Amplitude",
+      "Time to Peak",
+    ],
+    "hybrid psychometric/poisson": ["Choice", "Spike Count"],
   };
 
   const chooseBuiltIn = (e) => {
@@ -52,15 +58,17 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
     api
       .get(`/templates/${name}/schema`)
       .then((res) => {
+        const lookup =
+          templateOutcomes[name] || templateOutcomes[name.toLowerCase()] || [];
         setSchema(res.data);
-        setDvs(templateOutcomes[name] || []);
+        setDvs(lookup);
         setConfig((prev) => ({
           ...prev,
           model: {
             type: "built-in",
             templateName: name,
             parameters: res.data.parameters,
-            dependentVariables: templateOutcomes[name] || [],
+            dependentVariables: lookup,
           },
         }));
       })
@@ -88,7 +96,11 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
       setSchema(res.data.schema);
       setConfig((prev) => ({
         ...prev,
-        model: { type: "custom", customFileName: customFile.name, parameters: res.data.schema.parameters },
+        model: {
+          type: "custom",
+          customFileName: customFile.name,
+          parameters: res.data.schema.parameters,
+        },
       }));
     } catch {
       setError("Upload failed or invalid model file");
@@ -116,7 +128,11 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
   return (
     <div>
       <h3>Choose Model</h3>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       {loadingTemplates ? (
         <Box display="flex" justifyContent="center" my={4}>
           <CircularProgress />
