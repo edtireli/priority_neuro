@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import { AuthContext } from "../contexts/AuthContext";
@@ -10,6 +10,8 @@ import {
   Typography,
   Box,
   Paper,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 
 const LoginPage = ({ onLogin }) => {
@@ -19,6 +21,15 @@ const LoginPage = ({ onLogin }) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [unverified, setUnverified] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem("rememberEmail");
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const validate = () => {
     if (!email || !password) return false;
@@ -34,9 +45,12 @@ const LoginPage = ({ onLogin }) => {
     }
     try {
       const resp = await api.post("/auth/login", { email, password });
-      localStorage.setItem("token", resp.data.access_token);
-      // keep AuthContext in sync
-      if (login) login(resp.data.access_token);
+      if (login) login(resp.data.access_token, rememberMe);
+      if (rememberMe) {
+        localStorage.setItem("rememberEmail", email);
+      } else {
+        localStorage.removeItem("rememberEmail");
+      }
       if (onLogin) onLogin();
       navigate("/dashboard");
     } catch (err) {
@@ -78,6 +92,15 @@ const LoginPage = ({ onLogin }) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+            }
+            label="Remember me"
           />
         {error && (
           <Typography color="error" sx={{ mt: 1 }}>
