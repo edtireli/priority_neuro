@@ -165,8 +165,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
     <div>
       <h3>Choose Model</h3>
       <Typography sx={{ mb: 2 }}>
-        Step 2: Choose or upload your computational model. Example: select the
-        psychometric template or upload a custom model.py file.
+        Step 2: Choose or upload your computational model.
       </Typography>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
