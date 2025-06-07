@@ -8,7 +8,8 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   // Use the same token key as the login page and App component
-  const token = localStorage.getItem("token");
+  const token =
+    sessionStorage.getItem("token") || localStorage.getItem("token");
   if (token) config.headers["Authorization"] = `Bearer ${token}`;
   return config;
 });

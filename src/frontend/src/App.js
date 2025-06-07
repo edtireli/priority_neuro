@@ -14,7 +14,8 @@ function App() {
   const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token =
+      sessionStorage.getItem("token") || localStorage.getItem("token");
     if (token) {
       const payload = JSON.parse(atob(token.split(".")[1]));
       setUserEmail(payload.sub_email || payload.sub);
