@@ -1,14 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Typography, Radio, RadioGroup, FormControlLabel, Button, Box } from "@mui/material";
 
-function Step6_Objective({ config, setConfig, setStep }) {
+function Step6_Objective({ config, setConfig }) {
   const [type, setType] = React.useState(config.objective.type || "");
   const [options, setOptions] = React.useState(config.objective.options || {});
 
-  const onNext = () => {
+  useEffect(() => {
     setConfig((prev) => ({ ...prev, objective: { type, options } }));
-    setStep(7);
-  };
+  }, [type, options, setConfig]);
 
   return (
     <div>
@@ -59,14 +58,7 @@ function Step6_Objective({ config, setConfig, setStep }) {
           </Typography>
         </Box>
       </RadioGroup>
-      <Box display="flex" justifyContent="flex-end" gap={1}>
-        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
-          Back
-        </Button>
-        <Button variant="contained" color="primary" onClick={onNext} disabled={!type}>
-          Next
-        </Button>
-      </Box>
+      {/* Navigation handled by WizardNav */}
     </div>
   );
 }

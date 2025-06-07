@@ -127,60 +127,28 @@ function ProjectWizard() {
       >
         <CardContent>
           {step === 1 && (
-            <Step1_Metadata
-              config={config}
-              setConfig={setConfig}
-              setStep={setStep}
-            />
+            <Step1_Metadata config={config} setConfig={setConfig} setStep={setStep} />
           )}
           {step === 2 && (
-            <Step2_ModelSelection
-              config={config}
-              setConfig={setConfig}
-              setStep={setStep}
-            />
+            <Step2_ModelSelection config={config} setConfig={setConfig} />
           )}
           {step === 3 && (
-            <Step3_Groups
-              config={config}
-              setConfig={setConfig}
-              setStep={setStep}
-            />
+            <Step3_Groups config={config} setConfig={setConfig} />
           )}
           {step === 4 && (
-            <Step4_Priors
-              config={config}
-              setConfig={setConfig}
-              setStep={setStep}
-            />
+            <Step4_Priors config={config} setConfig={setConfig} />
           )}
           {step === 5 && (
-            <Step5_DesignVariables
-              config={config}
-              setConfig={setConfig}
-              setStep={setStep}
-            />
+            <Step5_DesignVariables config={config} setConfig={setConfig} />
           )}
           {step === 6 && (
-            <Step6_Objective
-              config={config}
-              setConfig={setConfig}
-              setStep={setStep}
-            />
+            <Step6_Objective config={config} setConfig={setConfig} />
           )}
           {step === 7 && (
-            <Step7_Constraints
-              config={config}
-              setConfig={setConfig}
-              setStep={setStep}
-            />
+            <Step7_Constraints config={config} setConfig={setConfig} />
           )}
           {step === 8 && (
-            <Step8_MiscSettings
-              config={config}
-              setConfig={setConfig}
-              setStep={setStep}
-            />
+            <Step8_MiscSettings config={config} setConfig={setConfig} />
           )}
       {step === 9 && <Step9_Review config={config} setStep={setStep} />}
       {step === 10 && <Step10_Submit config={config} />}

@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Typography, TextField, Button, Grid, Box } from "@mui/material";
 
-function Step7_Constraints({ config, setConfig, setStep }) {
+function Step7_Constraints({ config, setConfig }) {
   const [constraints, setConstraints] = useState(
     config.constraints || {
       sampleSize: "",
@@ -10,6 +10,10 @@ function Step7_Constraints({ config, setConfig, setStep }) {
     },
   );
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    setConfig((prev) => ({ ...prev, constraints }));
+  }, [constraints, setConfig]);
 
   const updateField = (field, value) => {
     setConstraints((prev) => ({ ...prev, [field]: value }));
@@ -24,18 +28,6 @@ function Step7_Constraints({ config, setConfig, setStep }) {
     return false;
   };
 
-  const onNext = () => {
-    const ok = [
-      validateField("sampleSize", constraints.sampleSize),
-      validateField("trialLimit", constraints.trialLimit),
-      validateField("subject", constraints.costWeights.subject),
-      validateField("trial", constraints.costWeights.trial),
-      validateField("session", constraints.costWeights.session),
-    ].every(Boolean);
-    if (!ok) return;
-    setConfig((prev) => ({ ...prev, constraints }));
-    setStep(8);
-  };
 
   return (
     <div>
@@ -126,14 +118,7 @@ function Step7_Constraints({ config, setConfig, setStep }) {
           />
         </Grid>
       </Grid>
-      <Box display="flex" justifyContent="flex-end" gap={1}>
-        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
-          Back
-        </Button>
-        <Button variant="contained" color="primary" onClick={onNext}>
-          Next
-        </Button>
-      </Box>
+      {/* Navigation handled by WizardNav */}
     </div>
   );
 }

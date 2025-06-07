@@ -24,7 +24,15 @@ function WizardNav({ step, setStep }) {
     >
       {labels.map((label, idx) => (
         <Step key={label} completed={idx + 1 < step}>
-          <StepButton onClick={() => setStep(idx + 1)}>{label}</StepButton>
+          <StepButton
+            onClick={() => setStep(idx + 1)}
+            sx={{
+              fontWeight: idx + 1 === step ? "bold" : "inherit",
+              textDecoration: idx + 1 === step ? "underline" : "none",
+            }}
+          >
+            {label}
+          </StepButton>
         </Step>
       ))}
     </Stepper>

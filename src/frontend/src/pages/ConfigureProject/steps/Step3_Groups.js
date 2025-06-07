@@ -1,11 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Typography, TextField, Button, Grid, Box } from "@mui/material";
 
-function Step3_Groups({ config, setConfig, setStep }) {
+function Step3_Groups({ config, setConfig }) {
   const [groups, setGroups] = useState(config.groups || [
     { name: "", N: 10 },
     { name: "", N: 10 },
   ]);
+
+  useEffect(() => {
+    setConfig((prev) => ({ ...prev, groups }));
+  }, [groups, setConfig]);
 
   const updateGroup = (idx, field, value) => {
     const newGroups = groups.map((g, i) =>
@@ -16,32 +20,13 @@ function Step3_Groups({ config, setConfig, setStep }) {
 
   const addGroup = () => {
     if (groups.length >= 5) return;
-    setGroups([...groups, { name: "", N: 10 }]);
+    setGroups((prev) => [...prev, { name: "", N: 10 }]);
   };
 
   const removeGroup = (idx) => {
-    setGroups(groups.filter((_, i) => i !== idx));
+    setGroups((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const onNext = () => {
-    for (const g of groups) {
-      if (!g.name.trim()) {
-        alert("Group names required");
-        return;
-      }
-      if (g.N < 1) {
-        alert("Sample size must be >=1");
-        return;
-      }
-    }
-    const names = groups.map((g) => g.name.trim());
-    if (new Set(names).size !== names.length) {
-      alert("Group names must be unique");
-      return;
-    }
-    setConfig((prev) => ({ ...prev, groups }));
-    setStep(4);
-  };
 
   return (
     <div>
@@ -50,7 +35,8 @@ function Step3_Groups({ config, setConfig, setStep }) {
         Step 3: Define experimental groups and sample sizes, e.g.
         Control N=20, Treatment N=20.
       </Typography>
-      {groups.map((g, idx) => (
+      {Array.isArray(groups) &&
+        groups.map((g, idx) => (
         <Box key={idx} sx={{ mb: 2 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={5}>
@@ -80,7 +66,7 @@ function Step3_Groups({ config, setConfig, setStep }) {
             </Grid>
           </Grid>
         </Box>
-      ))}
+        ))}
       <Button
         variant="outlined"
         onClick={addGroup}
@@ -89,14 +75,7 @@ function Step3_Groups({ config, setConfig, setStep }) {
       >
         Add Group
       </Button>
-      <Box display="flex" justifyContent="flex-end" gap={1}>
-        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
-          Back
-        </Button>
-        <Button variant="contained" color="primary" onClick={onNext}>
-          Next
-        </Button>
-      </Box>
+      {/* Navigation handled by WizardNav */}
     </div>
   );
 }

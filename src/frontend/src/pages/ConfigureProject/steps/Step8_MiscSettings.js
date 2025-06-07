@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Typography, TextField, Checkbox, FormControlLabel, Button, Grid, Box } from "@mui/material";
 
-function Step8_MiscSettings({ config, setConfig, setStep }) {
+function Step8_MiscSettings({ config, setConfig }) {
   const [settings, setSettings] = useState(config.misc || {
     randomSeed: "",
     cpuCores: 4,
@@ -17,14 +17,10 @@ function Step8_MiscSettings({ config, setConfig, setStep }) {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
 
-  const onNext = () => {
-    if (settings.notifyEmail && !settings.emailAddress) {
-      alert("Notification email required");
-      return;
-    }
+  useEffect(() => {
+    if (settings.notifyEmail && !settings.emailAddress) return;
     setConfig((prev) => ({ ...prev, misc: settings }));
-    setStep(9);
-  };
+  }, [settings, setConfig]);
 
   return (
     <div>
@@ -96,14 +92,7 @@ function Step8_MiscSettings({ config, setConfig, setStep }) {
           />
         </Grid>
       </Grid>
-      <Box display="flex" justifyContent="flex-end" gap={1}>
-        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
-          Back
-        </Button>
-        <Button variant="contained" color="primary" onClick={onNext}>
-          Next
-        </Button>
-      </Box>
+      {/* Navigation handled by WizardNav */}
     </div>
   );
 }
