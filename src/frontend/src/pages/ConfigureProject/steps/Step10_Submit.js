@@ -17,7 +17,7 @@ function Step10_Submit({ config }) {
         job_name: config.misc?.jobName || "Job",
         mode: config.experimentalMode === "sequential" ? "sequential" : "single_shot",
         compute_type: config.misc?.gpuEnabled ? "gpu" : "cpu",
-        advanced_options: {
+        config: {
           metadata: config.metadata,
           model: config.model,
           groups: config.groups,
