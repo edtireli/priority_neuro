@@ -34,7 +34,11 @@ function ProjectWizard() {
             priors: {},
             designVariables: [],
             objective: {},
-            constraints: {},
+            constraints: {
+              sampleSize: null,
+              trialLimit: null,
+              costWeights: { subject: 1, trial: 1, session: 1 },
+            },
             misc: {},
           });
       })
