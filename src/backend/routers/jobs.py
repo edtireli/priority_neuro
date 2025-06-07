@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 from uuid import UUID
 import os
+import json
 
 from dependencies import get_current_user, get_db
 from models import Job, Project, JobStatus, RunMode, ComputeType
