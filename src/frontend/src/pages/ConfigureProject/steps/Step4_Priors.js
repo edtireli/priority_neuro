@@ -114,7 +114,7 @@ function Step4_Priors({ config, setConfig }) {
               <InputLabel>Distribution</InputLabel>
               <Select
                 label="Distribution"
-                value={pr.dist}
+                value={pr.dist || ""}
                 onChange={(e) => handleDistChange(param, e.target.value)}
               >
                 <MenuItem value="Normal">Normal</MenuItem>
@@ -128,7 +128,7 @@ function Step4_Priors({ config, setConfig }) {
                   <TextField
                     label="Mean"
                     type="number"
-                    value={pr.mean}
+                    value={pr.mean ?? ""}
                     onChange={(e) =>
                       updateField(param.name, "mean", Number(e.target.value))
                     }
@@ -139,7 +139,7 @@ function Step4_Priors({ config, setConfig }) {
                   <TextField
                     label="SD"
                     type="number"
-                    value={pr.sd}
+                    value={pr.sd ?? ""}
                     onChange={(e) =>
                       updateField(param.name, "sd", Number(e.target.value))
                     }
@@ -156,7 +156,7 @@ function Step4_Priors({ config, setConfig }) {
                   <TextField
                     label="Shape"
                     type="number"
-                    value={pr.shape}
+                    value={pr.shape ?? ""}
                     onChange={(e) =>
                       updateField(param.name, "shape", Number(e.target.value))
                     }
@@ -169,7 +169,7 @@ function Step4_Priors({ config, setConfig }) {
                   <TextField
                     label="Scale"
                     type="number"
-                    value={pr.scale}
+                    value={pr.scale ?? ""}
                     onChange={(e) =>
                       updateField(param.name, "scale", Number(e.target.value))
                     }
@@ -186,7 +186,7 @@ function Step4_Priors({ config, setConfig }) {
                   <TextField
                     label="Alpha"
                     type="number"
-                    value={pr.alpha}
+                    value={pr.alpha ?? ""}
                     onChange={(e) =>
                       updateField(param.name, "alpha", Number(e.target.value))
                     }
@@ -199,7 +199,7 @@ function Step4_Priors({ config, setConfig }) {
                   <TextField
                     label="Beta"
                     type="number"
-                    value={pr.beta}
+                    value={pr.beta ?? ""}
                     onChange={(e) =>
                       updateField(param.name, "beta", Number(e.target.value))
                     }

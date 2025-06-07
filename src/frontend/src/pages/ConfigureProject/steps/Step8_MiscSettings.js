@@ -86,7 +86,7 @@ function Step8_MiscSettings({ config, setConfig }) {
         <Grid item xs={12}>
           <TextField
             label="Job Name (optional)"
-            value={settings.jobName}
+            value={settings.jobName || ""}
             onChange={(e) => update("jobName", e.target.value)}
             fullWidth
           />

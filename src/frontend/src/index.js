@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { unstable_HistoryRouter as Router } from 'react-router-dom';
+import { createBrowserHistory } from 'history';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
@@ -10,13 +11,13 @@ import { NotificationProvider } from './contexts/NotificationContext';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
+    <Router history={createBrowserHistory({ window })} future={{ v7_startTransition: true, v7_normalizeFormMethod: true }}>
       <AuthProvider>
         <NotificationProvider>
           <App />
         </NotificationProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </Router>
   </React.StrictMode>
 );
 

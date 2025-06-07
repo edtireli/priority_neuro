@@ -26,6 +26,7 @@ import Step7_Constraints from "./steps/Step7_Constraints";
 import Step8_MiscSettings from "./steps/Step8_MiscSettings";
 import Step9_Review from "./steps/Step9_Review";
 import Step10_Submit from "./steps/Step10_Submit";
+import ErrorBoundary from "../../components/ErrorBoundary";
 
 function ProjectWizard() {
   const { projectId } = useParams();
@@ -110,7 +111,8 @@ function ProjectWizard() {
   if (loading || !config) return <p>Loading wizard…</p>;
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <ErrorBoundary fallback={<Alert severity="error">Wizard crashed.</Alert>}>
+      <Container maxWidth="md" sx={{ py: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4">Configure Project</Typography>
         <Button variant="outlined" onClick={() => setImportModalOpen(true)}>
@@ -186,7 +188,8 @@ function ProjectWizard() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+      </Container>
+    </ErrorBoundary>
   );
 }
 
