@@ -1,22 +1,14 @@
 import React, { useState } from "react";
 import { Typography, TextField, Button, Grid, Box } from "@mui/material";
 
-const DEFAULT = {
-  sampleSize: null,
-  trialLimit: null,
-  costWeights: { subject: 1, trial: 1, session: 1 },
-};
-
 function Step7_Constraints({ config, setConfig, setStep }) {
-  const [constraints, setConstraints] = useState({
-    sampleSize: config.constraints?.sampleSize ?? DEFAULT.sampleSize,
-    trialLimit: config.constraints?.trialLimit ?? DEFAULT.trialLimit,
-    costWeights: {
-      subject: config.constraints?.costWeights?.subject ?? DEFAULT.costWeights.subject,
-      trial: config.constraints?.costWeights?.trial ?? DEFAULT.costWeights.trial,
-      session: config.constraints?.costWeights?.session ?? DEFAULT.costWeights.session,
+  const [constraints, setConstraints] = useState(
+    config.constraints || {
+      sampleSize: "",
+      trialLimit: "",
+      costWeights: { subject: "", trial: "", session: "" },
     },
-  });
+  );
   const [errors, setErrors] = useState({});
 
   const updateField = (field, value) => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Container,
   Typography,
@@ -21,6 +21,7 @@ import stringifyError from "../utils/stringifyError";
 
 export default function RunOptimisationPage() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState(null);
   const [loadingError, setLoadingError] = useState("");
   const [starting, setStarting] = useState(false);
@@ -56,16 +57,15 @@ export default function RunOptimisationPage() {
     setStarting(true);
     setStartError("");
     try {
-      const form = new FormData();
-      form.append("config", JSON.stringify(config));
-      const res = await api.post(`/projects/${projectId}/jobs`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
+      await api.post(`/projects/${projectId}/jobs`, {
+        job_name: config?.misc?.jobName || "Job",
+        mode: config?.experimentalMode || "batch",
+        compute_type: config?.misc?.gpuEnabled ? "gpu" : "cpu",
+        advanced_options: config,
       });
-      const newJob = res.data;
-      setJobs((prev) => [newJob, ...(prev || [])]);
+      navigate(`/projects/${projectId}/jobs`);
     } catch (err) {
-      const detail = err.response?.data?.detail || err.message;
-      setStartError(detail);
+      setStartError(err);
     } finally {
       setStarting(false);
     }
