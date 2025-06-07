@@ -35,8 +35,7 @@ function Step1_Metadata({ config, setConfig, setStep }) {
     <form onSubmit={handleSubmit(onSubmit)}>
       <h3>Project Metadata</h3>
       <Typography sx={{ mb: 2 }}>
-        Step 1: Enter project metadata. Example: Name='Smith Lab Psychometric Pilot',
-        Contact Email='jsmith@lab.edu'.
+        Step 1: Enter project metadata.'.
       </Typography>
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12}>
