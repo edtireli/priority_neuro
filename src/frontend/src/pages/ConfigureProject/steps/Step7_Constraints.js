@@ -1,14 +1,22 @@
 import React, { useState } from "react";
 import { Typography, TextField, Button, Grid, Box } from "@mui/material";
 
+const DEFAULT = {
+  sampleSize: null,
+  trialLimit: null,
+  costWeights: { subject: 1, trial: 1, session: 1 },
+};
+
 function Step7_Constraints({ config, setConfig, setStep }) {
-  const [constraints, setConstraints] = useState(
-    config.constraints || {
-      sampleSize: null,
-      trialLimit: null,
-      costWeights: { subject: 1, trial: 1, session: 1 },
-    }
-  );
+  const [constraints, setConstraints] = useState({
+    sampleSize: config.constraints?.sampleSize ?? DEFAULT.sampleSize,
+    trialLimit: config.constraints?.trialLimit ?? DEFAULT.trialLimit,
+    costWeights: {
+      subject: config.constraints?.costWeights?.subject ?? DEFAULT.costWeights.subject,
+      trial: config.constraints?.costWeights?.trial ?? DEFAULT.costWeights.trial,
+      session: config.constraints?.costWeights?.session ?? DEFAULT.costWeights.session,
+    },
+  });
   const [errors, setErrors] = useState({});
 
   const updateField = (field, value) => {
@@ -41,9 +49,10 @@ function Step7_Constraints({ config, setConfig, setStep }) {
     <div>
       <h3>Define Constraints & Budget</h3>
       <Typography sx={{ mb: 2 }}>
-        Step 7: Define your resource and budget constraints. Sample Size caps
-        total subjects. Trial Limit caps total trials. Cost weights let you trade
-        off different resource costs.
+        Maximum Sample Size limits how many participants you plan to recruit.
+        Trial Limit caps the total number of trials run across everyone. Cost
+        Weights express how expensive each resource is&mdash;for example, setting
+        the trial weight to 2 would make trials twice as costly as sessions.
       </Typography>
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={6}>
