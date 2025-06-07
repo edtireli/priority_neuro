@@ -91,11 +91,6 @@ function Step1_Metadata({ config, setConfig, setStep }) {
       </RadioGroup>
       </Grid>
     </Grid>
-    <Box display="flex" justifyContent="flex-end" gap={1}>
-      <Button variant="contained" type="submit">
-        Next
-      </Button>
-    </Box>
     {/* Navigation handled by WizardNav */}
   </form>
   );
