@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TextField, Button, Grid, Box } from "@mui/material";
+import { Typography, TextField, Button, Grid, Box } from "@mui/material";
 
 function Step3_Groups({ config, setConfig, setStep }) {
   const [groups, setGroups] = useState(config.groups || [
@@ -46,6 +46,10 @@ function Step3_Groups({ config, setConfig, setStep }) {
   return (
     <div>
       <h3>Define Experimental Groups</h3>
+      <Typography sx={{ mb: 2 }}>
+        Step 3: Define experimental groups and sample sizes. Example:
+        Control N=20, Treatment N=20.
+      </Typography>
       {groups.map((g, idx) => (
         <Box key={idx} sx={{ mb: 2 }}>
           <Grid container spacing={2} alignItems="center">

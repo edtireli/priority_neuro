@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TextField, Checkbox, FormControlLabel, Button, Grid, Box } from "@mui/material";
+import { Typography, TextField, Checkbox, FormControlLabel, Button, Grid, Box } from "@mui/material";
 
 function Step8_MiscSettings({ config, setConfig, setStep }) {
   const [settings, setSettings] = useState(config.misc || {
@@ -29,6 +29,10 @@ function Step8_MiscSettings({ config, setConfig, setStep }) {
   return (
     <div>
       <h3>Additional Settings</h3>
+      <Typography sx={{ mb: 2 }}>
+        Step 8: Configure miscellaneous settings. Example: enable GPU mode and
+        email notifications.
+      </Typography>
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={6}>
           <TextField

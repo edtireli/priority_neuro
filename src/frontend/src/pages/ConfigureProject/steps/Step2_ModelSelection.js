@@ -163,13 +163,11 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
 
   return (
     <div>
-      <Typography sx={{ mb: 2 }}>
-        Step 2: Choose your computational model. You may pick one of our built-in
-        templates or upload your own Python model file. Built-ins include schema
-        and default priors; custom models must implement a get_schema() function
-        that returns name, description, parameters.
-      </Typography>
       <h3>Choose Model</h3>
+      <Typography sx={{ mb: 2 }}>
+        Step 2: Choose or upload your computational model. Example: select the
+        psychometric template or upload a custom model.py file.
+      </Typography>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
