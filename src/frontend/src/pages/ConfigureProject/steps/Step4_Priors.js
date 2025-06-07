@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Typography,
   TextField,
@@ -12,7 +12,7 @@ import {
   FormHelperText,
 } from "@mui/material";
 
-function Step4_Priors({ config, setConfig, setStep }) {
+function Step4_Priors({ config, setConfig }) {
   const parameters = config.model.parameters || [];
   const [priors, setPriors] = useState(() => {
     const obj = {};
@@ -22,6 +22,10 @@ function Step4_Priors({ config, setConfig, setStep }) {
     return obj;
   });
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    setConfig((prev) => ({ ...prev, priors }));
+  }, [priors, setConfig]);
 
   const formatPrior = (prior) => {
     if (!prior) return "";
@@ -88,11 +92,6 @@ function Step4_Priors({ config, setConfig, setStep }) {
     return Object.keys(errs).length === 0;
   };
 
-  const onNext = () => {
-    if (!validate()) return;
-    setConfig((prev) => ({ ...prev, priors }));
-    setStep(5);
-  };
 
   return (
     <div>
@@ -104,7 +103,8 @@ function Step4_Priors({ config, setConfig, setStep }) {
       • enter its defining numbers (e.g. mean = 0.5, sd = 0.2 for a Normal)  
       Example: if you think “threshold” is near 0.5 with moderate spread, select Normal and set Mean = 0.5 and SD = 0.2.
     </Typography>
-      {parameters.map((param) => {
+      {Array.isArray(parameters) &&
+        parameters.map((param) => {
         const pr = priors[param.name] || {};
         const err = errors[param.name] || {};
         return (
@@ -215,15 +215,8 @@ function Step4_Priors({ config, setConfig, setStep }) {
             </FormHelperText>
           </Box>
         );
-      })}
-      <Box display="flex" justifyContent="flex-end" gap={1}>
-        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
-          Back
-        </Button>
-        <Button variant="contained" color="primary" onClick={onNext}>
-          Next
-        </Button>
-      </Box>
+        })}
+      {/* Navigation handled by WizardNav */}
     </div>
   );
 }

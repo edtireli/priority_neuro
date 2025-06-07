@@ -17,9 +17,6 @@ function Step9_Review({ config, setStep }) {
       </pre>
       <p>Estimated compute time: ~{estTime} minutes</p>
       <Box display="flex" justifyContent="flex-end" gap={1}>
-        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
-          Back
-        </Button>
         <Button variant="contained" color="primary" onClick={() => setStep(10)}>
           Submit
         </Button>

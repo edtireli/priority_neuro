@@ -24,7 +24,7 @@ import {
   Paper,
 } from "@mui/material";
 
-function Step2_ModelSelection({ config, setConfig, setStep }) {
+function Step2_ModelSelection({ config, setConfig }) {
   const { projectId } = useParams();
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(
@@ -33,7 +33,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
   const [customFile, setCustomFile] = useState(null);
   const [schema, setSchema] = useState(config.model.parameters || null);
   const [dvChoices, setDvChoices] = useState(config.model.dependentVariables || []);
-  const [dvs, setDvs] = useState(config.model.dependentVariables || []);
+  const [dvs, setDvs] = useState([]);
   const [error, setError] = useState("");
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [loadingSchema, setLoadingSchema] = useState(false);
@@ -139,28 +139,19 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
 
   const handleDvChange = (dv, checked) => {
     setDvs((prev) => {
-      if (checked) {
-        return prev.includes(dv) ? prev : [...prev, dv];
-      }
-      return prev.filter((x) => x !== dv);
+      const next = checked
+        ? prev.includes(dv)
+          ? prev
+          : [...prev, dv]
+        : prev.filter((x) => x !== dv);
+      setConfig((p) => ({
+        ...p,
+        model: { ...p.model, dependentVariables: next },
+      }));
+      return next;
     });
   };
 
-  const onNext = () => {
-    if (!schema) {
-      setError("Please select a template or upload a valid custom model");
-      return;
-    }
-    if (dvs.length === 0) {
-      setError("Select at least one outcome variable");
-      return;
-    }
-    setConfig((prev) => ({
-      ...prev,
-      model: { ...prev.model, dependentVariables: dvs },
-    }));
-    setStep(3);
-  };
 
   return (
     <div>
@@ -189,11 +180,12 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
               <MenuItem value="">
                 <em>-- Select a template --</em>
               </MenuItem>
-              {templates.map((name) => (
+              {Array.isArray(templates) &&
+                templates.map((name) => (
                 <MenuItem key={name} value={name}>
                   {name}
                 </MenuItem>
-              ))}
+                ))}
             </Select>
             <FormHelperText>Built-in Templates</FormHelperText>
           </Grid>
@@ -213,7 +205,7 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
           <CircularProgress />
         </Box>
       )}
-      {schema && (
+      {schema && Array.isArray(dvs) && (
         <Box my={2}>
           {schema.description && (
             <Typography sx={{ mb: 1 }}>{schema.description}</Typography>
@@ -229,14 +221,15 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {schema.parameters.map((param) => (
+                {Array.isArray(schema?.parameters) &&
+                  schema.parameters.map((param) => (
                   <TableRow key={param.name}>
                     <TableCell>{param.name}</TableCell>
                     <TableCell>{param.type}</TableCell>
                     <TableCell>{formatPrior(param.default_prior)}</TableCell>
                     <TableCell>{param.description || "\u2013"}</TableCell>
                   </TableRow>
-                ))}
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>
@@ -250,7 +243,8 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
             </Typography>
           ) : (
             <Box>
-              {dvChoices.map((dv) => (
+              {Array.isArray(dvChoices) &&
+                dvChoices.map((dv) => (
                 <FormControlLabel
                   key={dv}
                   control={
@@ -261,19 +255,12 @@ function Step2_ModelSelection({ config, setConfig, setStep }) {
                   }
                   label={dv}
                 />
-              ))}
+                ))}
             </Box>
           )}
         </Box>
       )}
-      <Box display="flex" justifyContent="flex-end" gap={1}>
-        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
-          Back
-        </Button>
-        <Button variant="contained" color="primary" onClick={onNext}>
-          Next
-        </Button>
-      </Box>
+      {/* Navigation handled by WizardNav */}
     </div>
   );
 }

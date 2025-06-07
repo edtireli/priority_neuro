@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Typography,
   TextField,
@@ -9,13 +9,23 @@ import {
   MenuItem,
 } from "@mui/material";
 
-function Step5_DesignVariables({ config, setConfig, setStep }) {
+function Step5_DesignVariables({ config, setConfig }) {
   const [vars, setVars] = useState(config.designVariables || []);
   const [trialBudget, setTrialBudget] = useState(config.trialBudget || 100);
   const [mode, setMode] = useState(config.experimentalMode || "batch");
   const [seq, setSeq] = useState(
     config.sequentialSettings || { pilotFile: null, batchSize: 10, maxIter: "" }
   );
+
+  useEffect(() => {
+    const nextCfg = {
+      designVariables: vars,
+      trialBudget,
+      experimentalMode: mode,
+    };
+    if (mode === "sequential") nextCfg.sequentialSettings = seq;
+    setConfig((prev) => ({ ...prev, ...nextCfg }));
+  }, [vars, trialBudget, mode, seq, setConfig]);
 
   const addVariable = () => {
     setVars((prev) => [
@@ -42,26 +52,6 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
     setVars((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const onNext = () => {
-    for (const v of vars) {
-      if (v.name.trim() === "") {
-        alert("Variable name required");
-        return;
-      }
-    }
-    if (trialBudget < 1) {
-      alert("Trial budget must be >=1");
-      return;
-    }
-    const nextCfg = {
-      designVariables: vars,
-      trialBudget,
-      experimentalMode: mode,
-    };
-    if (mode === "sequential") nextCfg.sequentialSettings = seq;
-    setConfig((prev) => ({ ...prev, ...nextCfg }));
-    setStep(6);
-  };
 
   return (
     <div>
@@ -70,7 +60,8 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
         Step 5: Define design variables to optimize, e.g. stimulusIntensity
         range 0–1.
       </Typography>
-      {vars.map((v, idx) => (
+      {Array.isArray(vars) &&
+        vars.map((v, idx) => (
         <Box
           key={idx}
           sx={{ border: "1px solid #ccc", p: 2, mb: 2 }}
@@ -164,7 +155,7 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
             </Grid>
           </Grid>
         </Box>
-      ))}
+        ))}
       <Button variant="outlined" onClick={addVariable} sx={{ mb: 2 }}>
         Add Variable
       </Button>
@@ -223,14 +214,7 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
           </Grid>
         </Box>
       )}
-      <Box display="flex" justifyContent="flex-end" gap={1}>
-        <Button variant="contained" onClick={() => setStep((s) => s - 1)}>
-          Back
-        </Button>
-        <Button variant="contained" color="primary" onClick={onNext}>
-          Next
-        </Button>
-      </Box>
+      {/* Navigation handled by WizardNav */}
     </div>
   );
 }
