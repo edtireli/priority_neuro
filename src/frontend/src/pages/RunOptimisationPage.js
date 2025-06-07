@@ -196,6 +196,10 @@ export default function RunOptimisationPage() {
                           <Alert severity="error">{stringifyError(uploadError[job.id])}</Alert>
                         )}
                       </Box>
+                    ) : job.status === "running" ? (
+                      <Button size="small" onClick={() => api.delete(`/projects/${projectId}/jobs/${job.id}`).then(fetchJobs)}>
+                        Cancel
+                      </Button>
                     ) : (
                       <Button component={Link} to={`/projects/${projectId}/jobs/${job.id}`} size="small">
                         View

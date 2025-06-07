@@ -125,7 +125,7 @@ def create_flow(theta_dim, data_design_dim):
     return Flow(transform, StandardNormal([theta_dim]))
 
 
-def train_flow(theta_arr, design_arr, y_arr, epochs=100, batch_size=128):
+def train_flow(theta_arr, design_arr, y_arr, epochs=100, batch_size=128, out_dir="."):
     X = np.concatenate([y_arr, design_arr], axis=1)
     theta_tensor = torch.tensor(theta_arr, dtype=torch.float32)
     x_tensor = torch.tensor(X, dtype=torch.float32)
@@ -158,14 +158,14 @@ def train_flow(theta_arr, design_arr, y_arr, epochs=100, batch_size=128):
         if val_loss < best_val:
             best_val = val_loss
             patience = 0
-            torch.save(flow.state_dict(), "flow.pth")
+            torch.save(flow.state_dict(), os.path.join(out_dir, "flow.pth"))
         else:
             patience += 1
         if patience >= 10:
             break
-    with open("training.log", "w") as f:
+    with open(os.path.join(out_dir, "training.log"), "w") as f:
         f.write("epoch,train_loss,val_loss\n" + "\n".join(log_lines))
-    flow.load_state_dict(torch.load("flow.pth"))
+    flow.load_state_dict(torch.load(os.path.join(out_dir, "flow.pth")))
     flow.eval()
     return flow
 
@@ -372,7 +372,13 @@ def run_optimisation_task(self, job_id_str: str):
 
         n_train = adv.get("n_train", 2000)
         theta_arr, design_arr, y_arr = build_training_set(config["priors"], config["designVariables"], model, N_train=n_train)
-        flow = train_flow(theta_arr, design_arr, y_arr, epochs=adv.get("epochs", 100))
+        flow = train_flow(
+            theta_arr,
+            design_arr,
+            y_arr,
+            epochs=adv.get("epochs", 100),
+            out_dir=results_dir,
+        )
 
         best_design, eval_records = optimize_design(
             config["priors"],

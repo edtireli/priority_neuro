@@ -193,3 +193,74 @@ def cancel_job(
     job.log = (job.log or "") + "\nJob was cancelled by user."
     db.commit()
     return
+
+@router.post("/{job_id}/retry", response_model=JobOut)
+def retry_job(
+    project_id: UUID,
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
+    if not job or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status != JobStatus.failed:
+        raise HTTPException(status_code=400, detail="Only failed jobs can be retried")
+    job.status = JobStatus.queued
+    job.started_at = None
+    job.completed_at = None
+    db.commit()
+    run_optimisation_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    db.refresh(job)
+    return job
+
+
+@router.get("/{job_id}/metrics")
+def get_metrics(
+    project_id: UUID,
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
+    if not job or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    log_path = os.path.join(job.results_folder or "", "training.log")
+    if not os.path.exists(log_path):
+        return {"iteration": 0, "loss": [], "timestamps": []}
+    epochs = []
+    train = []
+    with open(log_path) as f:
+        lines = f.read().strip().splitlines()[1:]
+        for line in lines:
+            ep, tr, _ = line.split(",")
+            epochs.append(int(ep))
+            train.append(float(tr))
+    return {"iteration": epochs[-1] if epochs else 0, "loss": train, "timestamps": epochs}
+
+
+@router.get("/{job_id}/download")
+def download_results(
+    project_id: UUID,
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
+    if not job or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if not job.results_folder or not os.path.isdir(job.results_folder):
+        raise HTTPException(status_code=404, detail="No results available")
+    import io
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for root, _, files in os.walk(job.results_folder):
+            for f in files:
+                path = os.path.join(root, f)
+                zf.write(path, arcname=os.path.relpath(path, job.results_folder))
+    buf.seek(0)
+    from fastapi.responses import StreamingResponse
+
+    return StreamingResponse(buf, media_type="application/zip", headers={"Content-Disposition": f"attachment; filename={job.id}.zip"})
