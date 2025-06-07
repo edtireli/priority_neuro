@@ -25,7 +25,10 @@ export default function RunOptimisationPage() {
   const [loadingError, setLoadingError] = useState("");
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState("");
+  const [config, setConfig] = useState(null);
   const [filter, setFilter] = useState("all");
+  const [uploading, setUploading] = useState({});
+  const [uploadError, setUploadError] = useState({});
 
 
   // fetch jobs
@@ -43,6 +46,7 @@ export default function RunOptimisationPage() {
 
   useEffect(() => {
     fetchJobs();
+    api.get(`/projects/${projectId}/config`).then((res) => setConfig(res.data.config));
     const id = setInterval(fetchJobs, 5000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,11 +56,10 @@ export default function RunOptimisationPage() {
     setStarting(true);
     setStartError("");
     try {
-      const res = await api.post(`/projects/${projectId}/jobs`, {
-        job_name: "Job",
-        mode: "single_shot",
-        compute_type: "cpu",
-        advanced_options: {},
+      const form = new FormData();
+      form.append("config", JSON.stringify(config));
+      const res = await api.post(`/projects/${projectId}/jobs`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       const newJob = res.data;
       setJobs((prev) => [newJob, ...(prev || [])]);
@@ -65,6 +68,24 @@ export default function RunOptimisationPage() {
       setStartError(detail);
     } finally {
       setStarting(false);
+    }
+  };
+
+  const uploadPilot = async (jobId, file) => {
+    setUploading((p) => ({ ...p, [jobId]: true }));
+    setUploadError((p) => ({ ...p, [jobId]: "" }));
+    const form = new FormData();
+    form.append("pilot_data", file);
+    try {
+      const res = await api.post(`/projects/${projectId}/jobs/${jobId}/data`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? res.data : j)));
+    } catch (err) {
+      const detail = err.response?.data?.detail || err.message;
+      setUploadError((p) => ({ ...p, [jobId]: detail }));
+    } finally {
+      setUploading((p) => ({ ...p, [jobId]: false }));
     }
   };
 
@@ -100,6 +121,11 @@ export default function RunOptimisationPage() {
           <MenuItem value="failed">Failed</MenuItem>
         </Select>
       </Box>
+      {jobs && jobs.some((j) => j.status === "paused_awaiting_data") && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {jobs.filter((j) => j.status === "paused_awaiting_data").length} job is paused awaiting your pilot data upload.
+        </Alert>
+      )}
       {startError && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {stringifyError(startError)}
@@ -134,22 +160,42 @@ export default function RunOptimisationPage() {
                 <TableRow key={job.id}>
                   <TableCell>{job.id}</TableCell>
                   <TableCell>
-                    <Chip label={job.status} color={
-                      job.status === "succeeded"
-                        ? "success"
-                        : job.status === "failed"
-                        ? "error"
-                        : "warning"
-                    } size="small" />
+                    <Chip
+                      label={job.status}
+                      color={
+                        job.status === "succeeded"
+                          ? "success"
+                          : job.status === "failed"
+                          ? "error"
+                          : job.status === "paused_awaiting_data"
+                          ? "info"
+                          : "warning"
+                      }
+                      size="small"
+                    />
                   </TableCell>
                   <TableCell>{job.submitted_at ? new Date(job.submitted_at).toLocaleString() : "-"}</TableCell>
                   <TableCell>{job.started_at ? new Date(job.started_at).toLocaleString() : "-"}</TableCell>
                   <TableCell>{job.completed_at ? new Date(job.completed_at).toLocaleString() : "-"}</TableCell>
                   <TableCell>{job.iteration ?? "-"}</TableCell>
                   <TableCell>
-                    <Button component={Link} to={`/projects/${projectId}/jobs/${job.id}`} size="small">
-                      View
-                    </Button>
+                    {job.status === "paused_awaiting_data" ? (
+                      <Box component="span" display="flex" alignItems="center" gap={1}>
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={(e) => uploadPilot(job.id, e.target.files[0])}
+                          disabled={uploading[job.id]}
+                        />
+                        {uploadError[job.id] && (
+                          <Alert severity="error">{stringifyError(uploadError[job.id])}</Alert>
+                        )}
+                      </Box>
+                    ) : (
+                      <Button component={Link} to={`/projects/${projectId}/jobs/${job.id}`} size="small">
+                        View
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

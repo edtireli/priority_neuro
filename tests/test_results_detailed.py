@@ -73,11 +73,16 @@ def test_results_detailed_endpoint(client, tmp_path):
         "designVariables": [
             {"name": "x", "type": "continuous", "range": [0.0, 1.0]}
         ],
-        "advanced_options": {"n_train": 200, "bo_budget": 22, "M_test": 100, "epochs": 5}
+        "advanced_options": {"n_train": 200, "bo_budget": 22, "M_test": 100, "epochs": 5},
+        "experimentalMode": "batch",
     }
     client.put(f"/api/projects/{pid}/config", json=config, headers=headers)
 
-    job = client.post(f"/api/projects/{pid}/jobs", json={"job_name":"J", "mode":"single_shot", "compute_type":"cpu"}, headers=headers).json()
+    job = client.post(
+        f"/api/projects/{pid}/jobs",
+        data={"config": json.dumps(config)},
+        headers=headers,
+    ).json()
     jid = job["id"]
     run_optimisation_task.run(jid)
 

@@ -155,7 +155,7 @@ class JobOut(BaseModel):
     job_name: str
     mode: Literal["single_shot", "sequential"]
     compute_type: Literal["cpu", "gpu"]
-    status: Literal["queued", "running", "succeeded", "failed"]
+    status: Literal["queued", "running", "paused_awaiting_data", "succeeded", "failed"]
     submitted_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
@@ -166,7 +166,7 @@ class JobOut(BaseModel):
 
 class JobStatusOut(BaseModel):
     id: UUID
-    status: Literal["queued", "running", "succeeded", "failed"]
+    status: Literal["queued", "running", "paused_awaiting_data", "succeeded", "failed"]
     submitted_at: datetime
     started_at: datetime | None
     completed_at: datetime | None

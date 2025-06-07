@@ -33,6 +33,7 @@ class Project(Base):
 class JobStatus(str, enum.Enum):
     queued = "queued"
     running = "running"
+    paused_awaiting_data = "paused_awaiting_data"
     succeeded = "succeeded"
     failed = "failed"
 

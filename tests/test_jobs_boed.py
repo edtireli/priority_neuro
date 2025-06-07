@@ -74,11 +74,16 @@ def test_real_optimisation(client, tmp_path):
         "designVariables": [
             {"name": "x", "type": "continuous", "range": [0.0, 1.0]}
         ],
-        "advanced_options": {"n_train": 500, "bo_budget": 5, "M_test": 1000, "epochs": 20}
+        "advanced_options": {"n_train": 500, "bo_budget": 5, "M_test": 1000, "epochs": 20},
+        "experimentalMode": "batch",
     }
     client.put(f"/api/projects/{pid}/config", json=config, headers=headers)
 
-    job = client.post(f"/api/projects/{pid}/jobs", json={"job_name":"J", "mode":"single_shot", "compute_type":"cpu"}, headers=headers).json()
+    job = client.post(
+        f"/api/projects/{pid}/jobs",
+        data={"config": json.dumps(config)},
+        headers=headers,
+    ).json()
     jid = job["id"]
     run_optimisation_task.run(jid)
 
@@ -103,10 +108,15 @@ def test_sequential_two_iterations(client, tmp_path):
         ]},
         "priors": {"threshold": {"dist": "Uniform", "low":0.0, "high":1.0}},
         "designVariables": [{"name": "x", "type": "continuous", "range": [0.0, 1.0]}],
-        "advanced_options": {"batch_size": 1, "max_iterations": 2}
+        "advanced_options": {"batch_size": 1, "max_iterations": 2},
+        "experimentalMode": "sequential",
     }
     client.put(f"/api/projects/{pid}/config", json=config, headers=headers)
-    job = client.post(f"/api/projects/{pid}/jobs", json={"job_name": "S", "mode": "sequential", "compute_type": "cpu"}, headers=headers).json()
+    job = client.post(
+        f"/api/projects/{pid}/jobs",
+        data={"config": json.dumps(config)},
+        headers=headers,
+    ).json()
     jid = job["id"]
     run_optimisation_task.run(jid)
     results_dir = tmp_path/"results"/pid/jid/"iteration_0"/"designs.json"
