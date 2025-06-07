@@ -39,6 +39,9 @@ function Step10_Submit({ config }) {
       if (config.sequentialSettings?.pilotFile) {
         form.append("pilot_data", config.sequentialSettings.pilotFile);
       }
+      if (config.customModelFile) {
+        form.append("custom_model", config.customModelFile);
+      }
 
       const res = await api.post(`/projects/${projectId}/jobs`, form);
       const jobId = res.data.job_id || res.data.id;
