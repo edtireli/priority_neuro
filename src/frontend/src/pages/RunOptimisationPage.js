@@ -53,25 +53,27 @@ export default function RunOptimisationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  const handleStart = async () => {
+  const handleStart = () => {
     setStarting(true);
     setStartError("");
-    try {
-      const payload = {
-        job_name: config?.misc?.jobName || "Job",
-        mode:
-          config?.experimentalMode === "sequential" ? "sequential" : "single_shot",
-        compute_type: config?.misc?.gpuEnabled ? "gpu" : "cpu",
-        config,
-      };
-      await api.post(`/projects/${projectId}/jobs`, payload);
-      navigate(`/projects/${projectId}/jobs`);
-    } catch (err) {
-      const detail = err.response?.status === 422 ? err.response.data.detail : err;
-      setStartError(detail);
-    } finally {
-      setStarting(false);
+    const form = new FormData();
+    form.append("config", JSON.stringify(config));
+    if (config?.sequentialSettings?.pilotFile) {
+      form.append("pilot_data", config.sequentialSettings.pilotFile);
     }
+    if (config?.customModelFile) {
+      form.append("custom_model", config.customModelFile);
+    }
+    api
+      .post(`/projects/${projectId}/jobs`, form)
+      .then(() => navigate(`/projects/${projectId}/jobs`))
+      .catch((err) => {
+        const detail = err.response?.status === 422 ? err.response.data.detail : err;
+        setStartError(detail);
+      })
+      .finally(() => {
+        setStarting(false);
+      });
   };
 
   const uploadPilot = async (jobId, file) => {
