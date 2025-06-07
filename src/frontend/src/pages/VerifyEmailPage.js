@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../api";
+import stringifyError from "../utils/stringifyError";
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
@@ -23,7 +24,7 @@ export default function VerifyEmailPage() {
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Email Verification</h2>
-      <p>{message}</p>
+      <p>{stringifyError(message)}</p>
     </div>
   );
 }

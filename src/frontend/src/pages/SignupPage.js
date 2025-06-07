@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
+import stringifyError from "../utils/stringifyError";
 import {
   Container,
   TextField,
@@ -99,7 +100,7 @@ const SignupPage = () => {
             />
             {error && (
               <Typography color="error" sx={{ mt: 1 }}>
-                {error}
+                {stringifyError(error)}
               </Typography>
             )}
             <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>

@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import { AuthContext } from "../contexts/AuthContext";
+import stringifyError from "../utils/stringifyError";
 import {
   Container,
   TextField,
@@ -80,7 +81,7 @@ const LoginPage = ({ onLogin }) => {
           />
         {error && (
           <Typography color="error" sx={{ mt: 1 }}>
-            {error}
+            {stringifyError(error)}
           </Typography>
         )}
         {unverified && (

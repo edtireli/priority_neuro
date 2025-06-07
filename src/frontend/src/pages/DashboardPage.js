@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import api from "../api";
+import stringifyError from "../utils/stringifyError";
 import { useNavigate, NavLink } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 
@@ -58,7 +59,7 @@ const DashboardPage = () => {
   return (
     <div style={{ maxWidth: 600, margin: "2rem auto" }}>
       <h2>Projects</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p style={{ color: "red" }}>{stringifyError(error)}</p>}
       <form onSubmit={handleCreate} style={{ marginTop: "1rem" }}>
         <input
           placeholder="Name"

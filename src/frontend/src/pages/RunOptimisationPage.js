@@ -17,6 +17,7 @@ import {
   Chip,
 } from "@mui/material";
 import api from "../api";
+import stringifyError from "../utils/stringifyError";
 
 export default function RunOptimisationPage() {
   const { projectId } = useParams();
@@ -26,19 +27,6 @@ export default function RunOptimisationPage() {
   const [startError, setStartError] = useState("");
   const [filter, setFilter] = useState("all");
 
-  const renderError = (err) => {
-    if (!err) return null;
-    if (Array.isArray(err)) {
-      return (
-        <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
-          {err.map((e, i) => (
-            <li key={i}>{typeof e === "string" ? e : e.msg || JSON.stringify(e)}</li>
-          ))}
-        </ul>
-      );
-    }
-    return typeof err === "string" ? err : err.msg || JSON.stringify(err);
-  };
 
   // fetch jobs
   const fetchJobs = async () => {
@@ -114,13 +102,13 @@ export default function RunOptimisationPage() {
       </Box>
       {startError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {renderError(startError)}
+          {stringifyError(startError)}
         </Alert>
       )}
       {jobs === null ? (
         <Box display="flex" justifyContent="center" my={4}>
           {loadingError ? (
-            <Alert severity="error">{renderError(loadingError)}</Alert>
+            <Alert severity="error">{stringifyError(loadingError)}</Alert>
           ) : (
             <CircularProgress />
           )}

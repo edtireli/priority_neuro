@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Plot from "react-plotly.js";
 import api from "../api";
+import stringifyError from "../utils/stringifyError";
 
 function ResultsPage() {
   const { projectId, jobId } = useParams();
@@ -52,7 +53,7 @@ function ResultsPage() {
   };
 
   if (loading) return <p>Loading...</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  if (error) return <p style={{ color: "red" }}>{stringifyError(error)}</p>;
   if (!data) return null;
   if (!data.evaluatedDesigns || data.evaluatedDesigns.length === 0)
     return <p>No candidate designs were evaluated. Please check your model/prior.</p>;

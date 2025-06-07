@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from "../api";
+import stringifyError from "../utils/stringifyError";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -26,7 +27,7 @@ export default function RegisterPage() {
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Register</h2>
-      {message && <p>{message}</p>}
+      {message && <p>{stringifyError(message)}</p>}
       <form onSubmit={handleSubmit}>
         <input
           type="email"
