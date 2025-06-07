@@ -97,10 +97,13 @@ function Step4_Priors({ config, setConfig, setStep }) {
   return (
     <div>
       <h3>Specify Priors</h3>
-      <Typography sx={{ mb: 2 }}>
-        Step 4: Specify prior distributions for each parameter. Example: bias ~
-        Normal(0, 1).
-      </Typography>
+      <Typography variant="subtitle1" gutterBottom>
+      Step 4: Encode your existing knowledge about each model parameter as a “prior.” Priors tell the optimizer which values you believe are most plausible before collecting any data.  
+      For each parameter below:
+      • choose a distribution family (e.g. Normal, Gamma)  
+      • enter its defining numbers (e.g. mean = 0.5, sd = 0.2 for a Normal)  
+      Example: if you think “threshold” is near 0.5 with moderate spread, select Normal and set Mean = 0.5 and SD = 0.2.
+    </Typography>
       {parameters.map((param) => {
         const pr = priors[param.name] || {};
         const err = errors[param.name] || {};
