@@ -13,27 +13,40 @@ function Step10_Submit({ config }) {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const payload = {
-        job_name: config.misc?.jobName || "Job",
-        mode: config.experimentalMode === "sequential" ? "sequential" : "single_shot",
-        compute_type: config.misc?.gpuEnabled ? "gpu" : "cpu",
-        config: {
-          metadata: config.metadata,
-          model: config.model,
-          groups: config.groups,
-          priors: config.priors,
-          designVariables: config.designVariables,
-          objective: config.objective,
-          constraints: config.constraints,
-          misc: config.misc,
-          trialBudget: config.trialBudget,
-          experimentalMode: config.experimentalMode,
-          ...(config.sequentialSettings && {
-            sequentialSettings: config.sequentialSettings,
-          }),
-        },
+      const cfg = {
+        metadata: config.metadata,
+        model: config.model,
+        groups: config.groups,
+        priors: config.priors,
+        designVariables: config.designVariables,
+        objective: config.objective,
+        constraints: config.constraints,
+        misc: config.misc,
+        trialBudget: config.trialBudget,
+        experimentalMode: config.experimentalMode,
+        ...(config.sequentialSettings && {
+          sequentialSettings: {
+            batchSize: config.sequentialSettings.batchSize,
+            maxIter: config.sequentialSettings.maxIter,
+          },
+        }),
       };
-      const res = await api.post(`/projects/${projectId}/jobs`, payload);
+
+      const form = new FormData();
+      form.append("job_name", config.misc?.jobName || "Job");
+      form.append(
+        "mode",
+        config.experimentalMode === "sequential" ? "sequential" : "single_shot"
+      );
+      form.append("compute_type", config.misc?.gpuEnabled ? "gpu" : "cpu");
+      form.append("config", JSON.stringify(cfg));
+      if (config.sequentialSettings?.pilotFile) {
+        form.append("pilot_data", config.sequentialSettings.pilotFile);
+      }
+
+      const res = await api.post(`/projects/${projectId}/jobs`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       const jobId = res.data.job_id || res.data.id;
       alert(`Job ${jobId} submitted successfully`);
       navigate(`/projects/${projectId}/jobs`);

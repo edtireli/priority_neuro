@@ -45,6 +45,22 @@ test('submits config payload', async () => {
   fireEvent.click(screen.getByRole('button', { name: /run optimization/i }));
   await waitFor(() => expect(api.post).toHaveBeenCalled());
   const payload = api.post.mock.calls[0][1];
-  expect(payload).toHaveProperty('config');
-  expect(payload).not.toHaveProperty('advanced_options');
+  expect(payload instanceof FormData).toBe(true);
+  expect(payload.get('job_name')).toBe('Test Job');
+  expect(payload.get('mode')).toBe('single_shot');
+  expect(payload.get('compute_type')).toBe('cpu');
+  expect(payload.get('config')).toBe(
+    JSON.stringify({
+      metadata: {},
+      model: {},
+      groups: [],
+      priors: {},
+      designVariables: [],
+      objective: {},
+      constraints: {},
+      misc: { jobName: 'Test Job' },
+      trialBudget: 1,
+      experimentalMode: 'batch'
+    })
+  );
 });
