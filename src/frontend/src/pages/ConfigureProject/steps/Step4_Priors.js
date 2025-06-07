@@ -96,9 +96,10 @@ function Step4_Priors({ config, setConfig, setStep }) {
 
   return (
     <div>
+      <h3>Specify Priors</h3>
       <Typography sx={{ mb: 2 }}>
-        Step 4: Specify prior distributions for each model parameter. Priors
-        reflect your existing beliefs and guide the optimizer.
+        Step 4: Specify prior distributions for each parameter. Example: bias ~
+        Normal(0, 1).
       </Typography>
       {parameters.map((param) => {
         const pr = priors[param.name] || {};

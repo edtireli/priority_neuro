@@ -1,20 +1,38 @@
-import React from "react";
-import { TextField, Button, Grid, Box } from "@mui/material";
+import React, { useState } from "react";
+import { Typography, TextField, Button, Grid, Box } from "@mui/material";
 
 function Step7_Constraints({ config, setConfig, setStep }) {
-  const [constraints, setConstraints] = React.useState(
+  const [constraints, setConstraints] = useState(
     config.constraints || {
       sampleSize: null,
       trialLimit: null,
       costWeights: { subject: 1, trial: 1, session: 1 },
     }
   );
+  const [errors, setErrors] = useState({});
 
   const updateField = (field, value) => {
     setConstraints((prev) => ({ ...prev, [field]: value }));
   };
 
+  const validateField = (name, value) => {
+    if (value === null || value === "" || Number(value) > 0) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+      return true;
+    }
+    setErrors((prev) => ({ ...prev, [name]: "Must be > 0" }));
+    return false;
+  };
+
   const onNext = () => {
+    const ok = [
+      validateField("sampleSize", constraints.sampleSize),
+      validateField("trialLimit", constraints.trialLimit),
+      validateField("subject", constraints.costWeights.subject),
+      validateField("trial", constraints.costWeights.trial),
+      validateField("session", constraints.costWeights.session),
+    ].every(Boolean);
+    if (!ok) return;
     setConfig((prev) => ({ ...prev, constraints }));
     setStep(8);
   };
@@ -22,6 +40,11 @@ function Step7_Constraints({ config, setConfig, setStep }) {
   return (
     <div>
       <h3>Define Constraints & Budget</h3>
+      <Typography sx={{ mb: 2 }}>
+        Step 7: Define your resource and budget constraints. Sample Size caps
+        total subjects. Trial Limit caps total trials. Cost weights let you trade
+        off different resource costs.
+      </Typography>
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={6}>
           <TextField
@@ -30,20 +53,26 @@ function Step7_Constraints({ config, setConfig, setStep }) {
             fullWidth
             value={constraints.sampleSize || ""}
             onChange={(e) => updateField("sampleSize", Number(e.target.value))}
+            onBlur={(e) => validateField("sampleSize", Number(e.target.value))}
+            error={!!errors.sampleSize}
+            helperText={errors.sampleSize}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
-            label="Maximum Trials Total"
+            label="Maximum Trial Limit"
             type="number"
             fullWidth
             value={constraints.trialLimit || ""}
             onChange={(e) => updateField("trialLimit", Number(e.target.value))}
+            onBlur={(e) => validateField("trialLimit", Number(e.target.value))}
+            error={!!errors.trialLimit}
+            helperText={errors.trialLimit}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
           <TextField
-            label="Cost Weight per Subject"
+            label="Cost per subject"
             type="number"
             step="0.1"
             fullWidth
@@ -54,11 +83,14 @@ function Step7_Constraints({ config, setConfig, setStep }) {
                 costWeights: { ...prev.costWeights, subject: Number(e.target.value) },
               }))
             }
+            onBlur={(e) => validateField("subject", Number(e.target.value))}
+            error={!!errors.subject}
+            helperText={errors.subject || "Default: 1"}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
           <TextField
-            label="Cost Weight per Trial"
+            label="Cost per trial"
             type="number"
             step="0.1"
             fullWidth
@@ -69,11 +101,14 @@ function Step7_Constraints({ config, setConfig, setStep }) {
                 costWeights: { ...prev.costWeights, trial: Number(e.target.value) },
               }))
             }
+            onBlur={(e) => validateField("trial", Number(e.target.value))}
+            error={!!errors.trial}
+            helperText={errors.trial || "Default: 1"}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
           <TextField
-            label="Cost Weight per Session"
+            label="Cost per session"
             type="number"
             step="0.1"
             fullWidth
@@ -84,6 +119,9 @@ function Step7_Constraints({ config, setConfig, setStep }) {
                 costWeights: { ...prev.costWeights, session: Number(e.target.value) },
               }))
             }
+            onBlur={(e) => validateField("session", Number(e.target.value))}
+            error={!!errors.session}
+            helperText={errors.session || "Default: 1"}
           />
         </Grid>
       </Grid>

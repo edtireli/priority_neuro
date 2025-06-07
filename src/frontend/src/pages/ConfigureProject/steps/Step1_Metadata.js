@@ -1,6 +1,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { TextField, Button, Grid, Box, RadioGroup, FormControlLabel, Radio } from "@mui/material";
+import { Typography, TextField, Button, Grid, Box, RadioGroup, FormControlLabel, Radio } from "@mui/material";
 
 function Step1_Metadata({ config, setConfig, setStep }) {
   const {
@@ -33,6 +33,11 @@ function Step1_Metadata({ config, setConfig, setStep }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
+      <h3>Project Metadata</h3>
+      <Typography sx={{ mb: 2 }}>
+        Step 1: Enter project metadata. Example: Name='Smith Lab Psychometric Pilot',
+        Contact Email='jsmith@lab.edu'.
+      </Typography>
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12}>
           <TextField

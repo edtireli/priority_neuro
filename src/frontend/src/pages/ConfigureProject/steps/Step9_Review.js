@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Box } from "@mui/material";
+import { Typography, Button, Box } from "@mui/material";
 
 function Step9_Review({ config, setStep }) {
   const estTime = Math.ceil(
@@ -8,6 +8,10 @@ function Step9_Review({ config, setStep }) {
   return (
     <div>
       <h3>Review Your Configuration</h3>
+      <Typography sx={{ mb: 2 }}>
+        Step 9: Review all selections before submitting. Example: verify
+        estimated compute time of about {estTime} minutes.
+      </Typography>
       <pre style={{ background: "#f0f0f0", padding: "1rem" }}>
         {JSON.stringify(config, null, 2)}
       </pre>

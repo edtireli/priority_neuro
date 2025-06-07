@@ -1,5 +1,5 @@
 import React from "react";
-import { Radio, RadioGroup, FormControlLabel, Button, Box } from "@mui/material";
+import { Typography, Radio, RadioGroup, FormControlLabel, Button, Box } from "@mui/material";
 
 function Step6_Objective({ config, setConfig, setStep }) {
   const [type, setType] = React.useState(config.objective.type || "");
@@ -13,6 +13,10 @@ function Step6_Objective({ config, setConfig, setStep }) {
   return (
     <div>
       <h3>Select Objective</h3>
+      <Typography sx={{ mb: 2 }}>
+        Step 6: Select the optimization objective. Example: maximize information
+        gain.
+      </Typography>
       <RadioGroup value={type} onChange={(e) => setType(e.target.value)}>
         <FormControlLabel
           value="group_separation"

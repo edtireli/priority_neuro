@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import api from "../../../api";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Box, CircularProgress, Alert } from "@mui/material";
+import { Typography, Button, Box, CircularProgress, Alert } from "@mui/material";
 
 function Step10_Submit({ config }) {
   const navigate = useNavigate();
@@ -27,6 +27,10 @@ function Step10_Submit({ config }) {
   return (
     <div>
       <h3>Submit Job</h3>
+      <Typography sx={{ mb: 2 }}>
+        Step 10: Submit your configuration for optimization. Example: click
+        "Run Optimization" to launch the job.
+      </Typography>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}

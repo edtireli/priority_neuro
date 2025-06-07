@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Typography,
   TextField,
   Button,
   Grid,
@@ -65,6 +66,10 @@ function Step5_DesignVariables({ config, setConfig, setStep }) {
   return (
     <div>
       <h3>Define Design Variables</h3>
+      <Typography sx={{ mb: 2 }}>
+        Step 5: Define design variables to optimize. Example: stimulusIntensity
+        range 0–1.
+      </Typography>
       {vars.map((v, idx) => (
         <Box
           key={idx}
