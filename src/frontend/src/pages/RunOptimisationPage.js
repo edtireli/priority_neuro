@@ -65,8 +65,8 @@ export default function RunOptimisationPage() {
       form.append("custom_model", config.customModelFile);
     }
     api
-      .post(`/projects/${projectId}/jobs`, form)
-      .then(() => navigate(`/projects/${projectId}/jobs`))
+      .post(`/projects/${projectId}/jobs/`, form)
+      .then(() => navigate(`/projects/${projectId}/jobs/`))
       .catch((err) => {
         const detail = err.response?.status === 422 ? err.response.data.detail : err;
         setStartError(detail);
