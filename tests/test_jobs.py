@@ -34,6 +34,7 @@ def client(tmp_path, monkeypatch):
             db.close()
 
     monkeypatch.setenv("RESULTS_ROOT", str(tmp_path / "results"))
+    monkeypatch.setenv("UPLOADS_ROOT", str(tmp_path / "uploads"))
     monkeypatch.setattr("tasks.SessionLocal", TestingSessionLocal)
     app.dependency_overrides[get_db] = override_get_db
     Base.metadata.drop_all(bind=engine)
@@ -82,11 +83,15 @@ def test_job_lifecycle(client, tmp_path):
         ],
         "objective": {"type": "information_gain", "options": {}},
         "constraints": {"sampleSize": 10, "trialLimit": 50, "costWeights": {"subject": 1, "trial": 1, "session": 1}},
+        "experimentalMode": "batch",
     }
     client.put(f"/api/projects/{project_id}/config", json=valid_config, headers=headers)
 
-    job_req = {"job_name": "TestJob", "mode": "single_shot", "compute_type": "cpu"}
-    job_res = client.post(f"/api/projects/{project_id}/jobs", json=job_req, headers=headers)
+    job_res = client.post(
+        f"/api/projects/{project_id}/jobs",
+        data={"config": json.dumps(valid_config)},
+        headers=headers,
+    )
     assert job_res.status_code == 201
     job = job_res.json()
     job_id = job["id"]
@@ -103,3 +108,41 @@ def test_job_lifecycle(client, tmp_path):
     data = json.loads(results_res.text)
     assert "optimalDesign" in data
     assert data["optimalDesign"]["x1"] == 0.5
+
+
+def test_sequential_paused_flow(client, tmp_path):
+    token = get_auth_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    proj = client.post("/api/projects", json={"name": "P2", "description": ""}, headers=headers).json()
+    pid = proj["id"]
+    cfg = {
+        "metadata": {"name": "P2", "description": ""},
+        "model": {"type": "built-in", "templateName": "psychometric", "parameters": []},
+        "priors": {},
+        "designVariables": [{"name": "x", "type": "continuous", "range": [0,1]}],
+        "objective": {"type": "information_gain"},
+        "constraints": {"sampleSize": 1, "trialLimit": 2, "costWeights": {"subject":1,"trial":1,"session":1}},
+        "experimentalMode": "sequential",
+    }
+
+    res = client.post(
+        f"/api/projects/{pid}/jobs",
+        data={"config": json.dumps(cfg)},
+        headers=headers,
+    )
+    assert res.status_code == 201
+    job = res.json()
+    assert job["status"] == "paused_awaiting_data"
+    jid = job["id"]
+
+    pilot_file = tmp_path / "pilot.csv"
+    pilot_file.write_text("x,y\n0,1")
+    with open(pilot_file, "rb") as f:
+        res2 = client.post(
+            f"/api/projects/{pid}/jobs/{jid}/data",
+            files={"pilot_data": ("pilot.csv", f, "text/csv")},
+            headers=headers,
+        )
+    assert res2.status_code == 200
+    assert res2.json()["status"] == "queued"

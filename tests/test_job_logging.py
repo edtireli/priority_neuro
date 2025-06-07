@@ -53,20 +53,25 @@ def setup_project(client, headers):
               "priors":{"t":{"dist":"Normal","mean":0,"sd":1}},
               "designVariables":[{"name":"x","type":"continuous","range":[0,1]}],
               "objective":{"type":"information_gain"},
-              "constraints":{"sampleSize":10,"trialLimit":50,"costWeights":{"subject":1,"trial":1,"session":1}}}
+              "constraints":{"sampleSize":10,"trialLimit":50,"costWeights":{"subject":1,"trial":1,"session":1}},
+              "experimentalMode":"batch"}
     client.put(f"/api/projects/{pid}/config", json=config, headers=headers)
-    return pid
+    return pid, config
 
 def test_exception_logging(client, monkeypatch):
     token = get_token(client)
     headers = {"Authorization": f"Bearer {token}"}
-    pid = setup_project(client, headers)
+    pid, cfg = setup_project(client, headers)
 
     def boom(*a, **k):
         raise ZeroDivisionError("boom")
 
     monkeypatch.setattr(tasks, "optimize_design", boom)
-    job = client.post(f"/api/projects/{pid}/jobs", json={"job_name":"J","mode":"single_shot","compute_type":"cpu"}, headers=headers).json()
+    job = client.post(
+        f"/api/projects/{pid}/jobs",
+        data={"config": json.dumps(cfg)},
+        headers=headers,
+    ).json()
     jid = job["id"]
     tasks.run_optimisation_task.run(jid)
 
@@ -77,13 +82,17 @@ def test_exception_logging(client, monkeypatch):
 def test_memory_error_logging(client, monkeypatch):
     token = get_token(client)
     headers = {"Authorization": f"Bearer {token}"}
-    pid = setup_project(client, headers)
+    pid, cfg = setup_project(client, headers)
 
     def oom(*a, **k):
         raise MemoryError("oom")
 
     monkeypatch.setattr(tasks, "train_flow", oom)
-    job = client.post(f"/api/projects/{pid}/jobs", json={"job_name":"J2","mode":"single_shot","compute_type":"cpu"}, headers=headers).json()
+    job = client.post(
+        f"/api/projects/{pid}/jobs",
+        data={"config": json.dumps(cfg)},
+        headers=headers,
+    ).json()
     jid = job["id"]
     tasks.run_optimisation_task.run(jid)
 
