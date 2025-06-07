@@ -66,7 +66,7 @@ export default function RunOptimisationPage() {
     }
     api
       .post(`/projects/${projectId}/jobs/`, form)
-      .then(() => navigate(`/projects/${projectId}/jobs/`))
+      .then(() => navigate(`/projects/${projectId}/jobs`))
       .catch((err) => {
         const detail = err.response?.status === 422 ? err.response.data.detail : err;
         setStartError(detail);
