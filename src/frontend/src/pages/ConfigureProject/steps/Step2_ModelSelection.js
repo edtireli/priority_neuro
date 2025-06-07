@@ -91,9 +91,9 @@ function Step2_ModelSelection({ config, setConfig }) {
         setConfig((prev) => ({
           ...prev,
           model: {
+            ...prev.model,
             type: "built-in",
             templateName: name,
-            parameters: schemaData.parameters,
           },
         }));
       })
@@ -125,9 +125,9 @@ function Step2_ModelSelection({ config, setConfig }) {
       setConfig((prev) => ({
         ...prev,
         model: {
+          ...prev.model,
           type: "custom",
           customFileName: customFile.name,
-          parameters: schemaData.parameters,
         },
       }));
   } catch {
@@ -144,13 +144,22 @@ function Step2_ModelSelection({ config, setConfig }) {
           ? prev
           : [...prev, dv]
         : prev.filter((x) => x !== dv);
-      setConfig((p) => ({
-        ...p,
-        model: { ...p.model, dependentVariables: next },
-      }));
       return next;
     });
   };
+
+  useEffect(() => {
+    if (schema) {
+      setConfig((prev) => ({
+        ...prev,
+        model: {
+          ...prev.model,
+          parameters: schema.parameters,
+          dependentVariables: dvs,
+        },
+      }));
+    }
+  }, [schema, dvs, setConfig]);
 
 
   return (

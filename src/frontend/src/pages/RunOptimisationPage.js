@@ -62,7 +62,7 @@ export default function RunOptimisationPage() {
         mode:
           config?.experimentalMode === "sequential" ? "sequential" : "single_shot",
         compute_type: config?.misc?.gpuEnabled ? "gpu" : "cpu",
-        advanced_options: config,
+        config,
       };
       await api.post(`/projects/${projectId}/jobs`, payload);
       navigate(`/projects/${projectId}/jobs`);

@@ -84,15 +84,20 @@ function Step1_Metadata({ config, setConfig, setStep }) {
           />
         </Grid>
         <Grid item xs={12}>
-          <RadioGroup row {...register("modality", { required: true })}>
-            <FormControlLabel value="behavioural" control={<Radio />} label="Behavioural" />
-            <FormControlLabel value="physiological" control={<Radio />} label="Physiological" />
-            <FormControlLabel value="combined" control={<Radio />} label="Combined" />
-          </RadioGroup>
-        </Grid>
+      <RadioGroup row {...register("modality", { required: true })}>
+        <FormControlLabel value="behavioural" control={<Radio />} label="Behavioural" />
+        <FormControlLabel value="physiological" control={<Radio />} label="Physiological" />
+        <FormControlLabel value="combined" control={<Radio />} label="Combined" />
+      </RadioGroup>
       </Grid>
-      {/* Navigation handled by WizardNav */}
-    </form>
+    </Grid>
+    <Box display="flex" justifyContent="flex-end" gap={1}>
+      <Button variant="contained" type="submit">
+        Next
+      </Button>
+    </Box>
+    {/* Navigation handled by WizardNav */}
+  </form>
   );
 }
 
