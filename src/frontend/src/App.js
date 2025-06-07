@@ -4,7 +4,7 @@ import Navbar from "./components/Navbar";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
-import DashboardPage from "./pages/DashboardPage";
+import Dashboard from "./pages/Dashboard";
 import ConfigureProjectPage from "./pages/ConfigureProject";
 import PrivateRoute from "./components/PrivateRoute";
 
@@ -32,7 +32,7 @@ function App() {
           path="/"
           element={
             <PrivateRoute authenticated={isAuthenticated}>
-              <DashboardPage />
+              <Dashboard />
             </PrivateRoute>
           }
         />
@@ -40,7 +40,7 @@ function App() {
           path="/dashboard"
           element={
             <PrivateRoute authenticated={isAuthenticated}>
-              <DashboardPage />
+              <Dashboard />
             </PrivateRoute>
           }
         />
