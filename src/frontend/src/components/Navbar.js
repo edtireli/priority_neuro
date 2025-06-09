@@ -11,9 +11,9 @@ export default function Navbar({ isAuthenticated, userEmail }) {
     navigate("/login");
   };
   return (
-    <AppBar position="static" sx={{ mb: 2 }}>
+    <AppBar position="static" sx={{ mb: 2, bgcolor: "#424242" }}>
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" sx={{ mr: 2 }}>
           Neuro-Exp-Design
         </Typography>
         {isAuthenticated ? (
