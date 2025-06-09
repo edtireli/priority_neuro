@@ -196,3 +196,7 @@ cython_debug/
 # Node.js
 node_modules/
 
+
+# placeholder images
+src/frontend/public/logo.png
+src/frontend/public/smalllogo.png

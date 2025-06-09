@@ -90,6 +90,7 @@ function App() {
           }
         />
       </Routes>
+      <img src="/logo.png" alt="logo" className="footer-logo" />
     </>
   );
 }
