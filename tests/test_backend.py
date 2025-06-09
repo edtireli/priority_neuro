@@ -65,3 +65,24 @@ def test_register_login_and_me(client):
     me_resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert me_resp.status_code == 200
     assert me_resp.json()["email"] == user_payload["email"]
+    assert me_resp.json()["profile_picture_url"] is None
+
+    # upload profile picture
+    from PIL import Image
+    import io
+
+    img = Image.new("RGB", (2, 2), color="red")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    resp = client.post(
+        "/api/auth/profile-picture",
+        headers={"Authorization": f"Bearer {token}"},
+        files={"file": ("pic.png", buf, "image/png")},
+    )
+    assert resp.status_code == 200
+    url = resp.json()["url"]
+    assert url.endswith(".png")
+
+    me_resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me_resp.json()["profile_picture_url"] == url
