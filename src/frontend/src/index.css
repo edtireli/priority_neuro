@@ -7,12 +7,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* softened dark hue inspired by ChatGPT */
-  background-color: #2f2f2f;
+  background-color: #fafafa;
   color: #fff;
 }
 
 body.light-mode {
-  background-color: #fafafa;
+  background-color: #2f2f2f;
   color: #000;
 }
 
