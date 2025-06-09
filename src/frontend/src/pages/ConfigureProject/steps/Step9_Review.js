@@ -1,7 +1,8 @@
 import React from "react";
-import { Typography, Button, Box } from "@mui/material";
+import { Typography, Button, Box, useTheme } from "@mui/material";
 
 function Step9_Review({ config, setStep }) {
+  const theme = useTheme();
   const estTime = Math.ceil(
     ((config.trialBudget || 0) * (config.designVariables?.length || 1)) / 50
   );
@@ -12,7 +13,13 @@ function Step9_Review({ config, setStep }) {
         Step 9: Review all selections before submitting. Example: verify
         estimated compute time of about {estTime} minutes.
       </Typography>
-      <pre style={{ background: "#f0f0f0", padding: "1rem" }}>
+      <pre
+        style={{
+          background:
+            theme.palette.mode === "dark" ? "rgb(0,0,0)" : "#f0f0f0",
+          padding: "1rem",
+        }}
+      >
         {JSON.stringify(config, null, 2)}
       </pre>
       <p>Estimated compute time: ~{estTime} minutes</p>
