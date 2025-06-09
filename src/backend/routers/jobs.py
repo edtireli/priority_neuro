@@ -67,7 +67,9 @@ async def create_job(
 
     if pilot_data:
         contents = await pilot_data.read()
-        validate_pilot_data(contents, cfg.get("designVariables", []))
+        design_vars = cfg.get("designVariables", [])
+        dep_vars = cfg.get("model", {}).get("dependentVariables", [])
+        validate_pilot_data(contents, design_vars, dep_vars)
         data_dir = os.path.join(uploads_root, "pilot_data")
         os.makedirs(data_dir, exist_ok=True)
         file_path = os.path.join(data_dir, f"{job.id}.csv")
@@ -111,7 +113,10 @@ async def upload_pilot_data(
     os.makedirs(data_dir, exist_ok=True)
     file_path = os.path.join(data_dir, f"{job.id}.csv")
     contents = await pilot_data.read()
-    validate_pilot_data(contents, job.project.config_json.get("designVariables", []))
+    cfg = job.project.config_json
+    design_vars = cfg.get("designVariables", [])
+    dep_vars = cfg.get("model", {}).get("dependentVariables", [])
+    validate_pilot_data(contents, design_vars, dep_vars)
     with open(file_path, "wb") as f:
         f.write(contents)
 

@@ -53,7 +53,7 @@ def test_run_boed_job(monkeypatch):
 
     base_cfg = {
         'metadata': {},
-        'model': {},
+        'model': {'dependentVariables': ['y']},
         'groups': {},
         'priors': {},
         'designVariables': [{'name': 'x', 'type': 'continuous', 'range': [0,1]}],

@@ -4,11 +4,11 @@ import io
 from fastapi import HTTPException
 
 
-def validate_pilot_data(data: bytes, design_vars):
-    """Validate uploaded pilot data against expected design variables.
+def validate_pilot_data(data: bytes, design_vars, dependent_vars):
+    """Validate uploaded pilot data against expected design and dependent variables.
 
     Supports CSV and JSON list formats. Each record must include all design
-    variable names and a "y" column containing the observed response.
+    variable names and the specified dependent variable columns.
     """
     try:
         text = data.decode("utf-8")
@@ -16,7 +16,8 @@ def validate_pilot_data(data: bytes, design_vars):
         raise HTTPException(status_code=400, detail="Data file must be UTF-8 text")
 
     expected = {dv["name"] for dv in design_vars}
-    expected.add("y")
+    for ycol in dependent_vars:
+        expected.add(ycol)
 
     stripped = text.lstrip()
     if stripped.startswith("[") or stripped.startswith("{"):

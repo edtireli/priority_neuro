@@ -71,7 +71,7 @@ def test_real_optimisation(client, tmp_path):
         "model": {"type": "built-in", "templateName": "psychometric", "parameters": [
             {"name": "threshold", "type": "float", "default_prior": {"dist": "Uniform", "low":0.0, "high":1.0}},
             {"name": "slope", "type": "float", "default_prior": {"dist": "Uniform", "low":0.3, "high":0.3}}
-        ]},
+        ], "dependentVariables": ["y"]},
         "priors": {
             "threshold": {"dist": "Uniform", "low":0.0, "high":1.0},
             "slope": {"dist": "Uniform", "low":0.3, "high":0.3}
@@ -116,7 +116,7 @@ def test_sequential_two_iterations(client, tmp_path):
         "metadata": {"name": "P2", "description": ""},
         "model": {"type": "built-in", "templateName": "psychometric", "parameters": [
             {"name": "threshold", "type": "float", "default_prior": {"dist": "Uniform", "low":0.0, "high":1.0}}
-        ]},
+        ], "dependentVariables": ["y"]},
         "priors": {"threshold": {"dist": "Uniform", "low":0.0, "high":1.0}},
         "designVariables": [{"name": "x", "type": "continuous", "range": [0.0, 1.0]}],
         "advanced_options": {"batch_size": 1, "max_iterations": 2},

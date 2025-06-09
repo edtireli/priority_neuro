@@ -206,6 +206,11 @@ export default function RunOptimisationPage() {
                           onChange={(e) => uploadPilot(job.id, e.target.files[0])}
                           disabled={uploading[job.id]}
                         />
+                        {Array.isArray(config?.model?.dependentVariables) && (
+                          <Typography variant="caption" sx={{ ml: 1 }}>
+                            Required columns: {config.model.dependentVariables.join(', ')}
+                          </Typography>
+                        )}
                         {uploadError[job.id] && (
                           <Alert severity="error">{stringifyError(uploadError[job.id])}</Alert>
                         )}
