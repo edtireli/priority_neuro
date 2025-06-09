@@ -4,7 +4,7 @@ from datetime import datetime
 import uuid
 from celery_app import celery
 from database import SessionLocal
-from models import Job, Project, JobStatus, RunMode
+from models import Job, Project, JobStatus, RunMode, JobMetric
 from fastapi.templating import Jinja2Templates
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 import asyncio
@@ -352,7 +352,7 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
 
 @celery.task(name="run_boed_job")
 def run_boed_job(job_id: str):
-    """Stub Celery task that kicks off a BOED job."""
+    """Run a simple BOED loop and record metrics."""
     db: Session = SessionLocal()
     try:
         jid = uuid.UUID(job_id)
@@ -363,9 +363,86 @@ def run_boed_job(job_id: str):
         job.started_at = datetime.utcnow()
         db.commit()
 
-        # Load project configuration for future processing
         project = db.query(Project).filter(Project.id == job.project_id).first()
-        _cfg = project.config_json  # noqa: F841  # placeholder
+        config = project.config_json or {}
+        model_cfg = config.get("model", {})
+
+        # Instantiate model (built-in or custom)
+        design_vars = config.get("designVariables", [])
+        if model_cfg.get("type") == "built-in":
+            tmpl = model_cfg.get("templateName")
+            dname = design_vars[0]["name"] if design_vars else "x"
+            if tmpl == "psychometric":
+                model = PsychometricModel(model_cfg.get("parameters", []), design_name=dname)
+            else:
+                model = PoissonRateModel(model_cfg.get("parameters", []), design_name=dname)
+        else:
+            import importlib.util
+
+            file_name = model_cfg.get("customFileName")
+            model_path = os.path.join(UPLOADS_ROOT, "custom_models", str(job.id), file_name)
+            spec = importlib.util.spec_from_file_location("custom_model", model_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            if hasattr(module, "Model"):
+                model = module.Model(model_cfg.get("parameters", []))
+            else:
+                class WrappedModel:
+                    def __init__(self, mod):
+                        self.mod = mod
+
+                    def simulate(self, theta, design):
+                        return self.mod.simulate(theta, design)
+
+                    def log_likelihood(self, data, theta, design):
+                        return self.mod.log_likelihood(data, theta, design)
+
+                model = WrappedModel(module)
+
+        priors = config.get("priors", {})
+        trial_budget = config.get("trialBudget") or config.get("constraints", {}).get("trialLimit", 0)
+        trial_budget = int(trial_budget)
+
+        # Sample "true" theta from the prior
+        theta_true = sample_from_prior(priors)
+
+        # Initialize posterior particles
+        n_particles = 500
+        particles = [sample_from_prior(priors) for _ in range(n_particles)]
+
+        def summarize(ps):
+            summary = {}
+            for name in priors.keys():
+                vals = np.array([p[name] for p in ps], dtype=float)
+                summary[name] = {"mean": float(np.mean(vals)), "sd": float(np.std(vals))}
+            return summary
+
+        for i in range(1, trial_budget + 1):
+            design = simple_sample_design(design_vars)
+            y = model.simulate(theta_true, design)
+
+            logw = np.array([model.log_likelihood(y, th, design) for th in particles], dtype=float)
+            logw -= logw.max()
+            w = np.exp(logw)
+            w /= w.sum()
+            idx = np.random.choice(len(particles), size=len(particles), p=w)
+            particles = [particles[j].copy() for j in idx]
+
+            summary = summarize(particles)
+
+            metric = JobMetric(
+                job_id=job.id,
+                iteration=i,
+                design_point=design,
+                utility=0.0,
+                posterior_summary=summary,
+            )
+            db.add(metric)
+            db.commit()
+
+        job.status = JobStatus.succeeded
+        job.completed_at = datetime.utcnow()
+        db.commit()
     finally:
         db.close()
 
