@@ -1,11 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Container, Paper, Typography, Avatar, Box, CircularProgress, Alert } from "@mui/material";
+import {
+  Container,
+  Paper,
+  Typography,
+  Avatar,
+  Box,
+  CircularProgress,
+  Alert,
+  Button,
+} from "@mui/material";
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     api
@@ -18,6 +28,26 @@ export default function ProfilePage() {
         setError(err.response?.data?.detail || err.message);
       });
   }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    setUploading(true);
+    api
+      .post("/auth/profile-picture", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((res) => {
+        setUser({ ...user, profile_picture_url: res.data.url });
+        setError("");
+      })
+      .catch((err) => {
+        setError(err.response?.data?.detail || err.message);
+      })
+      .finally(() => setUploading(false));
+  };
 
   if (!user && !error)
     return (
@@ -38,7 +68,10 @@ export default function ProfilePage() {
       )}
       {user && (
         <Paper sx={{ p: 3, display: "flex", alignItems: "center", gap: 3 }}>
-          <Avatar sx={{ width: 80, height: 80 }}>
+          <Avatar
+            src={user.profile_picture_url || undefined}
+            sx={{ width: 80, height: 80, filter: "grayscale(100%)" }}
+          >
             {user.full_name
               ? user.full_name.charAt(0).toUpperCase()
               : user.email.charAt(0).toUpperCase()}
@@ -49,6 +82,25 @@ export default function ProfilePage() {
             {user.institution && (
               <Typography color="text.secondary">{user.institution}</Typography>
             )}
+            <Box mt={1}>
+              <input
+                accept="image/*"
+                id="profile-upload"
+                type="file"
+                onChange={handleFileChange}
+                style={{ display: "none" }}
+              />
+              <label htmlFor="profile-upload">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  size="small"
+                  disabled={uploading}
+                >
+                  {uploading ? "Uploading..." : "Upload Picture"}
+                </Button>
+              </label>
+            </Box>
           </Box>
         </Paper>
       )}
