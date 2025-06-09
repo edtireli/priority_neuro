@@ -9,6 +9,7 @@
 - Sequential or single-shot optimisation using CPU or GPU workers via Celery.
 - Interactive result visualisations: utility surfaces, prior vs. posterior histograms and learning curves.
 - Personal user profile page with account details.
+- Upload a profile picture; images are automatically converted to black and white and stored securely.
 
 ## Quick Start
 ### Backend

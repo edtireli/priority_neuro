@@ -196,6 +196,9 @@ cython_debug/
 # Node.js
 node_modules/
 
+# uploaded profile pictures
+src/backend/private/profile_pics/
+
 
 # placeholder images
 src/frontend/public/logo.png
