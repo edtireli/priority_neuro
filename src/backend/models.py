@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, func, Text, ForeignKey, JSON, Enum, Integer
+from sqlalchemy import Column, String, Boolean, DateTime, func, Text, ForeignKey, JSON, Enum, Integer, Float
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 from database import Base
@@ -66,3 +66,30 @@ class Job(Base):
     archived = Column(Boolean, nullable=False, server_default="false")
 
     project = relationship("Project", back_populates="jobs")
+    metrics = relationship("JobMetric", back_populates="job", cascade="all, delete-orphan")
+    results = relationship("JobResult", back_populates="job", cascade="all, delete-orphan")
+
+
+class JobMetric(Base):
+    __tablename__ = "job_metrics"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    job_id = Column(PG_UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    iteration = Column(Integer, nullable=False)
+    design_point = Column(JSON, nullable=False)
+    utility = Column(Float, nullable=False)
+    posterior_summary = Column(JSON, nullable=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+    job = relationship("Job", back_populates="metrics")
+
+
+class JobResult(Base):
+    __tablename__ = "job_results"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    job_id = Column(PG_UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    summary = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    job = relationship("Job", back_populates="results")

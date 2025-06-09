@@ -23,7 +23,8 @@ def upgrade() -> None:
     op.add_column('jobs', sa.Column('maxIterations', sa.Integer(), nullable=True))
     op.add_column('jobs', sa.Column('results_folder', sa.String(), nullable=True))
     op.drop_column('jobs', 'result_location')
-    op.alter_column('jobs', 'iteration', server_default=None)
+    if op.get_bind().dialect.name != 'sqlite':
+        op.alter_column('jobs', 'iteration', server_default=None)
 
 
 def downgrade() -> None:

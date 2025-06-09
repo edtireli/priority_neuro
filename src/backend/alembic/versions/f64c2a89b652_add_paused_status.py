@@ -17,7 +17,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.execute("ALTER TYPE jobstatus ADD VALUE IF NOT EXISTS 'paused_awaiting_data'")
+    if op.get_bind().dialect.name != 'sqlite':
+        op.execute("ALTER TYPE jobstatus ADD VALUE IF NOT EXISTS 'paused_awaiting_data'")
 
 
 def downgrade() -> None:
