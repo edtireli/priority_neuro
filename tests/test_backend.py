@@ -81,8 +81,14 @@ def test_register_login_and_me(client):
         files={"file": ("pic.png", buf, "image/png")},
     )
     assert resp.status_code == 200
-    url = resp.json()["url"]
-    assert url.endswith(".png")
+    assert resp.json()["url"] == "/api/auth/profile-picture"
+
+    pic_resp = client.get(
+        "/api/auth/profile-picture",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert pic_resp.status_code == 200
+    assert pic_resp.headers["content-type"] == "image/png"
 
     me_resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
-    assert me_resp.json()["profile_picture_url"] == url
+    assert me_resp.json()["profile_picture_url"] == "/api/auth/profile-picture"
