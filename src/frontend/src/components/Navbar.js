@@ -17,7 +17,11 @@ export default function Navbar({ isAuthenticated, userEmail }) {
   return (
     <AppBar
       position="static"
-      sx={{ mb: 2, bgcolor: theme.palette.mode === "dark" ? "#000" : "#fff", color: theme.palette.mode === "dark" ? "#fff" : "#000" }}
+      sx={{
+        mb: 2,
+        bgcolor: theme.palette.mode === "dark" ? "#202123" : "#fff",
+        color: theme.palette.mode === "dark" ? "#fff" : "#000",
+      }}
     >
       <Toolbar>
         <img src="/smalllogo.png" alt="priority" style={{ height: 32, marginRight: 16 }} />
