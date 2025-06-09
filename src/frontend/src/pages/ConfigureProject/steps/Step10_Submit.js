@@ -43,7 +43,9 @@ function Step10_Submit({ config }) {
         form.append("custom_model", config.customModelFile);
       }
 
-      const res = await api.post(`/projects/${projectId}/jobs/`, form);
+      const res = await api.post(`/projects/${projectId}/jobs/`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       const jobId = res.data.job_id || res.data.id;
       alert(`Job ${jobId} submitted successfully`);
       navigate(`/projects/${projectId}/jobs`); // redirect to job list
