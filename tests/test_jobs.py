@@ -15,7 +15,7 @@ from app import app
 from database import Base
 from dependencies import get_db
 from models import User
-from tasks import run_optimisation_task
+from tasks import run_boed_job
 
 engine = create_engine(
     os.environ["DATABASE_URL"],
@@ -82,7 +82,7 @@ def test_job_lifecycle(client, tmp_path):
             {"name": "x1", "type": "continuous", "range": [0.0, 1.0], "units": "a.u."}
         ],
         "objective": {"type": "information_gain", "options": {}},
-        "constraints": {"sampleSize": 10, "trialLimit": 50, "costWeights": {"subject": 1, "trial": 1, "session": 1}},
+        "constraints": {"sampleSize": 10, "trialLimit": 2, "costWeights": {"subject": 1, "trial": 1, "session": 1}},
         "experimentalMode": "batch",
     }
     client.put(f"/api/projects/{project_id}/config", json=valid_config, headers=headers)
@@ -97,7 +97,7 @@ def test_job_lifecycle(client, tmp_path):
     job_id = job["id"]
     assert job["status"] == "queued"
 
-    run_optimisation_task.run(job_id)
+    run_boed_job.apply_async(args=[job_id], task_id=job_id).get()
 
     status_res = client.get(f"/api/projects/{project_id}/jobs/{job_id}/status", headers=headers)
     assert status_res.status_code == 200
@@ -105,9 +105,14 @@ def test_job_lifecycle(client, tmp_path):
 
     results_res = client.get(f"/api/projects/{project_id}/jobs/{job_id}/results", headers=headers)
     assert results_res.status_code == 200
-    data = json.loads(results_res.text)
-    assert "optimalDesign" in data
-    assert data["optimalDesign"]["x1"] == 0.5
+    data = results_res.json()
+    assert "posterior" in data["summary"]
+
+    metrics = client.get(
+        f"/api/projects/{project_id}/jobs/{job_id}/metrics",
+        headers=headers,
+    ).json()
+    assert len(metrics) == 2
 
 
 def test_sequential_paused_flow(client, tmp_path):
