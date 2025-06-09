@@ -5,6 +5,32 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: rgb(29, 29, 29);
+  color: #fff;
+}
+
+a {
+  color: #fff;
+}
+
+/* Override default MUI primary buttons for dark background */
+.MuiButton-containedPrimary {
+  background-color: #ffffff;
+  color: #000;
+}
+
+.MuiButton-containedPrimary:hover {
+  background-color: #e0e0e0;
+}
+
+.MuiButton-outlinedPrimary {
+  color: #fff;
+  border-color: #fff;
+}
+
+.MuiButton-outlinedPrimary:hover {
+  border-color: #e0e0e0;
+  color: #e0e0e0;
 }
 
 code {
