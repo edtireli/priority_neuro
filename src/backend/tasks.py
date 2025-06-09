@@ -261,10 +261,10 @@ def run_boed_job(job_id: str):
         job.status = JobStatus.succeeded
         job.completed_at = datetime.utcnow()
         db.commit()
-    except Exception as e:
+    except Exception:
         if job:
             job = db.query(Job).get(job.id)
-            job.log = (job.log or "") + str(e)
+            job.log = (job.log or "") + traceback.format_exc()
             job.status = JobStatus.failed
             job.completed_at = datetime.utcnow()
             db.commit()
