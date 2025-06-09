@@ -4,7 +4,7 @@ from datetime import datetime
 import uuid
 from celery_app import celery
 from database import SessionLocal
-from models import Job, Project, JobStatus
+from models import Job, Project, JobStatus, RunMode
 from fastapi.templating import Jinja2Templates
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 import asyncio
