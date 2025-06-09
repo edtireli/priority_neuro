@@ -167,7 +167,10 @@ function ProjectWizard() {
             minRows={6}
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
-            sx={{ mt: 1 }}
+            variant="filled"
+            sx={{ mt: 1, backgroundColor: "rgba(0,0,0,0.3)" }}
+            InputProps={{ style: { color: "#fff" } }}
+            InputLabelProps={{ style: { color: "#fff" } }}
           />
           <Box sx={{ mt: 2 }}>
             <Button variant="outlined" component="label">
