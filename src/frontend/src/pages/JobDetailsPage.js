@@ -11,7 +11,14 @@ import {
   LinearProgress,
   Tabs,
   Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Slider,
 } from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
 import api from "../api";
 
 function gamma(z) {
@@ -73,6 +80,9 @@ export default function JobDetailsPage() {
   const [tab, setTab] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [pilotData, setPilotData] = useState(null);
+  const [simDesign, setSimDesign] = useState({});
+  const [predUtil, setPredUtil] = useState(null);
 
   useEffect(() => {
     fetchJob();
@@ -93,8 +103,27 @@ export default function JobDetailsPage() {
       fetchResult();
       fetchFlowLog();
       fetchConfig();
+      fetchPilotData();
     }
   }, [job?.status]);
+
+  useEffect(() => {
+    if (!designVars.length) return;
+    if (Object.keys(simDesign).length === 0) {
+      const init = {};
+      designVars.forEach((dv) => {
+        if (dv.type === "continuous") init[dv.name] = dv.range[0];
+        else init[dv.name] = dv.values[0];
+      });
+      setSimDesign(init);
+    }
+  }, [designVars]);
+
+  useEffect(() => {
+    if (Object.keys(simDesign).length) {
+      setPredUtil(computePrediction(simDesign));
+    }
+  }, [simDesign, metrics]);
 
   const fetchJob = async () => {
     try {
@@ -145,6 +174,13 @@ export default function JobDetailsPage() {
     } catch {}
   };
 
+  const fetchPilotData = async () => {
+    try {
+      const res = await api.get(`/projects/${projectId}/jobs/${jobId}/data`);
+      setPilotData(res.data);
+    } catch {}
+  };
+
   const uploadPilot = async (file) => {
     if (!file) return;
     setUploading(true);
@@ -169,6 +205,42 @@ export default function JobDetailsPage() {
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
     }
+  };
+
+  const computePrediction = (design) => {
+    if (!metrics.length) return null;
+    const dvars = Object.keys(design);
+    let best = null;
+    metrics.forEach((m) => {
+      let dist = 0;
+      dvars.forEach((n) => {
+        const a = m.design_point[n];
+        const b = design[n];
+        dist += (a - b) * (a - b);
+      });
+      dist = Math.sqrt(dist);
+      if (!best || dist < best.dist) best = { dist, util: m.utility };
+    });
+    return best ? best.util : null;
+  };
+
+  const downloadHtmlReport = () => {
+    const plots = document.querySelectorAll(".js-plotly-plot");
+    let body = "<html><head><script src='https://cdn.plot.ly/plotly-2.26.0.min.js'></script></head><body>";
+    plots.forEach((p, idx) => {
+      const data = p.data || [];
+      const layout = p.layout || {};
+      body += `<div id="plot${idx}" style="width:600px;height:400px;"></div>`;
+      body += `<script>Plotly.newPlot('plot${idx}', ${JSON.stringify(data)}, ${JSON.stringify(layout)});</script>`;
+    });
+    body += "</body></html>";
+    const blob = new Blob([body], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `job-${jobId}-report.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (!job)
@@ -365,6 +437,8 @@ export default function JobDetailsPage() {
             <Tab label="Posterior vs Prior" />
             <Tab label="Design Space" />
             <Tab label="Objective" />
+            <Tab label="Data & Export" />
+            <Tab label="Simulator" />
           </Tabs>
           {tab === 0 && (
             <Plot
@@ -405,6 +479,132 @@ export default function JobDetailsPage() {
             </Box>
           )}
           {tab === 4 && renderGroupSeparation()}
+          {tab === 5 && (
+            <Box>
+              <DataGrid
+                autoHeight
+                rows={sortedMetrics.map((m, i) => ({ id: i, ...m }))}
+                columns={[
+                  { field: "iteration", headerName: "Iter", width: 80 },
+                  {
+                    field: "design_point",
+                    headerName: "Design",
+                    flex: 1,
+                    valueGetter: (p) => JSON.stringify(p.row.design_point),
+                  },
+                  { field: "utility", headerName: "Utility", width: 100 },
+                  {
+                    field: "trend",
+                    headerName: "Trend",
+                    width: 100,
+                    renderCell: (params) => {
+                      const idx = params.row.iteration - 1;
+                      const win = sortedMetrics.slice(
+                        Math.max(0, idx - 4),
+                        idx + 1
+                      );
+                      const xs = win.map((_, i) => i);
+                      const min = Math.min(...win.map((w) => w.utility));
+                      const max = Math.max(...win.map((w) => w.utility));
+                      const range = max - min || 1;
+                      const pts = win
+                        .map((w, i) => `${(i / (xs.length - 1)) * 80},${
+                          20 - ((w.utility - min) / range) * 20
+                        }`)
+                        .join(" ");
+                      return (
+                        <svg width={80} height={20}>
+                          <polyline
+                            fill="none"
+                            stroke="#1976d2"
+                            strokeWidth={2}
+                            points={pts}
+                          />
+                        </svg>
+                      );
+                    },
+                  },
+                ]}
+              />
+              {pilotData && Array.isArray(pilotData) && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle1">Pilot Preview</Typography>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        {Object.keys(pilotData[0] || {}).map((k) => (
+                          <TableCell key={k}>{k}</TableCell>
+                        ))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {pilotData.slice(0, 5).map((r, i) => (
+                        <TableRow key={i}>
+                          {Object.keys(pilotData[0] || {}).map((k) => (
+                            <TableCell key={k}>{r[k]}</TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {pilotData.length > 0 && (
+                    <Plot
+                      data={[
+                        {
+                          x: pilotData.map((d) =>
+                            parseFloat(d.stimulusIntensity || d.x || d.X)
+                          ),
+                          y: pilotData.map((d) =>
+                            parseFloat(d.reactionTime || d.y || d.Y)
+                          ),
+                          mode: "markers",
+                        },
+                      ]}
+                      layout={{ margin: { t: 30 }, xaxis: { title: "Stim" }, yaxis: { title: "RT" } }}
+                      style={{ width: "100%", height: "300px" }}
+                      useResizeHandler
+                      config={{ responsive: true }}
+                    />
+                  )}
+                  <Button sx={{ mt: 2 }} variant="outlined" onClick={downloadHtmlReport}>
+                    Download HTML Report
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          )}
+          {tab === 6 && (
+            <Box>
+              {designVars.map((dv) => (
+                <Box key={dv.name} sx={{ my: 2 }}>
+                  <Typography gutterBottom>{dv.name}</Typography>
+                  <Slider
+                    value={simDesign[dv.name] ?? 0}
+                    min={dv.range ? dv.range[0] : 0}
+                    max={dv.range ? dv.range[1] : dv.values[0]}
+                    step={dv.range ? (dv.range[1] - dv.range[0]) / 100 : 1}
+                    onChange={(_, v) =>
+                      setSimDesign((prev) => ({ ...prev, [dv.name]: v }))
+                    }
+                  />
+                </Box>
+              ))}
+              {predUtil !== null && (
+                <Plot
+                  data={[{
+                    type: "indicator",
+                    mode: "gauge+number",
+                    value: predUtil,
+                    gauge: { axis: { range: [Math.min(...utilY), Math.max(...utilY)] } },
+                  }]}
+                  layout={{ margin: { t: 0, b: 0 } }}
+                  style={{ width: 300, height: 200 }}
+                  useResizeHandler
+                  config={{ responsive: true }}
+                />
+              )}
+            </Box>
+          )}
         </Box>
       )}
 
