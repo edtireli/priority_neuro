@@ -5,6 +5,7 @@ from uuid import uuid4
 from datetime import datetime
 import os
 from PIL import Image
+from fastapi.responses import FileResponse
 
 from database import SessionLocal
 from models import User
@@ -25,8 +26,17 @@ from app import DEVELOPER_MODE
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-PROFILE_DIR = os.path.join(os.path.dirname(__file__), "..", "static", "profile_pics")
+PROFILE_DIR = os.path.join(os.path.dirname(__file__), "..", "private", "profile_pics")
 os.makedirs(PROFILE_DIR, exist_ok=True)
+
+
+def user_to_out(user: User) -> UserOut:
+    data = UserOut.from_orm(user)
+    if user.profile_picture:
+        data.profile_picture_url = "/api/auth/profile-picture"
+    else:
+        data.profile_picture_url = None
+    return data
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -48,7 +58,7 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-        return new_user
+        return user_to_out(new_user)
     token = str(uuid4())
     now = datetime.utcnow()
     new_user = User(
@@ -64,7 +74,7 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     send_verification_email.apply_async(args=[new_user.email, new_user.full_name, token])
-    return new_user
+    return user_to_out(new_user)
 
 
 @router.post("/login", response_model=Token)
@@ -81,7 +91,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def read_current_user(current_user: User = Depends(get_current_user)):
-    return current_user
+    return user_to_out(current_user)
 
 
 @router.post("/verify", response_model=MessageOut)
@@ -128,7 +138,16 @@ async def upload_profile_picture(
     filename = f"{current_user.id}.png"
     path = os.path.join(PROFILE_DIR, filename)
     image.save(path)
-    url = f"/static/profile_pics/{filename}"
-    current_user.profile_picture = url
+    current_user.profile_picture = filename
     db.commit()
-    return {"url": url}
+    return {"url": "/api/auth/profile-picture"}
+
+
+@router.get("/profile-picture")
+async def get_profile_picture(current_user: User = Depends(get_current_user)):
+    if not current_user.profile_picture:
+        raise HTTPException(status_code=404, detail="No profile picture")
+    path = os.path.join(PROFILE_DIR, current_user.profile_picture)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path, media_type="image/png")

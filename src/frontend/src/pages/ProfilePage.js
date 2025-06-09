@@ -16,12 +16,23 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState("");
+
+  const fetchProfilePicture = () => {
+    api
+      .get("/auth/profile-picture", { responseType: "blob" })
+      .then((res) => {
+        setAvatarUrl(URL.createObjectURL(res.data));
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     api
       .get("/auth/me")
       .then((res) => {
         setUser(res.data);
+        if (res.data.profile_picture_url) fetchProfilePicture();
         setError("");
       })
       .catch((err) => {
@@ -41,6 +52,7 @@ export default function ProfilePage() {
       })
       .then((res) => {
         setUser({ ...user, profile_picture_url: res.data.url });
+        fetchProfilePicture();
         setError("");
       })
       .catch((err) => {
@@ -69,7 +81,7 @@ export default function ProfilePage() {
       {user && (
         <Paper sx={{ p: 3, display: "flex", alignItems: "center", gap: 3 }}>
           <Avatar
-            src={user.profile_picture_url || undefined}
+            src={avatarUrl || undefined}
             sx={{ width: 80, height: 80, filter: "grayscale(100%)" }}
           >
             {user.full_name

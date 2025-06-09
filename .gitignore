@@ -197,7 +197,7 @@ cython_debug/
 node_modules/
 
 # uploaded profile pictures
-src/backend/static/profile_pics/
+src/backend/private/profile_pics/
 
 
 # placeholder images
