@@ -65,7 +65,7 @@ def test_results_detailed_endpoint(client, tmp_path):
         "model": {"type": "built-in", "templateName": "psychometric", "parameters": [
             {"name": "threshold", "type": "float", "default_prior": {"dist": "Uniform", "low":0.0, "high":1.0}},
             {"name": "slope", "type": "float", "default_prior": {"dist": "Uniform", "low":0.3, "high":0.3}}
-        ]},
+        ], "dependentVariables": ["y"]},
         "priors": {
             "threshold": {"dist": "Uniform", "low":0.0, "high":1.0},
             "slope": {"dist": "Uniform", "low":0.3, "high":0.3}

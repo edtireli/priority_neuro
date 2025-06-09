@@ -63,6 +63,7 @@ def test_gaussian_boed_simulation(db_session, gaussian_patch):
                 {"name": "mean", "type": "float", "default_prior": {"dist": "Normal", "mean": 0.0, "sd": 1.0}},
                 {"name": "variance", "type": "float", "default_prior": {"dist": "Gamma", "shape": 2.0, "scale": 1.0}},
             ],
+            "dependentVariables": ["y"],
         },
         "priors": {
             "mean": {"dist": "Normal", "mean": 0.0, "sd": 1.0},

@@ -49,7 +49,7 @@ def setup_project(client, headers):
     proj = client.post("/api/projects", json={"name":"P","description":""}, headers=headers).json()
     pid = proj["id"]
     config = {"metadata":{"name":"P","description":""},
-              "model":{"type":"built-in","templateName":"psychometric","parameters":[{"name":"threshold","type":"float","default_prior":{"dist":"Normal","mean":0,"sd":1}}, {"name":"slope","type":"float","default_prior":{"dist":"Gamma","shape":2,"scale":1}}]},
+              "model":{"type":"built-in","templateName":"psychometric","parameters":[{"name":"threshold","type":"float","default_prior":{"dist":"Normal","mean":0,"sd":1}}, {"name":"slope","type":"float","default_prior":{"dist":"Gamma","shape":2,"scale":1}}], "dependentVariables": ["y"]},
               "priors":{"threshold":{"dist":"Normal","mean":0,"sd":1}, "slope":{"dist":"Gamma","shape":2,"scale":1}},
               "designVariables":[{"name":"x","type":"continuous","range":[0,1]}],
               "objective":{"type":"information_gain"},

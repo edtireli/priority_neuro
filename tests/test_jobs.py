@@ -78,6 +78,7 @@ def test_job_lifecycle(client, tmp_path):
                 {"name": "threshold", "type": "float", "default_prior": {"dist": "Normal", "mean": 0.5, "sd": 0.2}},
                 {"name": "slope", "type": "float", "default_prior": {"dist": "Gamma", "shape": 2.0, "scale": 1.0}},
             ],
+            "dependentVariables": ["y"],
         },
         "priors": {
             "threshold": {"dist": "Normal", "mean": 0.5, "sd": 0.2},
@@ -128,7 +129,7 @@ def test_sequential_paused_flow(client, tmp_path):
     pid = proj["id"]
     cfg = {
         "metadata": {"name": "P2", "description": ""},
-        "model": {"type": "built-in", "templateName": "psychometric", "parameters": []},
+        "model": {"type": "built-in", "templateName": "psychometric", "parameters": [], "dependentVariables": ["y"]},
         "priors": {},
         "designVariables": [{"name": "x", "type": "continuous", "range": [0,1]}],
         "objective": {"type": "information_gain"},
@@ -164,7 +165,7 @@ def test_invalid_pilot_data_on_create(client, tmp_path):
     pid = proj["id"]
     cfg = {
         "metadata": {"name": "P3", "description": ""},
-        "model": {"type": "built-in", "templateName": "psychometric", "parameters": []},
+        "model": {"type": "built-in", "templateName": "psychometric", "parameters": [], "dependentVariables": ["y"]},
         "priors": {},
         "designVariables": [{"name": "x", "type": "continuous", "range": [0,1]}],
         "objective": {"type": "information_gain"},
@@ -190,7 +191,7 @@ def test_invalid_pilot_data_on_upload(client, tmp_path):
     pid = proj["id"]
     cfg = {
         "metadata": {"name": "P4", "description": ""},
-        "model": {"type": "built-in", "templateName": "psychometric", "parameters": []},
+        "model": {"type": "built-in", "templateName": "psychometric", "parameters": [], "dependentVariables": ["y"]},
         "priors": {},
         "designVariables": [{"name": "x", "type": "continuous", "range": [0,1]}],
         "objective": {"type": "information_gain"},
