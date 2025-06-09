@@ -15,7 +15,7 @@ export default function Navbar({ isAuthenticated, userEmail }) {
       {isAuthenticated ? (
         <>
           <Link to="/dashboard" style={{ marginRight: "1rem" }}>Dashboard</Link>
-          <span style={{ marginRight: "1rem" }}>{userEmail}</span>
+          <Link to="/profile" style={{ marginRight: "1rem" }}>{userEmail}</Link>
           <button onClick={handleLogout}>Logout</button>
         </>
       ) : (

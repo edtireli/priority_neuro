@@ -9,6 +9,7 @@ import ConfigureProjectPage from "./pages/ConfigureProject";
 import RunOptimisationPage from "./pages/RunOptimisationPage";
 import JobsPage from "./pages/JobsPage";
 import JobDetailPage from "./pages/JobDetailPage";
+import ProfilePage from "./pages/ProfilePage";
 import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
@@ -77,6 +78,14 @@ function App() {
           element={
             <PrivateRoute authenticated={isAuthenticated}>
               <JobDetailPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute authenticated={isAuthenticated}>
+              <ProfilePage />
             </PrivateRoute>
           }
         />
