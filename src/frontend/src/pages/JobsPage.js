@@ -170,7 +170,7 @@ export default function JobsPage() {
                       <Button component={Link} to={`/projects/${job.project_id}/jobs/${job.id}`} size="small">
                         View
                       </Button>
-                      {!job.archived && ["queued", "paused_awaiting_data"].includes(job.status) && (
+                      {!job.archived && ["queued", "running", "paused_awaiting_data"].includes(job.status) && (
                         <Button size="small" onClick={() => cancelJob(job.project_id, job.id)}>
                           Cancel
                         </Button>
