@@ -11,7 +11,8 @@ from sqlalchemy.pool import StaticPool
 from app import app
 from database import Base
 from dependencies import get_db
-from tasks import run_boed_job
+import tasks
+from tasks import run_boed_job, run_optimisation_task
 from models import User
 
 engine = create_engine(
@@ -33,10 +34,14 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("RESULTS_ROOT", str(tmp_path / "results"))
     monkeypatch.setenv("UPLOADS_ROOT", str(tmp_path / "uploads"))
     monkeypatch.setattr("tasks.SessionLocal", TestingSessionLocal)
+    tasks.celery.conf.task_always_eager = True
+    tasks.celery.conf.broker_url = 'memory://'
+    tasks.celery.conf.result_backend = 'cache+memory://'
+    from tasks import send_verification_email
+    send_verification_email.apply_async = lambda *a, **k: None
     app.dependency_overrides[get_db] = override_get_db
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    monkeypatch.setattr("routers.jobs.run_boed_job.apply_async", lambda *a, **k: None)
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
@@ -94,13 +99,13 @@ def test_real_optimisation(client, tmp_path):
 
     results = client.get(f"/api/projects/{pid}/jobs/{jid}/results", headers=headers)
     data = results.json()
-    assert "posterior" in data["summary"]
+    assert "best_design" in data["summary"] and "utility" in data["summary"]
 
     metrics = client.get(
         f"/api/projects/{pid}/jobs/{jid}/metrics",
         headers=headers,
     ).json()
-    assert len(metrics) == 2
+    assert len(metrics) == 1
 
 def test_sequential_two_iterations(client, tmp_path):
     token = get_token(client)

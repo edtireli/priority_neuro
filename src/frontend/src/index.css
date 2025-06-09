@@ -7,7 +7,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* softened dark hue inspired by ChatGPT */
-  background-color: #2f2f2f;
+  background-color: #fafafa;
   color: #fff;
 }
 
@@ -27,6 +27,14 @@ a {
   transform: translateX(-50%);
   height: 40px;
   pointer-events: none;
+}
+
+.invert-on-light {
+  transition: filter 0.2s;
+}
+
+body.light-mode .invert-on-light {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 /* Buttons for dark background */

@@ -24,7 +24,7 @@ export function ColorModeProvider({ children }) {
         palette: {
           mode,
           background: {
-            default: mode === "dark" ? "#2f2f2f" : "#ffffff",
+            default: mode === "dark" ? "#2f2f2f" : "#fafafa",
           },
         },
       }),

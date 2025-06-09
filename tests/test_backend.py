@@ -45,6 +45,8 @@ def client():
 
 
 def test_register_login_and_me(client):
+    from tasks import send_verification_email
+    send_verification_email.apply_async = lambda *a, **k: None
     user_payload = {
         "email": "user@example.com",
         "full_name": "Test User",
