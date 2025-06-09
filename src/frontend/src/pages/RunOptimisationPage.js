@@ -15,6 +15,8 @@ import {
   Select,
   MenuItem,
   Chip,
+  Card,
+  CardContent,
 } from "@mui/material";
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
@@ -115,29 +117,31 @@ export default function RunOptimisationPage() {
 
   return (
     <Container sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Run Optimization
-      </Typography>
-      <Typography variant="body1" gutterBottom>
-        View and manage your BOED jobs for this project. Start a new optimization run or monitor existing ones.
-      </Typography>
-      <Box mb={2} display="flex" gap={2} alignItems="center">
-        <Button
-          variant="contained"
-          onClick={handleStart}
-          disabled={starting}
-          startIcon={starting ? <CircularProgress size={20} /> : null}
-        >
-          Start New Optimization
-        </Button>
-        <Select value={filter} onChange={(e) => setFilter(e.target.value)} size="small">
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="running">Running</MenuItem>
-          <MenuItem value="completed">Completed</MenuItem>
-          <MenuItem value="failed">Failed</MenuItem>
-          <MenuItem value="archived">Archived</MenuItem>
-        </Select>
-      </Box>
+      <Card sx={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+        <CardContent>
+          <Typography variant="h4" gutterBottom>
+            Run Optimization
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            View and manage your BOED jobs for this project. Start a new optimization run or monitor existing ones.
+          </Typography>
+          <Box mb={2} display="flex" gap={2} alignItems="center">
+            <Button
+              variant="contained"
+              onClick={handleStart}
+              disabled={starting}
+              startIcon={starting ? <CircularProgress size={20} /> : null}
+            >
+              Start New Optimization
+            </Button>
+            <Select value={filter} onChange={(e) => setFilter(e.target.value)} size="small">
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="running">Running</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="failed">Failed</MenuItem>
+              <MenuItem value="archived">Archived</MenuItem>
+            </Select>
+          </Box>
       {jobs && jobs.some((j) => j.status === "paused_awaiting_data") && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {jobs.filter((j) => j.status === "paused_awaiting_data").length} job is paused awaiting your pilot data upload.
@@ -233,6 +237,8 @@ export default function RunOptimisationPage() {
           </Table>
         </Box>
       )}
+        </CardContent>
+      </Card>
     </Container>
   );
 }

@@ -8,6 +8,7 @@ import {
   CardContent,
   CardActionArea,
   Typography,
+  Box,
 } from "@mui/material";
 
 export default function Dashboard() {
@@ -54,7 +55,18 @@ export default function Dashboard() {
   ];
 
   return (
-    <Container sx={{ py: 4 }}>
+    <Container sx={{ py: 4, position: "relative" }}>
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: "url('/background.png')",
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
+          opacity: 0.8,
+          zIndex: -1,
+        }}
+      />
       <Typography variant="h4" align="center" gutterBottom>
         Welcome to Priority
       </Typography>
