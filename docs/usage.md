@@ -1,5 +1,7 @@
 # Configuring a Project
 
+Start by following the instructions in [getting_started.md](getting_started.md) to install dependencies and run the application locally.
+
 1. Create a project from the Dashboard.
 2. After creation you will be redirected to `/projects/{id}/configure`.
 3. Complete the wizard steps: metadata, model selection (choose built-in or upload custom), priors, design variables, objective, constraints.

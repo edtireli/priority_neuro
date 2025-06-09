@@ -11,40 +11,27 @@
 - Personal user profile page with account details.
 - Upload a profile picture; images are automatically converted to black and white and stored securely.
 
-## Quick Start
-### Backend
-```bash
-cd src/backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # set DATABASE_URL and JWT_SECRET_KEY
-alembic upgrade head
-./run.sh
-```
-Launch Celery workers in separate processes:
-```bash
-redis-server &
-cd src/backend && ./start-celery.sh &
-```
-If you're running macOS and encounter crashes related to `objc` when Celery
-starts a task, set the environment variable:
-```bash
-export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-```
-before launching the worker. This disables macOS's fork safety checks and
-prevents `SIGABRT` errors when new worker processes are spawned. The
-`start-celery.sh` helper script already sets this variable for you.
+## BOED and Machine Learning
+At its core **priority** uses a simulation-based approach to Bayesian Optimal
+Experimental Design. A differentiable generative model produces synthetic
+observations for candidate stimuli. A neural density estimator – currently a
+normalising flow – learns the posterior \( p(\theta | y, d) \) from this data.
+Expected information gain and other objectives can then be estimated cheaply and
+optimised by Bayesian optimisation.
 
-If a job fails, the full stack trace is stored in the `log` field of the job
-record. Check it for details when troubleshooting failed runs.
+Sequential designs are supported by retraining the flow after each batch of
+acquired data. This active learning loop enables efficient exploration of large
+design spaces.
 
-### Frontend
-```bash
-cd src/frontend
-npm install
-npm start
-```
-Open `http://localhost:3000` with the backend API running at `http://localhost:8000/api`.
+Potential neuroscience applications include:
+
+- Adaptive psychophysics experiments that quickly map perceptual thresholds.
+- Optimising stimuli for neural system identification or tuning curve recovery.
+- Designing behavioural tasks that maximise separability between competing
+  cognitive models.
+
+## Getting Started
+The project comprises a Python backend and a React frontend. A complete setup guide is available in [docs/getting_started.md](docs/getting_started.md).
 
 ## Workflow
 1. **Build training set** – sample `(\theta, d, y)` from the prior and generative model.
