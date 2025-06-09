@@ -63,5 +63,6 @@ class Job(Base):
     maxIterations = Column(Integer, nullable=True)
     results_folder = Column(String, nullable=True)
     log = Column(String, nullable=True, default="")
+    archived = Column(Boolean, nullable=False, server_default="false")
 
     project = relationship("Project", back_populates="jobs")

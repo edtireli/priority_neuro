@@ -159,6 +159,7 @@ class JobOut(BaseModel):
     submitted_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
+    archived: bool
 
     class Config:
         orm_mode = True
@@ -171,3 +172,4 @@ class JobStatusOut(BaseModel):
     started_at: datetime | None
     completed_at: datetime | None
     log: str
+    archived: bool
