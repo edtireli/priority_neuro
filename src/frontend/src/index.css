@@ -8,11 +8,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
   /* softened dark hue inspired by ChatGPT */
   background-color: #fafafa;
+  background-image: url('/background.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: #fff;
 }
 
 body.light-mode {
   background-color: #ffffff;
+  background-image: url('/Background_inverted.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: #000;
 }
 
