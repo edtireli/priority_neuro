@@ -12,6 +12,8 @@ from tasks import run_optimisation_task
 
 router = APIRouter(prefix="/api/projects/{project_id}/jobs", tags=["jobs"])
 
+all_jobs_router = APIRouter(prefix="/api/jobs", tags=["jobs"])
+
 @router.post("/", response_model=JobOut, status_code=status.HTTP_201_CREATED)
 async def create_job(
     project_id: UUID,
@@ -283,3 +285,18 @@ def download_results(
     from fastapi.responses import StreamingResponse
 
     return StreamingResponse(buf, media_type="application/zip", headers={"Content-Disposition": f"attachment; filename={job.id}.zip"})
+
+
+@all_jobs_router.get("/", response_model=list[JobOut])
+def list_all_jobs(
+    archived: bool = False,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    return (
+        db.query(Job)
+        .join(Project)
+        .filter(Project.user_id == current_user.id, Job.archived == archived)
+        .order_by(Job.submitted_at.desc())
+        .all()
+    )
