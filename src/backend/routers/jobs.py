@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/projects/{project_id}/jobs", tags=["jobs"])
 
 all_jobs_router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
+
 @router.post("/", response_model=JobOut, status_code=status.HTTP_201_CREATED)
 async def create_job(
     project_id: UUID,
@@ -23,9 +24,13 @@ async def create_job(
     pilot_data: UploadFile | None = File(None),
     custom_model: UploadFile | None = File(None),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
-    project = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
+    project = (
+        db.query(Project)
+        .filter(Project.id == project_id, Project.user_id == current_user.id)
+        .first()
+    )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -81,17 +86,27 @@ async def create_job(
 
     return job
 
+
 @router.get("/", response_model=list[JobOut])
 def list_jobs(
     project_id: UUID,
     archived: bool = False,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-    project = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
+    project = (
+        db.query(Project)
+        .filter(Project.id == project_id, Project.user_id == current_user.id)
+        .first()
+    )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return db.query(Job).filter(Job.project_id == project_id, Job.archived == archived).order_by(Job.submitted_at.desc()).all()
+    return (
+        db.query(Job)
+        .filter(Job.project_id == project_id, Job.archived == archived)
+        .order_by(Job.submitted_at.desc())
+        .all()
+    )
 
 
 @router.post("/{job_id}/data", response_model=JobOut)
@@ -100,7 +115,7 @@ async def upload_pilot_data(
     job_id: UUID,
     pilot_data: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
@@ -126,31 +141,60 @@ async def upload_pilot_data(
     db.refresh(job)
     return job
 
+
+@router.get("/{job_id}/data")
+def get_pilot_data(
+    project_id: UUID,
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
+    if not job or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    uploads_root = os.getenv("UPLOADS_ROOT", "uploads")
+    file_path = os.path.join(uploads_root, "pilot_data", f"{job.id}.csv")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Data not found")
+    import csv, io, json
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        text = f.read()
+    stripped = text.lstrip()
+    if stripped.startswith("[") or stripped.startswith("{"):
+        return json.loads(text)
+    reader = csv.DictReader(io.StringIO(text))
+    return [row for row in reader]
+
+
 @router.get("/{job_id}/status", response_model=JobStatusOut)
 def get_job_status(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
 
+
 @router.get("/{job_id}/results", response_model=JobResultOut)
 def get_job_results(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     """Return BOED summary results for the job."""
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Job not found")
     if job.status != JobStatus.succeeded:
-        raise HTTPException(status_code=400, detail="Results not available until job succeeds")
+        raise HTTPException(
+            status_code=400, detail="Results not available until job succeeds"
+        )
     result = (
         db.query(JobResult)
         .filter(JobResult.job_id == job_id)
@@ -167,13 +211,15 @@ def get_job_results_detailed(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Job not found")
     if job.status != JobStatus.succeeded:
-        raise HTTPException(status_code=400, detail="Results not available until job succeeds")
+        raise HTTPException(
+            status_code=400, detail="Results not available until job succeeds"
+        )
     if not job.results_folder:
         raise HTTPException(status_code=500, detail="Result file missing")
     detailed_path = os.path.join(job.results_folder, "result_detailed.json")
@@ -182,24 +228,26 @@ def get_job_results_detailed(
     with open(detailed_path, "r") as f:
         return json.load(f)
 
+
 @router.get("/{job_id}/log")
 def get_job_log(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Job not found")
     return {"log": job.log or ""}
 
+
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 def cancel_job(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
@@ -212,12 +260,13 @@ def cancel_job(
     db.commit()
     return
 
+
 @router.post("/{job_id}/retry", response_model=JobOut)
 def retry_job(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     """Queue the job for another BOED run."""
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
@@ -237,13 +286,15 @@ def archive_job(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Job not found")
     if job.status not in (JobStatus.succeeded, JobStatus.failed):
-        raise HTTPException(status_code=400, detail="Only completed jobs can be archived")
+        raise HTTPException(
+            status_code=400, detail="Only completed jobs can be archived"
+        )
     job.archived = True
     db.commit()
     db.refresh(job)
@@ -255,7 +306,7 @@ def get_metrics(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     """Return recorded BOED metrics for the job."""
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
@@ -275,7 +326,7 @@ def download_results(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
@@ -294,14 +345,18 @@ def download_results(
     buf.seek(0)
     from fastapi.responses import StreamingResponse
 
-    return StreamingResponse(buf, media_type="application/zip", headers={"Content-Disposition": f"attachment; filename={job.id}.zip"})
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={job.id}.zip"},
+    )
 
 
 @all_jobs_router.get("/", response_model=list[JobOut])
 def list_all_jobs(
     archived: bool = False,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     return (
         db.query(Job)
