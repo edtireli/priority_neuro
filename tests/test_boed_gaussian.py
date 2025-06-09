@@ -55,6 +55,7 @@ def test_gaussian_boed_simulation(db_session, gaussian_patch):
     db.refresh(user)
 
     config = {
+        "metadata": {},
         "model": {
             "type": "built-in",
             "templateName": "gaussian",
@@ -68,7 +69,11 @@ def test_gaussian_boed_simulation(db_session, gaussian_patch):
             "variance": {"dist": "Gamma", "shape": 2.0, "scale": 1.0},
         },
         "designVariables": [{"name": "x", "type": "continuous", "range": [0.0, 1.0]}],
+        "objective": {},
+        "constraints": {},
         "trialBudget": 3,
+        "experimentalMode": "batch",
+        "groups": {},
     }
 
     project = Project(user_id=user.id, name="P", description="", config_json=config)
@@ -90,8 +95,8 @@ def test_gaussian_boed_simulation(db_session, gaussian_patch):
     assert updated_job.status == JobStatus.succeeded
 
     metrics = db.query(tasks.JobMetric).filter(tasks.JobMetric.job_id == job.id).all()
-    assert len(metrics) > 1
+    assert len(metrics) == 1
 
     result = db.query(tasks.JobResult).filter(tasks.JobResult.job_id == job.id).first()
-    assert "mean" in result.summary["posterior"] and "variance" in result.summary["posterior"]
+    assert "best_design" in result.summary and "utility" in result.summary
     db.close()
