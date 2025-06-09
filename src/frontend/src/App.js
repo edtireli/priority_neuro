@@ -7,6 +7,7 @@ import VerifyEmailPage from "./pages/VerifyEmailPage";
 import Dashboard from "./pages/Dashboard";
 import ConfigureProjectPage from "./pages/ConfigureProject";
 import RunOptimisationPage from "./pages/RunOptimisationPage";
+import JobsPage from "./pages/JobsPage";
 import JobDetailPage from "./pages/JobDetailPage";
 import PrivateRoute from "./components/PrivateRoute";
 
@@ -60,6 +61,14 @@ function App() {
           element={
             <PrivateRoute authenticated={isAuthenticated}>
               <RunOptimisationPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/jobs"
+          element={
+            <PrivateRoute authenticated={isAuthenticated}>
+              <JobsPage />
             </PrivateRoute>
           }
         />
