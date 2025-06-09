@@ -29,6 +29,14 @@ a {
   pointer-events: none;
 }
 
+.invert-on-light {
+  transition: filter 0.2s;
+}
+
+body.light-mode .invert-on-light {
+  filter: invert(1) hue-rotate(180deg);
+}
+
 /* Buttons for dark background */
 body:not(.light-mode) .MuiButton-containedPrimary {
   background-color: #ffffff;
