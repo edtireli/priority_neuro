@@ -30,6 +30,9 @@ export default function Navbar({ isAuthenticated, userEmail }) {
             <Button color="inherit" component={RouterLink} to="/dashboard">
               Dashboard
             </Button>
+            <Button color="inherit" component={RouterLink} to="/results">
+              View Results
+            </Button>
             <Button color="inherit" component={RouterLink} to="/profile">
               {userEmail}
             </Button>
