@@ -67,6 +67,8 @@ export default function JobDetailsPage() {
   const [metrics, setMetrics] = useState([]);
   const [result, setResult] = useState(null);
   const [priors, setPriors] = useState(null);
+  const [designVars, setDesignVars] = useState([]);
+  const [config, setConfig] = useState(null);
   const [flowLog, setFlowLog] = useState(null);
   const [tab, setTab] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -90,7 +92,7 @@ export default function JobDetailsPage() {
       fetchMetrics();
       fetchResult();
       fetchFlowLog();
-      fetchPriors();
+      fetchConfig();
     }
   }, [job?.status]);
 
@@ -117,10 +119,12 @@ export default function JobDetailsPage() {
     } catch {}
   };
 
-  const fetchPriors = async () => {
+  const fetchConfig = async () => {
     try {
       const res = await api.get(`/projects/${projectId}/config`);
       setPriors(res.data.config.priors || {});
+      setDesignVars(res.data.config.designVariables || []);
+      setConfig(res.data.config);
     } catch {}
   };
 
@@ -234,6 +238,96 @@ export default function JobDetailsPage() {
     });
   };
 
+  const renderDesignSpaceScatter = () => {
+    if (!metrics.length) return null;
+    const vars = Object.keys(metrics[0].design_point || {});
+    if (vars.length < 2) return null;
+    const [xName, yName] = vars;
+    const x = metrics.map((m) => m.design_point[xName]);
+    const y = metrics.map((m) => m.design_point[yName]);
+    const util = metrics.map((m) => m.utility);
+    const text = metrics.map((m) =>
+      `${vars.map((v) => `${v}: ${m.design_point[v]}`).join(', ')}<br>Utility: ${m.utility}`
+    );
+    return (
+      <Plot
+        data={[
+          {
+            x,
+            y,
+            mode: 'markers',
+            marker: { color: util, colorscale: 'Viridis', colorbar: { title: 'Utility' } },
+            text,
+            hoverinfo: 'text',
+          },
+        ]}
+        layout={{
+          hovermode: 'closest',
+          xaxis: { title: xName },
+          yaxis: { title: yName },
+          margin: { t: 30 },
+        }}
+        useResizeHandler
+        style={{ width: '100%', height: '400px' }}
+        config={{ responsive: true }}
+      />
+    );
+  };
+
+  const renderEIGSurface = () => {
+    if (designVars.length !== 1) return null;
+    const dv = designVars[0];
+    if (dv.type !== 'continuous') return null;
+    const preds = result?.evaluatedDesigns || [];
+    if (!preds.length) return null;
+    const sorted = [...preds].sort(
+      (a, b) => a.design[dv.name] - b.design[dv.name]
+    );
+    const xs = sorted.map((p) => p.design[dv.name]);
+    const ys = sorted.map((p) => p.utility);
+    const evalX = metrics.map((m) => m.design_point[dv.name]);
+    const evalY = metrics.map((m) => m.utility);
+    return (
+      <Plot
+        data={[
+          { x: xs, y: ys, mode: 'lines', name: 'Predicted EIG' },
+          { x: evalX, y: evalY, mode: 'markers', name: 'Evaluated', marker: { color: 'red' } },
+        ]}
+        layout={{
+          hovermode: 'closest',
+          xaxis: { title: dv.name },
+          yaxis: { title: 'Expected Information Gain' },
+          margin: { t: 30 },
+        }}
+        useResizeHandler
+        style={{ width: '100%', height: '400px' }}
+        config={{ responsive: true }}
+      />
+    );
+  };
+
+  const renderGroupSeparation = () => {
+    if (config?.objective?.type !== 'group_separation') return null;
+    const series = result?.summary?.separationSeries;
+    if (!series) return null;
+    const xs = series.iterations || series.x || series.map((_, i) => i + 1);
+    const ys = series.values || series.y || series;
+    return (
+      <Plot
+        data={[{ x: xs, y: ys, mode: 'lines+markers', name: 'Separation' }]}
+        layout={{
+          hovermode: 'closest',
+          xaxis: { title: 'Iteration' },
+          yaxis: { title: 'Separation' },
+          margin: { t: 30 },
+        }}
+        useResizeHandler
+        style={{ width: '100%', height: '400px' }}
+        config={{ responsive: true }}
+      />
+    );
+  };
+
   return (
     <Container sx={{ py: 4 }}>
       <Typography variant="h5" gutterBottom>
@@ -269,6 +363,8 @@ export default function JobDetailsPage() {
             <Tab label="Utility Trajectory" />
             <Tab label="Flow Loss" />
             <Tab label="Posterior vs Prior" />
+            <Tab label="Design Space" />
+            <Tab label="Objective" />
           </Tabs>
           {tab === 0 && (
             <Plot
@@ -302,6 +398,13 @@ export default function JobDetailsPage() {
             />
           )}
           {tab === 2 && renderPosteriorPlots()}
+          {tab === 3 && (
+            <Box>
+              {renderDesignSpaceScatter()}
+              <Box sx={{ mt: 3 }}>{renderEIGSurface()}</Box>
+            </Box>
+          )}
+          {tab === 4 && renderGroupSeparation()}
         </Box>
       )}
 
