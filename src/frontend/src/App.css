@@ -15,7 +15,7 @@
 
 .App-header {
   /* match body dark shade */
-  background-color: #343541;
+  background-color: #2f2f2f;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
