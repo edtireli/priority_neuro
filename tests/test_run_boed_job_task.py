@@ -83,3 +83,38 @@ def test_run_boed_job_records_metrics(monkeypatch):
     assert metrics[0].utility == 0.0
     assert 'threshold' in metrics[0].posterior_summary
     db.close()
+
+
+def test_run_boed_job_saves_results(monkeypatch):
+    monkeypatch.setattr(tasks, 'SessionLocal', TestingSessionLocal)
+    tasks.celery.conf.task_always_eager = True
+
+    db = TestingSessionLocal()
+    user = User(email='c@d.com', full_name='C', institution='I', password_hash='x')
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    config = {
+        'model': {'type': 'built-in', 'templateName': 'psychometric', 'parameters': []},
+        'priors': {'threshold': {'dist': 'Normal', 'mean': 0.0, 'sd': 1.0}},
+        'designVariables': [{'name': 'x', 'type': 'continuous', 'range': [0.0, 1.0]}],
+        'trialBudget': 1
+    }
+    project = Project(user_id=user.id, name='P3', description='', config_json=config)
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    job = Job(project_id=project.id, job_name='J3', mode=RunMode.single_shot, compute_type=ComputeType.cpu, status=JobStatus.queued)
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    jid = str(job.id)
+    db.close()
+
+    tasks.run_boed_job.apply_async(args=[jid], task_id=jid).get()
+
+    db = TestingSessionLocal()
+    results = db.query(tasks.JobResult).filter(tasks.JobResult.job_id == job.id).all()
+    assert len(results) == 1
+    assert 'posterior' in results[0].summary
+    db.close()

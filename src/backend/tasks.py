@@ -4,7 +4,7 @@ from datetime import datetime
 import uuid
 from celery_app import celery
 from database import SessionLocal
-from models import Job, Project, JobStatus, RunMode, JobMetric
+from models import Job, Project, JobStatus, RunMode, JobMetric, JobResult
 from fastapi.templating import Jinja2Templates
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 import asyncio
@@ -354,6 +354,7 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
 def run_boed_job(job_id: str):
     """Run a simple BOED loop and record metrics."""
     db: Session = SessionLocal()
+    job = None
     try:
         jid = uuid.UUID(job_id)
         job = db.query(Job).filter(Job.id == jid).first()
@@ -417,8 +418,11 @@ def run_boed_job(job_id: str):
                 summary[name] = {"mean": float(np.mean(vals)), "sd": float(np.std(vals))}
             return summary
 
+        design_history = []
+        util_traj = []
         for i in range(1, trial_budget + 1):
             design = simple_sample_design(design_vars)
+            design_history.append(design)
             y = model.simulate(theta_true, design)
 
             logw = np.array([model.log_likelihood(y, th, design) for th in particles], dtype=float)
@@ -439,10 +443,24 @@ def run_boed_job(job_id: str):
             )
             db.add(metric)
             db.commit()
+            util_traj.append(0.0)
 
+        final_summary = {
+            "posterior": summarize(particles),
+            "designs_tested": design_history,
+            "utility_trajectory": util_traj,
+        }
+        db.add(JobResult(job_id=job.id, summary=final_summary))
         job.status = JobStatus.succeeded
         job.completed_at = datetime.utcnow()
         db.commit()
+    except Exception as exc:
+        if job:
+            job.status = JobStatus.failed
+            setattr(job, "error_detail", str(exc))
+            job.log = str(exc)
+            job.completed_at = datetime.utcnow()
+            db.commit()
     finally:
         db.close()
 
