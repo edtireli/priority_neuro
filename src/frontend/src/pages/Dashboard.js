@@ -8,7 +8,6 @@ import {
   CardContent,
   CardActionArea,
   Typography,
-  Box,
 } from "@mui/material";
 
 export default function Dashboard() {
@@ -55,7 +54,17 @@ export default function Dashboard() {
   ];
 
   return (
-    <Container sx={{ py: 4 }}>
+    <Container
+      sx={{
+        py: 4,
+        backgroundColor: (theme) =>
+          theme.palette.mode === "dark"
+            ? "rgba(0,0,0,0.6)"
+            : "rgba(255,255,255,0.8)",
+        borderRadius: 2,
+        p: 3,
+      }}
+    >
       <Typography variant="h4" align="center" gutterBottom>
         Welcome to Priority
       </Typography>

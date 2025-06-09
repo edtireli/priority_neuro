@@ -15,8 +15,6 @@ import {
   Select,
   MenuItem,
   Chip,
-  Card,
-  CardContent,
 } from "@mui/material";
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
@@ -124,16 +122,15 @@ export default function RunOptimisationPage() {
             ? "rgba(0,0,0,0.6)"
             : "rgba(255,255,255,0.8)",
         borderRadius: 2,
+        p: 3,
       }}
     >
-      <Card sx={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
-        <CardContent>
-          <Typography variant="h4" gutterBottom>
-            Run Optimization
-          </Typography>
-          <Typography variant="body1" gutterBottom>
-            View and manage your BOED jobs for this project. Start a new optimization run or monitor existing ones.
-          </Typography>
+      <Typography variant="h4" gutterBottom>
+          Run Optimization
+        </Typography>
+        <Typography variant="body1" gutterBottom>
+          View and manage your BOED jobs for this project. Start a new optimization run or monitor existing ones.
+        </Typography>
           <Box mb={2} display="flex" gap={2} alignItems="center">
             <Button
               variant="contained"
@@ -268,8 +265,7 @@ export default function RunOptimisationPage() {
           </Table>
         </Box>
       )}
-        </CardContent>
-      </Card>
+
     </Container>
   );
 }
