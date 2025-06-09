@@ -11,7 +11,7 @@ export default function Navbar({ isAuthenticated, userEmail }) {
     navigate("/login");
   };
   return (
-    <AppBar position="static" sx={{ mb: 2, bgcolor: "#424242" }}>
+    <AppBar position="static" sx={{ mb: 2, bgcolor: "#ffffff", color: "#000" }}>
       <Toolbar>
         <Typography variant="h6" sx={{ mr: 2 }}>
           priority
