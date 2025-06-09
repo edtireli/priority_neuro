@@ -227,9 +227,26 @@ export default function RunOptimisationPage() {
                         {uploadError[job.id] && (
                           <Alert severity="error">{stringifyError(uploadError[job.id])}</Alert>
                         )}
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            api
+                              .delete(`/projects/${projectId}/jobs/${job.id}`)
+                              .then(() => fetchJobs(filter === "archived"))
+                          }
+                        >
+                          Cancel
+                        </Button>
                       </Box>
-                    ) : job.status === "running" ? (
-                      <Button size="small" onClick={() => api.delete(`/projects/${projectId}/jobs/${job.id}`).then(() => fetchJobs(filter === "archived"))}>
+                    ) : job.status === "running" || job.status === "queued" ? (
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          api
+                            .delete(`/projects/${projectId}/jobs/${job.id}`)
+                            .then(() => fetchJobs(filter === "archived"))
+                        }
+                      >
                         Cancel
                       </Button>
                     ) : (
