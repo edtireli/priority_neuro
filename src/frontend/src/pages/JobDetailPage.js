@@ -26,7 +26,7 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     if (!job) return;
-    if (job.status === "running") {
+    if (["queued", "running", "paused_awaiting_data"].includes(job.status)) {
       const id = setInterval(fetchJob, 4000);
       return () => clearInterval(id);
     }
