@@ -1,5 +1,6 @@
 import React, { useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { AppBar, Toolbar, Typography, Button } from "@mui/material";
 import { AuthContext } from "../contexts/AuthContext";
 
 export default function Navbar({ isAuthenticated, userEmail }) {
@@ -10,20 +11,34 @@ export default function Navbar({ isAuthenticated, userEmail }) {
     navigate("/login");
   };
   return (
-    <nav style={{ padding: "1rem", borderBottom: "1px solid #ddd" }}>
-      <Link to="/" style={{ marginRight: "1rem" }}>Home</Link>
-      {isAuthenticated ? (
-        <>
-          <Link to="/dashboard" style={{ marginRight: "1rem" }}>Dashboard</Link>
-          <Link to="/profile" style={{ marginRight: "1rem" }}>{userEmail}</Link>
-          <button onClick={handleLogout}>Logout</button>
-        </>
-      ) : (
-        <>
-          <Link to="/login" style={{ marginRight: "1rem" }}>Login</Link>
-          <Link to="/register">Register</Link>
-        </>
-      )}
-    </nav>
+    <AppBar position="static" sx={{ mb: 2, bgcolor: "#424242" }}>
+      <Toolbar>
+        <Typography variant="h6" sx={{ mr: 2 }}>
+          Neuro-Exp-Design
+        </Typography>
+        {isAuthenticated ? (
+          <>
+            <Button color="inherit" component={RouterLink} to="/dashboard">
+              Dashboard
+            </Button>
+            <Button color="inherit" component={RouterLink} to="/profile">
+              {userEmail}
+            </Button>
+            <Button color="inherit" onClick={handleLogout}>
+              Logout
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button color="inherit" component={RouterLink} to="/login">
+              Login
+            </Button>
+            <Button color="inherit" component={RouterLink} to="/register">
+              Register
+            </Button>
+          </>
+        )}
+      </Toolbar>
+    </AppBar>
   );
 }
