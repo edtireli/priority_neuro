@@ -18,7 +18,18 @@ export function ColorModeProvider({ children }) {
     },
   }), [mode]);
 
-  const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode,
+          background: {
+            default: mode === "dark" ? "#2f2f2f" : "#ffffff",
+          },
+        },
+      }),
+    [mode]
+  );
 
   return (
     <ColorModeContext.Provider value={colorMode}>
