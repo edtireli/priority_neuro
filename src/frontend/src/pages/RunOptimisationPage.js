@@ -116,7 +116,16 @@ export default function RunOptimisationPage() {
   });
 
   return (
-    <Container sx={{ py: 4 }}>
+    <Container
+      sx={{
+        py: 4,
+        backgroundColor: (theme) =>
+          theme.palette.mode === "dark"
+            ? "rgba(0,0,0,0.6)"
+            : "rgba(255,255,255,0.8)",
+        borderRadius: 2,
+      }}
+    >
       <Card sx={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
         <CardContent>
           <Typography variant="h4" gutterBottom>

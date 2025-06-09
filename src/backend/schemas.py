@@ -17,10 +17,12 @@ class UserOut(BaseModel):
     full_name: str
     institution: str | None
     is_active: bool
+    profile_picture_url: str | None = Field(None, alias="profile_picture")
     created_at: datetime
 
     class Config:
         orm_mode = True
+        allow_population_by_field_name = True
 
 
 class LoginRequest(BaseModel):
