@@ -7,6 +7,7 @@ import {
   Box,
   Select,
   MenuItem,
+  Tooltip,
 } from "@mui/material";
 
 function Step5_DesignVariables({ config, setConfig }) {
@@ -198,18 +199,35 @@ function Step5_DesignVariables({ config, setConfig }) {
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Button variant="outlined" component="label">
-                Upload Pilot Data
-                <input
-                  type="file"
-                  accept=".csv"
-                  hidden
-                  onChange={(e) =>
-                    setSeq((p) => ({ ...p, pilotFile: e.target.files[0] }))
-                  }
-                />
-              </Button>
-              {seq.pilotFile && <span style={{ marginLeft: 8 }}>{seq.pilotFile.name}</span>}
+              <Tooltip
+                title={
+                  mode !== "sequential"
+                    ? "Switch to sequential mode to enable pilot data upload"
+                    : ""
+                }
+              >
+                <span>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    disabled={mode !== "sequential"}
+                  >
+                    Upload Pilot Data
+                    <input
+                      type="file"
+                      accept=".csv"
+                      hidden
+                      disabled={mode !== "sequential"}
+                      onChange={(e) =>
+                        setSeq((p) => ({ ...p, pilotFile: e.target.files[0] }))
+                      }
+                    />
+                  </Button>
+                </span>
+              </Tooltip>
+              {mode === "sequential" && seq.pilotFile && (
+                <span style={{ marginLeft: 8 }}>{seq.pilotFile.name}</span>
+              )}
             </Grid>
           </Grid>
         </Box>
