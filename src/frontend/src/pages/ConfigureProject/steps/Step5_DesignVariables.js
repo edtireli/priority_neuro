@@ -7,12 +7,13 @@ import {
   Box,
   Select,
   MenuItem,
+  Tooltip,
 } from "@mui/material";
 
 function Step5_DesignVariables({ config, setConfig }) {
   const [vars, setVars] = useState(config.designVariables || []);
   const [trialBudget, setTrialBudget] = useState(config.trialBudget || 100);
-  const [mode, setMode] = useState(config.experimentalMode || "batch");
+  const [mode, setMode] = useState(config.experimentalMode || "sequential");
   const [seq, setSeq] = useState(
     config.sequentialSettings || { pilotFile: null, batchSize: 10, maxIter: "" }
   );
@@ -59,6 +60,13 @@ function Step5_DesignVariables({ config, setConfig }) {
       <Typography sx={{ mb: 2 }}>
         Step 5: Define design variables to optimize, e.g. stimulusIntensity
         range 0–1.
+      </Typography>
+      <Typography sx={{ mb: 2 }}>
+        In <strong>sequential</strong> mode the optimiser runs a small batch of
+        trials, updates the model with the new data and then proposes the next
+        batch. In <strong>batch</strong> mode all trials are planned at once with
+        no intermediate updates. Pilot data can only be uploaded when using
+        sequential mode as it seeds the first batch.
       </Typography>
       {Array.isArray(vars) &&
         vars.map((v, idx) => (
@@ -175,45 +183,68 @@ function Step5_DesignVariables({ config, setConfig }) {
           <MenuItem value="sequential">Sequential</MenuItem>
         </Select>
       </Box>
-      {mode === "sequential" && (
-        <Box sx={{ mb: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                type="number"
-                label="Batch Size"
-                value={seq.batchSize}
-                onChange={(e) => setSeq((p) => ({ ...p, batchSize: Number(e.target.value) }))}
-                inputProps={{ min: 1 }}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                type="number"
-                label="Max Iterations"
-                value={seq.maxIter}
-                onChange={(e) => setSeq((p) => ({ ...p, maxIter: e.target.value }))}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Button variant="outlined" component="label">
-                Upload Pilot Data
-                <input
-                  type="file"
-                  accept=".csv"
-                  hidden
+      <Box sx={{ mb: 2 }}>
+        <Grid container spacing={2}>
+          {mode === "sequential" && (
+            <>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  type="number"
+                  label="Batch Size"
+                  value={seq.batchSize}
                   onChange={(e) =>
-                    setSeq((p) => ({ ...p, pilotFile: e.target.files[0] }))
+                    setSeq((p) => ({ ...p, batchSize: Number(e.target.value) }))
                   }
+                  inputProps={{ min: 1 }}
+                  fullWidth
                 />
-              </Button>
-              {seq.pilotFile && <span style={{ marginLeft: 8 }}>{seq.pilotFile.name}</span>}
-            </Grid>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  type="number"
+                  label="Max Iterations"
+                  value={seq.maxIter}
+                  onChange={(e) =>
+                    setSeq((p) => ({ ...p, maxIter: e.target.value }))
+                  }
+                  fullWidth
+                />
+              </Grid>
+            </>
+          )}
+          <Grid item xs={12} sm={4}>
+            <Tooltip
+              title={
+                mode !== "sequential"
+                  ? "Switch to sequential mode to enable pilot data upload"
+                  : ""
+              }
+            >
+              <span>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  disabled={mode !== "sequential"}
+                >
+                  Upload Pilot Data
+                  <input
+                    type="file"
+                    accept=".csv"
+                    hidden
+                    disabled={mode !== "sequential"}
+                    onChange={(e) =>
+                      setSeq((p) => ({ ...p, pilotFile: e.target.files[0] }))
+                    }
+                  />
+                </Button>
+              </span>
+            </Tooltip>
+            {mode === "sequential" && seq.pilotFile && (
+              <span style={{ marginLeft: 8 }}>{seq.pilotFile.name}</span>
+            )}
           </Grid>
-        </Box>
-      )}
+        </Grid>
+      </Box>
       {/* Navigation handled by WizardNav */}
     </div>
   );

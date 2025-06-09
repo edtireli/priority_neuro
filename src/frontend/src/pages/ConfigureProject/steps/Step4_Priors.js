@@ -10,6 +10,7 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  Alert,
 } from "@mui/material";
 
 function Step4_Priors({ config, setConfig }) {
@@ -103,7 +104,12 @@ function Step4_Priors({ config, setConfig }) {
       • enter its defining numbers (e.g. mean = 0.5, sd = 0.2 for a Normal)  
       Example: if you think “threshold” is near 0.5 with moderate spread, select Normal and set Mean = 0.5 and SD = 0.2.
     </Typography>
-      {Array.isArray(parameters) &&
+      {parameters.length === 0 && (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          No model parameters found. Please complete the Model Selection step first.
+        </Alert>
+      )}
+      {Array.isArray(parameters) && parameters.length > 0 &&
         parameters.map((param) => {
         const pr = priors[param.name] || {};
         const err = errors[param.name] || {};
