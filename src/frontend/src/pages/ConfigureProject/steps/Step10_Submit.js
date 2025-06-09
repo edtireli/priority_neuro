@@ -13,6 +13,12 @@ function Step10_Submit({ config }) {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      // Persist updated project metadata before launching the job
+      await api.put(`/projects/${projectId}`, {
+        name: config.metadata.name || "Untitled experiment",
+        description: config.metadata.description || "",
+      });
+
       const cfg = {
         metadata: config.metadata,
         model: config.model,
