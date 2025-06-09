@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 import uuid
 import importlib.util
+from typing import Any
 from celery_app import celery
 from database import SessionLocal
 from models import Job, Project, JobStatus, RunMode, JobMetric, JobResult
@@ -79,9 +80,10 @@ def simple_estimate_eig(priors, design, model):
     return 0.0
 
 
-def load_model(model_cfg, job_id):
-    """Load a built-in or custom model as specified by config."""
-    if not model_cfg:
+def load_model(model_cfg: dict, job_id: uuid.UUID) -> Any:
+    """Instantiate a model object based on the configuration."""
+
+    if not model_cfg or not model_cfg.get("type"):
         class Dummy:
             def simulate(self, theta, design):
                 return 0.0
@@ -90,24 +92,30 @@ def load_model(model_cfg, job_id):
                 return 0.0
 
         return Dummy()
+
+    parameters = model_cfg.get("parameters", [])
+    design_name = model_cfg.get("designName", "x")
+
     if model_cfg.get("type") == "built-in":
         if model_cfg.get("templateName") == "psychometric":
-            return PsychometricModel(
-                model_cfg.get("parameters", []),
-                design_name=model_cfg.get("designName", "x"),
-            )
+            return PsychometricModel(parameters, design_name=design_name)
         else:
-            return PoissonRateModel(model_cfg.get("parameters", []))
+            return PoissonRateModel(parameters, design_name=design_name)
 
+    # Custom model
     file_name = model_cfg.get("customFileName")
     if not file_name:
         raise ValueError("customFileName missing for custom model")
-    model_path = os.path.join(UPLOADS_ROOT, "custom_models", str(job_id), file_name)
+
+    model_path = os.path.join(
+        UPLOADS_ROOT, "custom_models", str(job_id), file_name
+    )
     spec = importlib.util.spec_from_file_location("custom_model", model_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+
     if hasattr(module, "Model"):
-        return module.Model(model_cfg.get("parameters", []))
+        return module.Model(parameters)
 
     class WrappedModel:
         def __init__(self, mod):
