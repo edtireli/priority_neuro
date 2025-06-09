@@ -169,8 +169,12 @@ class JobStatusOut(BaseModel):
     submitted_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
+    iteration: int
+    maxIterations: int | None
     log: str
     archived: bool
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class JobMetricOut(BaseModel):
