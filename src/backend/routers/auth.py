@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 
 from uuid import uuid4
 from datetime import datetime
+import os
+from PIL import Image
 
 from database import SessionLocal
 from models import User
@@ -22,6 +24,9 @@ from tasks import send_verification_email
 from app import DEVELOPER_MODE
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+PROFILE_DIR = os.path.join(os.path.dirname(__file__), "..", "static", "profile_pics")
+os.makedirs(PROFILE_DIR, exist_ok=True)
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -108,3 +113,22 @@ def resend_verification(request: ResendVerificationRequest, db: Session = Depend
     db.commit()
     send_verification_email.apply_async(args=[user.email, user.full_name, token])
     return {"message": "Verification email resent."}
+
+
+@router.post("/profile-picture")
+async def upload_profile_picture(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        image = Image.open(file.file).convert("L")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+    filename = f"{current_user.id}.png"
+    path = os.path.join(PROFILE_DIR, filename)
+    image.save(path)
+    url = f"/static/profile_pics/{filename}"
+    current_user.profile_picture = url
+    db.commit()
+    return {"url": url}
