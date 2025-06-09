@@ -14,8 +14,6 @@ import {
   Button,
   Select,
   MenuItem,
-  Card,
-  CardContent,
 } from "@mui/material";
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
@@ -97,13 +95,12 @@ export default function JobsPage() {
             ? "rgba(0,0,0,0.6)"
             : "rgba(255,255,255,0.8)",
         borderRadius: 2,
+        p: 3,
       }}
     >
-      <Card sx={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
-        <CardContent>
-          <Typography variant="h4" gutterBottom>
-            Run Optimization
-          </Typography>
+        <Typography variant="h4" gutterBottom>
+          Run Optimization
+        </Typography>
           <Typography variant="body1" gutterBottom>
             View and manage all your optimisation jobs.
           </Typography>
@@ -171,8 +168,6 @@ export default function JobsPage() {
           </Table>
         </Box>
       )}
-        </CardContent>
-      </Card>
     </Container>
   );
 }
