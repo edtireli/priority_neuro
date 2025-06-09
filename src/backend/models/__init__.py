@@ -14,6 +14,8 @@ JobStatus = _models.JobStatus
 ComputeType = _models.ComputeType
 RunMode = _models.RunMode
 Job = _models.Job
+JobMetric = _models.JobMetric
+JobResult = _models.JobResult
 
 from .expressions import PsychometricModel, PoissonRateModel, BernoulliModel
 
@@ -24,6 +26,8 @@ __all__ = [
     "ComputeType",
     "RunMode",
     "Job",
+    "JobMetric",
+    "JobResult",
     "PsychometricModel",
     "PoissonRateModel",
     "BernoulliModel",
