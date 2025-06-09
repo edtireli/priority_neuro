@@ -11,7 +11,7 @@ from sqlalchemy.pool import StaticPool
 from app import app
 from database import Base
 from dependencies import get_db
-from tasks import run_optimisation_task
+from tasks import run_boed_job
 from models import User
 
 engine = create_engine(
@@ -75,6 +75,7 @@ def test_real_optimisation(client, tmp_path):
             {"name": "x", "type": "continuous", "range": [0.0, 1.0]}
         ],
         "advanced_options": {"n_train": 500, "bo_budget": 5, "M_test": 1000, "epochs": 20},
+        "trialBudget": 2,
         "experimentalMode": "batch",
     }
     client.put(f"/api/projects/{pid}/config", json=config, headers=headers)
@@ -85,16 +86,21 @@ def test_real_optimisation(client, tmp_path):
         headers=headers,
     ).json()
     jid = job["id"]
-    run_optimisation_task.run(jid)
+    run_boed_job.apply_async(args=[jid], task_id=jid).get()
 
     status = client.get(f"/api/projects/{pid}/jobs/{jid}/status", headers=headers)
     assert status.status_code == 200
     assert status.json()["status"] == "succeeded"
 
     results = client.get(f"/api/projects/{pid}/jobs/{jid}/results", headers=headers)
-    data = json.loads(results.text)
-    assert data["utilityValue"] >= 0
-    assert 0.0 <= data["optimalDesign"]["x"] <= 1.0
+    data = results.json()
+    assert "posterior" in data["summary"]
+
+    metrics = client.get(
+        f"/api/projects/{pid}/jobs/{jid}/metrics",
+        headers=headers,
+    ).json()
+    assert len(metrics) == 2
 
 def test_sequential_two_iterations(client, tmp_path):
     token = get_token(client)

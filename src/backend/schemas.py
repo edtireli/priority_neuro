@@ -173,3 +173,24 @@ class JobStatusOut(BaseModel):
     completed_at: datetime | None
     log: str
     archived: bool
+
+
+class JobMetricOut(BaseModel):
+    """Serialized job metric."""
+
+    id: UUID
+    job_id: UUID
+    iteration: int
+    design_point: Dict[str, Any]
+    utility: float
+    posterior_summary: Dict[str, Any] | None
+    timestamp: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class JobResultOut(BaseModel):
+    """BOED result summary."""
+
+    summary: Dict[str, Any]

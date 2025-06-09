@@ -7,10 +7,10 @@ import os
 import json
 
 from dependencies import get_current_user, get_db
-from models import Job, Project, JobStatus, RunMode, ComputeType
-from schemas import JobOut, JobStatusOut
+from models import Job, Project, JobStatus, RunMode, ComputeType, JobMetric, JobResult
+from schemas import JobOut, JobStatusOut, JobMetricOut, JobResultOut
 from celery_app import celery
-from tasks import run_optimisation_task, run_boed_job
+from tasks import run_boed_job
 
 router = APIRouter(prefix="/api/projects/{project_id}/jobs", tags=["jobs"])
 
@@ -133,24 +133,28 @@ def get_job_status(
         raise HTTPException(status_code=404, detail="Job not found")
     return job
 
-@router.get("/{job_id}/results")
+@router.get("/{job_id}/results", response_model=JobResultOut)
 def get_job_results(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
 ):
+    """Return BOED summary results for the job."""
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Job not found")
     if job.status != JobStatus.succeeded:
         raise HTTPException(status_code=400, detail="Results not available until job succeeds")
-    result_path = os.path.join(job.results_folder or "", "result.json")
-    if not job.results_folder or not os.path.exists(result_path):
-        raise HTTPException(status_code=500, detail="Result file missing")
-    with open(result_path, "r") as f:
-        data = f.read()
-    return data
+    result = (
+        db.query(JobResult)
+        .filter(JobResult.job_id == job_id)
+        .order_by(JobResult.created_at.desc())
+        .first()
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Results not found")
+    return result
 
 
 @router.get("/{job_id}/results-detailed")
@@ -210,11 +214,10 @@ def retry_job(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),
 ):
+    """Queue the job for another BOED run."""
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Job not found")
-    if job.status != JobStatus.failed:
-        raise HTTPException(status_code=400, detail="Only failed jobs can be retried")
     job.status = JobStatus.queued
     job.started_at = None
     job.completed_at = None
@@ -242,28 +245,24 @@ def archive_job(
     return job
 
 
-@router.get("/{job_id}/metrics")
+@router.get("/{job_id}/metrics", response_model=list[JobMetricOut])
 def get_metrics(
     project_id: UUID,
     job_id: UUID,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),
 ):
+    """Return recorded BOED metrics for the job."""
     job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
     if not job or job.project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Job not found")
-    log_path = os.path.join(job.results_folder or "", "training.log")
-    if not os.path.exists(log_path):
-        return {"iteration": 0, "loss": [], "timestamps": []}
-    epochs = []
-    train = []
-    with open(log_path) as f:
-        lines = f.read().strip().splitlines()[1:]
-        for line in lines:
-            ep, tr, _ = line.split(",")
-            epochs.append(int(ep))
-            train.append(float(tr))
-    return {"iteration": epochs[-1] if epochs else 0, "loss": train, "timestamps": epochs}
+    metrics = (
+        db.query(JobMetric)
+        .filter(JobMetric.job_id == job_id)
+        .order_by(JobMetric.iteration)
+        .all()
+    )
+    return metrics
 
 
 @router.get("/{job_id}/download")
