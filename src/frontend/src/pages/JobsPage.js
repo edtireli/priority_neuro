@@ -14,6 +14,8 @@ import {
   Button,
   Select,
   MenuItem,
+  Card,
+  CardContent,
 } from "@mui/material";
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
@@ -87,22 +89,37 @@ export default function JobsPage() {
     );
 
   return (
-    <Container sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Run Optimization
-      </Typography>
-      <Typography variant="body1" gutterBottom>
-        View and manage all your optimisation jobs.
-      </Typography>
-      <Box mb={2} display="flex" gap={2} alignItems="center">
-        <Select value={filter} onChange={(e) => setFilter(e.target.value)} size="small">
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="running">Running</MenuItem>
-          <MenuItem value="completed">Completed</MenuItem>
-          <MenuItem value="failed">Failed</MenuItem>
-          <MenuItem value="archived">Archived</MenuItem>
-        </Select>
-      </Box>
+    <Container
+      sx={{
+        py: 4,
+        backgroundColor: (theme) =>
+          theme.palette.mode === "dark"
+            ? "rgba(0,0,0,0.6)"
+            : "rgba(255,255,255,0.8)",
+        borderRadius: 2,
+      }}
+    >
+      <Card sx={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+        <CardContent>
+          <Typography variant="h4" gutterBottom>
+            Run Optimization
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            View and manage all your optimisation jobs.
+          </Typography>
+          <Box mb={2} display="flex" gap={2} alignItems="center">
+            <Select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              size="small"
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="running">Running</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="failed">Failed</MenuItem>
+              <MenuItem value="archived">Archived</MenuItem>
+            </Select>
+          </Box>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {stringifyError(error)}
@@ -154,6 +171,8 @@ export default function JobsPage() {
           </Table>
         </Box>
       )}
+        </CardContent>
+      </Card>
     </Container>
   );
 }
