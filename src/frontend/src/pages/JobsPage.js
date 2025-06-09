@@ -62,6 +62,15 @@ export default function JobsPage() {
     }
   };
 
+  const cancelJob = async (projectId, jobId) => {
+    try {
+      await api.delete(`/projects/${projectId}/jobs/${jobId}`);
+      fetchJobs(filter === "archived");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const visibleJobs = jobs?.filter((j) => {
     if (filter === "all" || filter === "archived") return true;
     if (filter === "running") return j.status === "running" || j.status === "queued";
@@ -127,6 +136,11 @@ export default function JobsPage() {
                       <Button component={Link} to={`/projects/${job.project_id}/jobs/${job.id}`} size="small">
                         View
                       </Button>
+                      {!job.archived && ["queued", "paused_awaiting_data"].includes(job.status) && (
+                        <Button size="small" onClick={() => cancelJob(job.project_id, job.id)}>
+                          Cancel
+                        </Button>
+                      )}
                       {!job.archived && ["succeeded", "failed"].includes(job.status) && (
                         <Button size="small" onClick={() => archiveJob(job.project_id, job.id)}>
                           Archive
