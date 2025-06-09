@@ -10,7 +10,7 @@ from dependencies import get_current_user, get_db
 from models import Job, Project, JobStatus, RunMode, ComputeType
 from schemas import JobOut, JobStatusOut
 from celery_app import celery
-from tasks import run_optimisation_task
+from tasks import run_optimisation_task, run_boed_job
 
 router = APIRouter(prefix="/api/projects/{project_id}/jobs", tags=["jobs"])
 
@@ -75,7 +75,7 @@ async def create_job(
             f.write(contents)
 
     if status_val == JobStatus.queued:
-        run_optimisation_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+        run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
 
     return job
 
@@ -117,7 +117,7 @@ async def upload_pilot_data(
 
     job.status = JobStatus.queued
     db.commit()
-    run_optimisation_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
     db.refresh(job)
     return job
 
@@ -219,7 +219,7 @@ def retry_job(
     job.started_at = None
     job.completed_at = None
     db.commit()
-    run_optimisation_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
     db.refresh(job)
     return job
 

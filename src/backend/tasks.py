@@ -350,6 +350,26 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
     return best_design, evaluated_records
 
 
+@celery.task(name="run_boed_job")
+def run_boed_job(job_id: str):
+    """Stub Celery task that kicks off a BOED job."""
+    db: Session = SessionLocal()
+    try:
+        jid = uuid.UUID(job_id)
+        job = db.query(Job).filter(Job.id == jid).first()
+        if not job:
+            return
+        job.status = JobStatus.running
+        job.started_at = datetime.utcnow()
+        db.commit()
+
+        # Load project configuration for future processing
+        project = db.query(Project).filter(Project.id == job.project_id).first()
+        _cfg = project.config_json  # noqa: F841  # placeholder
+    finally:
+        db.close()
+
+
 @celery.task(bind=True)
 def run_optimisation_task(self, job_id_str: str):
     db: Session = SessionLocal()
