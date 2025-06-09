@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 import importlib.util
 from typing import Any
@@ -144,7 +144,7 @@ def run_boed_job(job_id: str):
             return
 
         job.status = JobStatus.running
-        job.started_at = datetime.utcnow()
+        job.started_at = datetime.now(timezone.utc)
         db.commit()
 
         project = db.query(Project).get(job.project_id)
@@ -263,14 +263,14 @@ def run_boed_job(job_id: str):
             db.commit()
 
         job.status = JobStatus.succeeded
-        job.completed_at = datetime.utcnow()
+        job.completed_at = datetime.now(timezone.utc)
         db.commit()
     except Exception:
         if job:
             job = db.query(Job).get(job.id)
             job.log = (job.log or "") + traceback.format_exc()
             job.status = JobStatus.failed
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             db.commit()
         return
     finally:
@@ -287,7 +287,7 @@ def run_optimisation_task(self, job_id_str: str):
         if not job:
             return
         job.status = JobStatus.running
-        job.started_at = datetime.utcnow()
+        job.started_at = datetime.now(timezone.utc)
         db.commit()
 
         project = db.query(Project).filter(Project.id == job.project_id).first()
@@ -331,7 +331,7 @@ def run_optimisation_task(self, job_id_str: str):
                 with open(os.path.join(results_dir, "optimal.json"), "w") as f:
                     json.dump({"final_iteration": iter_no}, f)
                 job.status = JobStatus.succeeded
-                job.completed_at = datetime.utcnow()
+                job.completed_at = datetime.now(timezone.utc)
                 db.commit()
                 return
             designs = [
@@ -450,7 +450,7 @@ def run_optimisation_task(self, job_id_str: str):
             "posteriorSamples": post_samples,
             "learningCurve": learning_curve,
             "status": "succeeded",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         result_path = os.path.join(results_dir, "result.json")
@@ -464,19 +464,19 @@ def run_optimisation_task(self, job_id_str: str):
             json.dump(result, f, indent=2)
 
         job.status = JobStatus.succeeded
-        job.completed_at = datetime.utcnow()
+        job.completed_at = datetime.now(timezone.utc)
         job.results_folder = results_dir
         db.commit()
     except MemoryError:
         if job:
             job.status = JobStatus.failed
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             job.log = "Out of memory: " + traceback.format_exc()
             db.commit()
     except Exception:
         if job:
             job.status = JobStatus.failed
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             job.log = traceback.format_exc()
             db.commit()
     finally:
@@ -493,6 +493,6 @@ def capture_failure(
     if job:
         job.status = JobStatus.failed
         job.log = f"Uncaught exception: {traceback.format_exc()}"
-        job.completed_at = datetime.utcnow()
+        job.completed_at = datetime.now(timezone.utc)
         db.commit()
     db.close()
