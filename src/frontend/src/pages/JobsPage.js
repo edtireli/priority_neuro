@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
+import JobSparkline from "../components/JobSparkline";
 
 export default function JobsPage() {
   const [projects, setProjects] = useState({});
@@ -132,6 +133,7 @@ export default function JobsPage() {
                 <TableCell>Project</TableCell>
                 <TableCell>Job ID</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Progress</TableCell>
                 <TableCell>Submitted At</TableCell>
                 <TableCell>Completed At</TableCell>
                 <TableCell>Actions</TableCell>
@@ -143,6 +145,9 @@ export default function JobsPage() {
                   <TableCell>{projects[job.project_id] || job.project_id}</TableCell>
                   <TableCell>{job.id}</TableCell>
                   <TableCell>{job.status}</TableCell>
+                  <TableCell>
+                    <JobSparkline projectId={job.project_id} jobId={job.id} />
+                  </TableCell>
                   <TableCell>{job.submitted_at ? new Date(job.submitted_at).toLocaleString() : "-"}</TableCell>
                   <TableCell>{job.completed_at ? new Date(job.completed_at).toLocaleString() : "-"}</TableCell>
                   <TableCell>
