@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+
+from data_validation import validate_pilot_data
 from sqlalchemy.orm import Session
 from uuid import UUID
 import os
@@ -64,11 +66,13 @@ async def create_job(
             f.write(await custom_model.read())
 
     if pilot_data:
+        contents = await pilot_data.read()
+        validate_pilot_data(contents, cfg.get("designVariables", []))
         data_dir = os.path.join(uploads_root, "pilot_data")
         os.makedirs(data_dir, exist_ok=True)
         file_path = os.path.join(data_dir, f"{job.id}.csv")
         with open(file_path, "wb") as f:
-            f.write(await pilot_data.read())
+            f.write(contents)
 
     if status_val == JobStatus.queued:
         run_optimisation_task.apply_async(args=[str(job.id)], task_id=str(job.id))
@@ -106,8 +110,10 @@ async def upload_pilot_data(
     data_dir = os.path.join(uploads_root, "pilot_data")
     os.makedirs(data_dir, exist_ok=True)
     file_path = os.path.join(data_dir, f"{job.id}.csv")
+    contents = await pilot_data.read()
+    validate_pilot_data(contents, job.project.config_json.get("designVariables", []))
     with open(file_path, "wb") as f:
-        f.write(await pilot_data.read())
+        f.write(contents)
 
     job.status = JobStatus.queued
     db.commit()
