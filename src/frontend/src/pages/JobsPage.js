@@ -14,6 +14,7 @@ import {
   Button,
   Select,
   MenuItem,
+  Chip,
 } from "@mui/material";
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
@@ -144,7 +145,21 @@ export default function JobsPage() {
                 <TableRow key={job.id}>
                   <TableCell>{projects[job.project_id] || job.project_id}</TableCell>
                   <TableCell>{job.id}</TableCell>
-                  <TableCell>{job.status}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={job.status}
+                      color={
+                        job.status === "succeeded"
+                          ? "success"
+                          : job.status === "failed"
+                          ? "error"
+                          : job.status === "paused_awaiting_data"
+                          ? "info"
+                          : "warning"
+                      }
+                      size="small"
+                    />
+                  </TableCell>
                   <TableCell>
                     <JobSparkline projectId={job.project_id} jobId={job.id} />
                   </TableCell>
