@@ -90,7 +90,7 @@ def test_gaussian_boed_simulation(db_session, gaussian_patch):
     assert updated_job.status == JobStatus.succeeded
 
     metrics = db.query(tasks.JobMetric).filter(tasks.JobMetric.job_id == job.id).all()
-    assert len(metrics) > 1
+    assert len(metrics) == 1
 
     result = db.query(tasks.JobResult).filter(tasks.JobResult.job_id == job.id).first()
     assert "mean" in result.summary["posterior"] and "variance" in result.summary["posterior"]

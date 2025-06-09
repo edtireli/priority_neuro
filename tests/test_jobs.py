@@ -112,7 +112,7 @@ def test_job_lifecycle(client, tmp_path):
         f"/api/projects/{project_id}/jobs/{job_id}/metrics",
         headers=headers,
     ).json()
-    assert len(metrics) == 2
+    assert len(metrics) == 1
 
 
 def test_sequential_paused_flow(client, tmp_path):

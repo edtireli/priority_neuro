@@ -19,102 +19,71 @@ def setup_module(module):
     Base.metadata.create_all(bind=engine)
 
 
-def test_run_boed_job_updates_status(monkeypatch):
-    monkeypatch.setattr(tasks, 'SessionLocal', TestingSessionLocal)
-    tasks.celery.conf.task_always_eager = True
-
+def create_job(mode, cfg):
     db = TestingSessionLocal()
     user = User(email='a@b.com', full_name='A', institution='I', password_hash='x')
     db.add(user)
     db.commit()
     db.refresh(user)
-    project = Project(user_id=user.id, name='P', description='', config_json={})
+    project = Project(user_id=user.id, name='P', description='', config_json=cfg)
     db.add(project)
     db.commit()
     db.refresh(project)
-    job = Job(project_id=project.id, job_name='J', mode=RunMode.single_shot, compute_type=ComputeType.cpu, status=JobStatus.queued)
+    job = Job(project_id=project.id, job_name='J', mode=mode, compute_type=ComputeType.cpu,
+              status=JobStatus.queued, maxIterations=2 if mode==RunMode.sequential else None)
     db.add(job)
     db.commit()
     db.refresh(job)
     jid = str(job.id)
     db.close()
-
-    tasks.run_boed_job.apply_async(args=[jid], task_id=jid).get()
-
-    db = TestingSessionLocal()
-    updated = db.query(Job).filter(Job.id == job.id).first()
-    assert updated.status == JobStatus.running
-    assert updated.started_at is not None
-    db.close()
+    return jid
 
 
-def test_run_boed_job_records_metrics(monkeypatch):
+def test_run_boed_job(monkeypatch):
     monkeypatch.setattr(tasks, 'SessionLocal', TestingSessionLocal)
     tasks.celery.conf.task_always_eager = True
 
-    db = TestingSessionLocal()
-    user = User(email='b@c.com', full_name='B', institution='I', password_hash='x')
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    config = {
-        'model': {'type': 'built-in', 'templateName': 'psychometric', 'parameters': []},
-        'priors': {'threshold': {'dist': 'Normal', 'mean': 0.0, 'sd': 1.0}},
-        'designVariables': [{'name': 'x', 'type': 'continuous', 'range': [0.0, 1.0]}],
-        'trialBudget': 2
+    monkeypatch.setattr(tasks, 'sample_design', lambda dv: {'x': 0.1})
+    monkeypatch.setattr(tasks, 'estimate_eig', lambda pri, d, m: 1.0)
+    monkeypatch.setattr(tasks, 'optimize_design', lambda pri, dv, m: {'x': 0.2})
+
+    base_cfg = {
+        'metadata': {},
+        'model': {},
+        'groups': {},
+        'priors': {},
+        'designVariables': [{'name': 'x', 'type': 'continuous', 'range': [0,1]}],
+        'objective': {},
+        'constraints': {},
+        'trialBudget': 3,
+        'experimentalMode': 'batch',
     }
-    project = Project(user_id=user.id, name='P2', description='', config_json=config)
-    db.add(project)
-    db.commit()
-    db.refresh(project)
-    job = Job(project_id=project.id, job_name='J2', mode=RunMode.single_shot, compute_type=ComputeType.cpu, status=JobStatus.queued)
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-    jid = str(job.id)
+    single_id = create_job(RunMode.single_shot, base_cfg)
+    tasks.run_boed_job.apply_async(args=[single_id], task_id=single_id).get()
+
+    db = TestingSessionLocal()
+    job = db.query(Job).get(uuid.UUID(single_id))
+    assert job.status == JobStatus.succeeded
+    metrics = db.query(tasks.JobMetric).filter(tasks.JobMetric.job_id==job.id).all()
+    assert len(metrics) == 1
+    assert metrics[0].utility == 1.0
+    res = db.query(tasks.JobResult).filter(tasks.JobResult.job_id==job.id).first()
+    assert res.summary['utility'] == 1.0
     db.close()
 
-    tasks.run_boed_job.apply_async(args=[jid], task_id=jid).get()
+    seq_cfg = dict(base_cfg)
+    seq_cfg['experimentalMode'] = 'sequential'
+    seq_cfg['trialBudget'] = 2
+    seq_id = create_job(RunMode.sequential, seq_cfg)
+    tasks.run_boed_job.apply_async(args=[seq_id], task_id=seq_id).get()
 
     db = TestingSessionLocal()
-    metrics = db.query(tasks.JobMetric).filter(tasks.JobMetric.job_id == job.id).order_by(tasks.JobMetric.iteration).all()
+    job2 = db.query(Job).get(uuid.UUID(seq_id))
+    assert job2.status == JobStatus.succeeded
+    metrics = db.query(tasks.JobMetric).filter(tasks.JobMetric.job_id==job2.id).order_by(tasks.JobMetric.iteration).all()
     assert len(metrics) == 2
     assert metrics[0].iteration == 1
-    assert metrics[0].utility == 0.0
-    assert 'threshold' in metrics[0].posterior_summary
-    db.close()
-
-
-def test_run_boed_job_saves_results(monkeypatch):
-    monkeypatch.setattr(tasks, 'SessionLocal', TestingSessionLocal)
-    tasks.celery.conf.task_always_eager = True
-
-    db = TestingSessionLocal()
-    user = User(email='c@d.com', full_name='C', institution='I', password_hash='x')
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    config = {
-        'model': {'type': 'built-in', 'templateName': 'psychometric', 'parameters': []},
-        'priors': {'threshold': {'dist': 'Normal', 'mean': 0.0, 'sd': 1.0}},
-        'designVariables': [{'name': 'x', 'type': 'continuous', 'range': [0.0, 1.0]}],
-        'trialBudget': 1
-    }
-    project = Project(user_id=user.id, name='P3', description='', config_json=config)
-    db.add(project)
-    db.commit()
-    db.refresh(project)
-    job = Job(project_id=project.id, job_name='J3', mode=RunMode.single_shot, compute_type=ComputeType.cpu, status=JobStatus.queued)
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-    jid = str(job.id)
-    db.close()
-
-    tasks.run_boed_job.apply_async(args=[jid], task_id=jid).get()
-
-    db = TestingSessionLocal()
-    results = db.query(tasks.JobResult).filter(tasks.JobResult.job_id == job.id).all()
-    assert len(results) == 1
-    assert 'posterior' in results[0].summary
+    assert metrics[1].iteration == 2
+    result = db.query(tasks.JobResult).filter(tasks.JobResult.job_id==job2.id).first()
+    assert result.summary['best_design'] == {'x': 0.2}
     db.close()

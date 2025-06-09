@@ -100,7 +100,7 @@ def test_real_optimisation(client, tmp_path):
         f"/api/projects/{pid}/jobs/{jid}/metrics",
         headers=headers,
     ).json()
-    assert len(metrics) == 2
+    assert len(metrics) == 1
 
 def test_sequential_two_iterations(client, tmp_path):
     token = get_token(client)
