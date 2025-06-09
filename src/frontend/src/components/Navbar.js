@@ -14,7 +14,7 @@ export default function Navbar({ isAuthenticated, userEmail }) {
     <AppBar position="static" sx={{ mb: 2, bgcolor: "#424242" }}>
       <Toolbar>
         <Typography variant="h6" sx={{ mr: 2 }}>
-          Priority
+          priority
         </Typography>
         {isAuthenticated ? (
           <>
