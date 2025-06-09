@@ -23,6 +23,7 @@ from boed_utils import (
     build_training_set,
     train_flow,
     sample_from_prior,
+    compute_group_separation_utility,
 )
 
 RESULTS_ROOT = os.getenv("RESULTS_ROOT", "results")
@@ -150,6 +151,10 @@ def run_boed_job(job_id: str):
         project = db.query(Project).get(job.project_id)
         config = project.config_json or {}
 
+        objective = config.get("objective", {}).get("type")
+        if objective == "group_separation" and not config.get("groups"):
+            raise Exception("groups configuration required for group_separation objective")
+
         required = [
             "metadata",
             "model",
@@ -202,7 +207,11 @@ def run_boed_job(job_id: str):
 
         if job.mode == RunMode.single_shot:
             proposal = sample_design(design_vars)
-            u = simple_estimate_eig(priors, proposal, model)
+            if objective == "group_separation":
+                groups = config["groups"]
+                u = compute_group_separation_utility(priors, proposal, model, groups)
+            else:
+                u = simple_estimate_eig(priors, proposal, model)
             post_sum = fake_posterior_summary(proposal)
             metric = JobMetric(
                 job_id=job.id,
@@ -232,10 +241,22 @@ def run_boed_job(job_id: str):
                 if len(inspect.signature(optimize_design).parameters) == 3:
                     proposal = optimize_design(priors, design_vars, model)
                 else:
+                    if objective == "group_separation":
+                        util = lambda d: compute_group_separation_utility(priors, d, model, config["groups"])
+                    else:
+                        util = lambda d: estimate_eig(d, flow, priors, model)
                     proposal, _ = optimize_design(
-                        priors, design_vars, model, flow, bo_budget=max_iter
+                        priors,
+                        design_vars,
+                        model,
+                        flow,
+                        bo_budget=max_iter,
+                        util_fn=util,
                     )
-                u = simple_estimate_eig(priors, proposal, model)
+                if objective == "group_separation":
+                    u = compute_group_separation_utility(priors, proposal, model, config["groups"])
+                else:
+                    u = simple_estimate_eig(priors, proposal, model)
                 metric = JobMetric(
                     job_id=job.id,
                     iteration=i,

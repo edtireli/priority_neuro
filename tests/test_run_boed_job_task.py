@@ -124,3 +124,37 @@ def test_run_boed_job_alt_design(monkeypatch):
     result = db.query(tasks.JobResult).filter(tasks.JobResult.job_id==job.id).first()
     assert result.summary['best_design'] == {'stim': 0.7}
     db.close()
+
+
+def test_run_boed_job_group_separation(monkeypatch):
+    monkeypatch.setattr(tasks, 'SessionLocal', TestingSessionLocal)
+    tasks.celery.conf.task_always_eager = True
+    tasks.celery.conf.broker_url = 'memory://'
+    tasks.celery.conf.result_backend = 'cache+memory://'
+
+    monkeypatch.setattr(tasks, 'sample_design', lambda dv: {'x': 0.1})
+    monkeypatch.setattr(tasks, 'compute_group_separation_utility', lambda pri, d, m, g: 2.5)
+    monkeypatch.setattr(tasks, 'optimize_design', lambda pri, dv, m: {'x': 0.2})
+
+    cfg = {
+        'metadata': {},
+        'model': {'dependentVariables': ['y']},
+        'groups': ['A', 'B'],
+        'priors': {},
+        'designVariables': [{'name': 'x', 'type': 'continuous', 'range': [0,1]}],
+        'objective': {'type': 'group_separation'},
+        'constraints': {},
+        'trialBudget': 2,
+        'experimentalMode': 'batch',
+    }
+    jid = create_job(RunMode.single_shot, cfg)
+    tasks.run_boed_job.apply_async(args=[jid], task_id=jid).get()
+
+    db = TestingSessionLocal()
+    job = db.query(Job).get(uuid.UUID(jid))
+    assert job.status == JobStatus.succeeded
+    metric = db.query(tasks.JobMetric).filter(tasks.JobMetric.job_id==job.id).first()
+    assert metric.utility == 2.5
+    result = db.query(tasks.JobResult).filter(tasks.JobResult.job_id==job.id).first()
+    assert result.summary['utility'] == 2.5
+    db.close()

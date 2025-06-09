@@ -180,7 +180,7 @@ def estimate_eig(*args, **kwargs):
         return float(np.mean(utilities))
 
 
-def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
+def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50, util_fn=estimate_eig):
     evaluated_d = []
     evaluated_u = []
     evaluated_records = []
@@ -197,7 +197,7 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
 
     for _ in range(20):
         d = sample_design_local()
-        u = estimate_eig(d, flow, prior_dict, model)
+        u = util_fn(d)
         evaluated_d.append([d[name] for name in sorted(d.keys())])
         evaluated_u.append(u)
         evaluated_records.append({"design": d, "utility": u})
@@ -266,7 +266,7 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
         if best_proposal is None:
             best_proposal = sample_design_local()
 
-        u_new = estimate_eig(best_proposal, flow, prior_dict, model)
+        u_new = util_fn(best_proposal)
         evaluated_d.append([best_proposal[name] for name in sorted(best_proposal.keys())])
         evaluated_u.append(u_new)
         evaluated_records.append({"design": best_proposal, "utility": u_new})
@@ -323,4 +323,33 @@ def summarize(particles):
             "variance": float(np.var(vals)),
         }
     return summary
+
+
+def compute_group_separation_utility(priors, design, model, groups):
+    """Compute a simple posterior separation metric between groups."""
+    theta_true = sample_from_prior(priors)
+    post_means = []
+    for _ in groups:
+        y = model.simulate(theta_true, design)
+        samples = [sample_from_prior(priors) for _ in range(200)]
+        log_w = np.array([model.log_likelihood(y, th, design) for th in samples])
+        w = np.exp(log_w - np.max(log_w))
+        w = w / np.sum(w)
+        idx = np.random.choice(len(samples), size=len(samples), p=w)
+        particles = [samples[i] for i in idx]
+        summary = summarize(particles)
+        if summary:
+            post_means.append(
+                np.array([summary[n]["mean"] for n in sorted(summary.keys())])
+            )
+
+    if len(post_means) < 2:
+        return 0.0
+
+    post_means = np.stack(post_means)
+    dists = []
+    for i in range(len(post_means)):
+        for j in range(i + 1, len(post_means)):
+            dists.append(np.linalg.norm(post_means[i] - post_means[j]))
+    return float(np.mean(dists))
 
