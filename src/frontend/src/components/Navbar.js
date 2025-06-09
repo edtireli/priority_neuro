@@ -19,8 +19,8 @@ export default function Navbar({ isAuthenticated, userEmail }) {
       position="static"
       sx={{
         mb: 2,
-        bgcolor: theme.palette.mode === "dark" ? "#202123" : "#fff",
-        color: theme.palette.mode === "dark" ? "#fff" : "#000",
+        bgcolor: theme.palette.background.paper,
+        color: theme.palette.text.primary,
       }}
     >
       <Toolbar>
