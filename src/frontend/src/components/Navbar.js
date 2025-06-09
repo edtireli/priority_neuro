@@ -24,7 +24,7 @@ export default function Navbar({ isAuthenticated, userEmail }) {
       }}
     >
       <Toolbar>
-        <img src="/smalllogo.png" alt="priority" style={{ height: 32, marginRight: 16 }} />
+        <img src="/smalllogo.png" alt="priority" style={{ height: 32, marginRight: 16 }} className="invert-on-light" />
         {isAuthenticated ? (
           <>
             <Button color="inherit" component={RouterLink} to="/dashboard">
