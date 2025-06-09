@@ -32,7 +32,11 @@ starts a task, set the environment variable:
 export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 ```
 before launching the worker. This disables macOS's fork safety checks and
-prevents `SIGABRT` errors when new worker processes are spawned.
+prevents `SIGABRT` errors when new worker processes are spawned. The
+`start-celery.sh` helper script already sets this variable for you.
+
+If a job fails, the full stack trace is stored in the `log` field of the job
+record. Check it for details when troubleshooting failed runs.
 
 ### Frontend
 ```bash

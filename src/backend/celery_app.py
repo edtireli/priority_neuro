@@ -1,6 +1,12 @@
 import multiprocessing as mp
-mp.set_start_method("spawn", force=True)
 import os
+import sys
+
+# Ensure macOS workers don't crash when using the default prefork pool.
+if sys.platform == "darwin" and not os.environ.get("OBJC_DISABLE_INITIALIZE_FORK_SAFETY"):
+    os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
+
+mp.set_start_method("spawn", force=True)
 from celery import Celery
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
