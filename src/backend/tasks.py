@@ -114,11 +114,18 @@ def create_flow(theta_dim, data_design_dim):
     transforms = []
     mask = np.arange(theta_dim) % 2
     for _ in range(5):
+
         def make_net(in_features, out_features):
-            return MLP(in_features=data_design_dim, out_features=out_features,
-                       hidden_features=128, num_hidden_layers=2)
-        transforms.append(AffineCouplingTransform(mask=mask,
-                                                 transform_net_create_fn=make_net))
+            return MLP(
+                in_features=data_design_dim,
+                out_features=out_features,
+                hidden_features=128,
+                num_hidden_layers=2,
+            )
+
+        transforms.append(
+            AffineCouplingTransform(mask=mask, transform_net_create_fn=make_net)
+        )
         transforms.append(BatchNorm(features=theta_dim))
         mask = 1 - mask
     transform = CompositeTransform(transforms)
@@ -129,13 +136,17 @@ def train_flow(theta_arr, design_arr, y_arr, epochs=100, batch_size=128, out_dir
     X = np.concatenate([y_arr, design_arr], axis=1)
     theta_tensor = torch.tensor(theta_arr, dtype=torch.float32)
     x_tensor = torch.tensor(X, dtype=torch.float32)
-    X_train, X_val, th_train, th_val = train_test_split(x_tensor, theta_tensor, test_size=0.1, random_state=0)
+    X_train, X_val, th_train, th_val = train_test_split(
+        x_tensor, theta_tensor, test_size=0.1, random_state=0
+    )
     dataset = TensorDataset(x_tensor, theta_tensor)
-    train_loader = DataLoader(TensorDataset(X_train, th_train), batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(
+        TensorDataset(X_train, th_train), batch_size=batch_size, shuffle=True
+    )
     val_loader = DataLoader(TensorDataset(X_val, th_val), batch_size=batch_size)
     flow = create_flow(theta_tensor.shape[1], X.shape[1])
     optimizer = torch.optim.Adam(flow.parameters(), lr=1e-3)
-    best_val = float('inf')
+    best_val = float("inf")
     patience = 0
     log_lines = []
     for ep in range(epochs):
@@ -146,14 +157,14 @@ def train_flow(theta_arr, design_arr, y_arr, epochs=100, batch_size=128, out_dir
             loss = -flow.log_prob(tb, xb).mean()
             loss.backward()
             optimizer.step()
-            total += loss.item()*len(xb)
-        train_loss = total/len(train_loader.dataset)
+            total += loss.item() * len(xb)
+        train_loss = total / len(train_loader.dataset)
         flow.eval()
         with torch.no_grad():
-            val_total=0
+            val_total = 0
             for xb, tb in val_loader:
-                val_total += (-flow.log_prob(tb, xb).mean().item()*len(xb))
-            val_loss = val_total/len(val_loader.dataset)
+                val_total += -flow.log_prob(tb, xb).mean().item() * len(xb)
+            val_loss = val_total / len(val_loader.dataset)
         log_lines.append(f"{ep+1},{train_loss:.4f},{val_loss:.4f}")
         if val_loss < best_val:
             best_val = val_loss
@@ -178,16 +189,21 @@ def log_prior(theta, prior_dict):
         if spec["dist"] == "Normal":
             mean = spec["mean"]
             sd = spec["sd"]
-            total += -0.5*((x-mean)/sd)**2 - np.log(sd*np.sqrt(2*np.pi))
+            total += -0.5 * ((x - mean) / sd) ** 2 - np.log(sd * np.sqrt(2 * np.pi))
         elif spec["dist"] == "Gamma":
             shape = spec["shape"]
             scale = spec["scale"]
-            total += (shape-1)*np.log(x) - x/scale - shape*np.log(scale) - gammaln(shape)
+            total += (
+                (shape - 1) * np.log(x)
+                - x / scale
+                - shape * np.log(scale)
+                - gammaln(shape)
+            )
         elif spec["dist"] == "Uniform":
             low = spec["low"]
             high = spec["high"]
             if low <= x <= high:
-                total += -np.log(high-low)
+                total += -np.log(high - low)
             else:
                 total += -np.inf
         else:
@@ -201,7 +217,9 @@ def estimate_eig(design, flow, prior_dict, model, M_test=2000):
     for _ in range(M_test):
         theta = sample_from_prior(prior_dict)
         y = model.simulate(theta, design)
-        theta_vec = torch.tensor([[theta[n] for n in sorted(prior_dict.keys())]], dtype=torch.float32)
+        theta_vec = torch.tensor(
+            [[theta[n] for n in sorted(prior_dict.keys())]], dtype=torch.float32
+        )
         y_part = [y] if np.isscalar(y) else list(y)
         y_design = torch.tensor([y_part + d_vec], dtype=torch.float32)
         log_post = flow.log_prob(theta_vec, y_design).item()
@@ -236,11 +254,15 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
     X = np.array(evaluated_d)
     y = np.array(evaluated_u)
     kernel = RBF(length_scale=1.0) + WhiteKernel(noise_level=1e-6)
-    gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
+    gp = GaussianProcessRegressor(
+        kernel=kernel, n_restarts_optimizer=5, normalize_y=True
+    )
     gp.fit(X, y)
 
     best_idx = int(np.argmax(y))
-    best_design = {name: evaluated_d[best_idx][i] for i, name in enumerate(sorted(d.keys()))}
+    best_design = {
+        name: evaluated_d[best_idx][i] for i, name in enumerate(sorted(d.keys()))
+    }
 
     for it in range(20, bo_budget):
         best_ei = -np.inf
@@ -252,20 +274,34 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
                 new_combos = []
                 for c in discrete_combos:
                     for val in dv["values"]:
-                        nc = c.copy(); nc[dv["name"]] = val
+                        nc = c.copy()
+                        nc[dv["name"]] = val
                         new_combos.append(nc)
                 discrete_combos = new_combos
 
         for combo in discrete_combos:
+
             def ei_objective(x):
-                point = np.array([*x, *[combo.get(name) for name in sorted(combo.keys()) if name in combo]])
+                point = np.array(
+                    [
+                        *x,
+                        *[
+                            combo.get(name)
+                            for name in sorted(combo.keys())
+                            if name in combo
+                        ],
+                    ]
+                )
                 mu, sigma = gp.predict(point.reshape(1, -1), return_std=True)
                 sigma = sigma[0]
                 mu = mu[0]
                 current_best = np.max(y)
-                z = (mu - current_best)/sigma if sigma>0 else 0
+                z = (mu - current_best) / sigma if sigma > 0 else 0
                 from math import erf, sqrt, exp
-                ei = (mu - current_best)*0.5*(1+erf(z/np.sqrt(2))) + sigma*np.exp(-0.5*z**2)/np.sqrt(2*np.pi)
+
+                ei = (mu - current_best) * 0.5 * (
+                    1 + erf(z / np.sqrt(2))
+                ) + sigma * np.exp(-0.5 * z**2) / np.sqrt(2 * np.pi)
                 return -ei
 
             bounds = []
@@ -278,12 +314,16 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
             if bounds:
                 x0 = np.random.uniform([b[0] for b in bounds], [b[1] for b in bounds])
                 from scipy.optimize import minimize
+
                 res = minimize(ei_objective, x0, bounds=bounds, method="L-BFGS-B")
                 if res.success:
                     ei_val = -res.fun
                     if ei_val > best_ei:
                         best_ei = ei_val
-                        best_proposal = {**{n:v for n,v in zip(cont_names, res.x)}, **combo}
+                        best_proposal = {
+                            **{n: v for n, v in zip(cont_names, res.x)},
+                            **combo,
+                        }
             else:
                 ei_val = -ei_objective(np.array([]))
                 if ei_val > best_ei:
@@ -295,14 +335,16 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
 
         u_new = estimate_eig(best_proposal, flow, prior_dict, model)
         print(f"Iteration {it-19}: proposed design {best_proposal}, EIG = {u_new:.3f}")
-        evaluated_d.append([best_proposal[name] for name in sorted(best_proposal.keys())])
+        evaluated_d.append(
+            [best_proposal[name] for name in sorted(best_proposal.keys())]
+        )
         evaluated_u.append(u_new)
         evaluated_records.append({"design": best_proposal, "utility": u_new})
         X = np.array(evaluated_d)
         y = np.array(evaluated_u)
         gp.fit(X, y)
         if u_new > evaluated_u[best_idx]:
-            best_idx = len(evaluated_u)-1
+            best_idx = len(evaluated_u) - 1
             best_design = best_proposal
 
     return best_design, evaluated_records
@@ -336,17 +378,24 @@ def run_optimisation_task(self, job_id_str: str):
             job.maxIterations = max_iter
             iter_no = job.iteration
             if iter_no == 0:
-                designs = [simple_sample_design(config["designVariables"]) for _ in range(batch_size)]
+                designs = [
+                    simple_sample_design(config["designVariables"])
+                    for _ in range(batch_size)
+                ]
                 idir = os.path.join(results_dir, f"iteration_{iter_no}")
                 os.makedirs(idir, exist_ok=True)
                 with open(os.path.join(idir, "designs.json"), "w") as f:
                     json.dump(designs, f, indent=2)
                 job.iteration = iter_no + 1
+                job.status = JobStatus.paused_awaiting_data
                 db.commit()
                 return
-            data_path = os.path.join(UPLOADS_ROOT, "data", str(job.id), f"iteration_{iter_no-1}.json")
+            data_path = os.path.join(
+                UPLOADS_ROOT, "data", str(job.id), f"iteration_{iter_no-1}.json"
+            )
             if not os.path.exists(data_path):
                 job.log = (job.log or "") + f"\nMissing data for iteration {iter_no-1}"
+                job.status = JobStatus.paused_awaiting_data
                 db.commit()
                 return
             if max_iter is not None and iter_no >= max_iter:
@@ -356,7 +405,10 @@ def run_optimisation_task(self, job_id_str: str):
                 job.completed_at = datetime.utcnow()
                 db.commit()
                 return
-            designs = [simple_sample_design(config["designVariables"]) for _ in range(batch_size)]
+            designs = [
+                simple_sample_design(config["designVariables"])
+                for _ in range(batch_size)
+            ]
             idir = os.path.join(results_dir, f"iteration_{iter_no}")
             os.makedirs(idir, exist_ok=True)
             with open(os.path.join(idir, "designs.json"), "w") as f:
@@ -366,12 +418,17 @@ def run_optimisation_task(self, job_id_str: str):
             return
 
         if config["model"]["templateName"] == "psychometric":
-            model = PsychometricModel(config["model"]["parameters"], design_name=config["designVariables"][0]["name"])
+            model = PsychometricModel(
+                config["model"]["parameters"],
+                design_name=config["designVariables"][0]["name"],
+            )
         else:
             model = PoissonRateModel(config["model"]["parameters"])
 
         n_train = adv.get("n_train", 2000)
-        theta_arr, design_arr, y_arr = build_training_set(config["priors"], config["designVariables"], model, N_train=n_train)
+        theta_arr, design_arr, y_arr = build_training_set(
+            config["priors"], config["designVariables"], model, N_train=n_train
+        )
         flow = train_flow(
             theta_arr,
             design_arr,
@@ -387,10 +444,14 @@ def run_optimisation_task(self, job_id_str: str):
             flow,
             bo_budget=adv.get("bo_budget", 20),
         )
-        best_u = estimate_eig(best_design, flow, config["priors"], model, M_test=adv.get("M_test", 1000))
+        best_u = estimate_eig(
+            best_design, flow, config["priors"], model, M_test=adv.get("M_test", 1000)
+        )
 
         evaluated_designs = eval_records
-        top_designs = sorted(evaluated_designs, key=lambda r: r["utility"], reverse=True)[:10]
+        top_designs = sorted(
+            evaluated_designs, key=lambda r: r["utility"], reverse=True
+        )[:10]
 
         n_samples = 2000
         prior_samples = [sample_from_prior(config["priors"]) for _ in range(n_samples)]
@@ -398,13 +459,17 @@ def run_optimisation_task(self, job_id_str: str):
         y_obs = model.simulate(theta0, best_design)
         y_vec = [y_obs] if np.isscalar(y_obs) else list(y_obs)
         design_vec = [best_design[n] for n in sorted(best_design.keys())]
-        context = torch.tensor([y_vec + design_vec], dtype=torch.float32).repeat(n_samples, 1)
+        context = torch.tensor([y_vec + design_vec], dtype=torch.float32).repeat(
+            n_samples, 1
+        )
         with torch.no_grad():
             post_samples_arr = flow.sample(n_samples, context=context).numpy()
         param_names = sorted(config["priors"].keys())
         post_samples = []
         for row in post_samples_arr:
-            post_samples.append({name: float(row[i]) for i, name in enumerate(param_names)})
+            post_samples.append(
+                {name: float(row[i]) for i, name in enumerate(param_names)}
+            )
 
         def to_hist(samples_list):
             hists = {}
@@ -462,7 +527,9 @@ def run_optimisation_task(self, job_id_str: str):
         result_path = os.path.join(results_dir, "result.json")
         detailed_path = os.path.join(results_dir, "result_detailed.json")
         with open(result_path, "w") as f:
-            json.dump({"optimalDesign": best_design, "utilityValue": best_u}, f, indent=2)
+            json.dump(
+                {"optimalDesign": best_design, "utilityValue": best_u}, f, indent=2
+            )
 
         with open(detailed_path, "w") as f:
             json.dump(result, f, indent=2)
@@ -488,7 +555,9 @@ def run_optimisation_task(self, job_id_str: str):
 
 
 @task_failure.connect
-def capture_failure(sender=None, task_id=None, exception=None, args=None, kwargs=None, **others):
+def capture_failure(
+    sender=None, task_id=None, exception=None, args=None, kwargs=None, **others
+):
     job_id = task_id
     db = SessionLocal()
     job = db.query(Job).filter(Job.id == job_id).first()
@@ -498,5 +567,3 @@ def capture_failure(sender=None, task_id=None, exception=None, args=None, kwargs
         job.completed_at = datetime.utcnow()
         db.commit()
     db.close()
-
-
