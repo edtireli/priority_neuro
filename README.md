@@ -7,6 +7,7 @@
 - Bayesian objectives including group separation, expected information gain (EIG) and training efficiency.
 - Sequential or single-shot optimisation using CPU or GPU workers via Celery.
 - Interactive result visualisations: utility surfaces, prior vs. posterior histograms and learning curves.
+- Personal user profile page with account details.
 
 ## Quick Start
 ### Backend
