@@ -165,6 +165,10 @@ def run_boed_job(job_id: str):
             if key not in config:
                 raise Exception(f"Missing config key: {key}")
 
+        if "designName" not in config["model"]:
+            dv_list = config.get("designVariables", [])
+            if dv_list:
+                config["model"]["designName"] = dv_list[0]["name"]
         model = load_model(config["model"], job.id)
 
         # In sequential mode we may require pilot data before proceeding
