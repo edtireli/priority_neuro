@@ -116,7 +116,16 @@ export default function RunOptimisationPage() {
   });
 
   return (
-    <Container sx={{ py: 4 }}>
+    <Container
+      sx={{
+        py: 4,
+        backgroundColor: (theme) =>
+          theme.palette.mode === "dark"
+            ? "rgba(0,0,0,0.6)"
+            : "rgba(255,255,255,0.8)",
+        borderRadius: 2,
+      }}
+    >
       <Card sx={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
         <CardContent>
           <Typography variant="h4" gutterBottom>
@@ -218,9 +227,26 @@ export default function RunOptimisationPage() {
                         {uploadError[job.id] && (
                           <Alert severity="error">{stringifyError(uploadError[job.id])}</Alert>
                         )}
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            api
+                              .delete(`/projects/${projectId}/jobs/${job.id}`)
+                              .then(() => fetchJobs(filter === "archived"))
+                          }
+                        >
+                          Cancel
+                        </Button>
                       </Box>
-                    ) : job.status === "running" ? (
-                      <Button size="small" onClick={() => api.delete(`/projects/${projectId}/jobs/${job.id}`).then(() => fetchJobs(filter === "archived"))}>
+                    ) : job.status === "running" || job.status === "queued" ? (
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          api
+                            .delete(`/projects/${projectId}/jobs/${job.id}`)
+                            .then(() => fetchJobs(filter === "archived"))
+                        }
+                      >
                         Cancel
                       </Button>
                     ) : (
