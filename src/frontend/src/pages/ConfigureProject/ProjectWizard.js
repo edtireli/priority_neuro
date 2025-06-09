@@ -112,7 +112,19 @@ function ProjectWizard() {
 
   return (
     <ErrorBoundary fallback={<Alert severity="error">Wizard crashed.</Alert>}>
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <Container
+        maxWidth="md"
+        sx={{
+          py: 4,
+          backgroundColor: (theme) =>
+            theme.palette.mode === "dark"
+              ? "rgba(0,0,0,0.6)"
+              : "rgba(255,255,255,0.8)",
+          borderRadius: 2,
+          p: 3,
+          border: "1px solid rgba(0,0,0,0.5)",
+        }}
+      >
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4">Configure Project</Typography>
         <Button variant="outlined" onClick={() => setImportModalOpen(true)}>
@@ -120,13 +132,7 @@ function ProjectWizard() {
         </Button>
       </Box>
       <WizardNav step={step} setStep={setStep} />
-      <Card
-        sx={{
-          p: 2,
-          transition: "transform 0.2s",
-          "&:hover": { transform: "scale(1.01)" },
-        }}
-      >
+      <Card sx={{ p: 2 }}>
         <CardContent>
           {step === 1 && (
             <Step1_Metadata config={config} setConfig={setConfig} setStep={setStep} />

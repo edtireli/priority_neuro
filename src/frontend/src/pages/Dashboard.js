@@ -63,6 +63,7 @@ export default function Dashboard() {
             : "rgba(255,255,255,0.8)",
         borderRadius: 2,
         p: 3,
+        border: "1px solid rgba(0,0,0,0.5)",
       }}
     >
       <Typography variant="h4" align="center" gutterBottom>
@@ -76,10 +77,16 @@ export default function Dashboard() {
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
+                transition: "transform 0.2s",
+                "&:hover": { transform: "scale(1.03)" },
               }}
             >
               {card.to ? (
-                <CardActionArea component={Link} to={card.to} sx={{ height: "100%" }}>
+                <CardActionArea
+                  component={Link}
+                  to={card.to}
+                  sx={{ height: "100%" }}
+                >
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Typography gutterBottom variant="h6" component="h2">
                       {card.title}
