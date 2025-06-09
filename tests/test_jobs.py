@@ -39,7 +39,7 @@ def client(tmp_path, monkeypatch):
     app.dependency_overrides[get_db] = override_get_db
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    monkeypatch.setattr("routers.jobs.run_optimisation_task.apply_async", lambda *a, **k: None)
+    monkeypatch.setattr("routers.jobs.run_boed_job.apply_async", lambda *a, **k: None)
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
