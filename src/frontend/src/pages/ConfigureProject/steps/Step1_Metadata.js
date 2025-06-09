@@ -1,38 +1,34 @@
-import React from "react";
-import { useForm } from "react-hook-form";
-import { Typography, TextField, Button, Grid, Box, RadioGroup, FormControlLabel, Radio } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import { Typography, TextField, Grid, RadioGroup, FormControlLabel, Radio } from "@mui/material";
 
-function Step1_Metadata({ config, setConfig, setStep }) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      name: config.metadata.name || "",
-      description: config.metadata.description || "",
-      institution: config.metadata.institution || "",
-      contact_email: config.metadata.contact_email || "",
-      modality: config.metadata.data_modality || "",
-    },
-  });
+function Step1_Metadata({ config, setConfig }) {
+  const [name, setName] = useState(config.metadata.name || "");
+  const [description, setDescription] = useState(
+    config.metadata.description || ""
+  );
+  const [institution, setInstitution] = useState(
+    config.metadata.institution || ""
+  );
+  const [contact, setContact] = useState(config.metadata.contact_email || "");
+  const [modality, setModality] = useState(
+    config.metadata.data_modality || ""
+  );
 
-  const onSubmit = (data) => {
+  useEffect(() => {
     setConfig((prev) => ({
       ...prev,
       metadata: {
-        name: data.name,
-        description: data.description,
-        institution: data.institution,
-        contact_email: data.contact_email,
-        data_modality: data.modality,
+        name,
+        description,
+        institution,
+        contact_email: contact,
+        data_modality: modality,
       },
     }));
-    setStep(2);
-  };
+  }, [name, description, institution, contact, modality, setConfig]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <div>
       <h3>Project Metadata</h3>
       <Typography sx={{ mb: 2 }}>
         Step 1: Enter project metadata.'.
@@ -44,12 +40,8 @@ function Step1_Metadata({ config, setConfig, setStep }) {
             required
             fullWidth
             inputProps={{ maxLength: 100 }}
-            {...register("name", {
-              required: "Project name is required",
-              maxLength: { value: 100, message: "Max length is 100" },
-            })}
-            error={!!errors.name}
-            helperText={errors.name?.message}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
         </Grid>
         <Grid item xs={12}>
@@ -59,40 +51,52 @@ function Step1_Metadata({ config, setConfig, setStep }) {
             rows={3}
             fullWidth
             inputProps={{ maxLength: 500 }}
-            {...register("description", {
-              maxLength: {
-                value: 500,
-                message: "Maximum length 500 characters",
-              },
-            })}
-            error={!!errors.description}
-            helperText={errors.description?.message}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           />
         </Grid>
         <Grid item xs={12}>
-          <TextField label="Institution/Lab" fullWidth {...register("institution")}/>
+          <TextField
+            label="Institution/Lab"
+            fullWidth
+            value={institution}
+            onChange={(e) => setInstitution(e.target.value)}
+          />
         </Grid>
         <Grid item xs={12}>
           <TextField
             label="Contact Email"
             fullWidth
-            {...register("contact_email", {
-              pattern: { value: /.+@.+\..+/, message: "Invalid email" },
-            })}
-            error={!!errors.contact_email}
-            helperText={errors.contact_email?.message}
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
           />
         </Grid>
         <Grid item xs={12}>
-      <RadioGroup row {...register("modality", { required: true })}>
-        <FormControlLabel value="behavioural" control={<Radio />} label="Behavioural" />
-        <FormControlLabel value="physiological" control={<Radio />} label="Physiological" />
-        <FormControlLabel value="combined" control={<Radio />} label="Combined" />
-      </RadioGroup>
+          <RadioGroup
+            row
+            value={modality}
+            onChange={(e) => setModality(e.target.value)}
+          >
+            <FormControlLabel
+              value="behavioural"
+              control={<Radio />}
+              label="Behavioural"
+            />
+            <FormControlLabel
+              value="physiological"
+              control={<Radio />}
+              label="Physiological"
+            />
+            <FormControlLabel
+              value="combined"
+              control={<Radio />}
+              label="Combined"
+            />
+          </RadioGroup>
+        </Grid>
       </Grid>
-    </Grid>
-    {/* Navigation handled by WizardNav */}
-  </form>
+      {/* Navigation handled by WizardNav */}
+    </div>
   );
 }
 
