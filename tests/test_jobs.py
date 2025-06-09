@@ -146,3 +146,60 @@ def test_sequential_paused_flow(client, tmp_path):
         )
     assert res2.status_code == 200
     assert res2.json()["status"] == "queued"
+
+def test_invalid_pilot_data_on_create(client, tmp_path):
+    token = get_auth_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    proj = client.post("/api/projects", json={"name": "P3", "description": ""}, headers=headers).json()
+    pid = proj["id"]
+    cfg = {
+        "metadata": {"name": "P3", "description": ""},
+        "model": {"type": "built-in", "templateName": "psychometric", "parameters": []},
+        "priors": {},
+        "designVariables": [{"name": "x", "type": "continuous", "range": [0,1]}],
+        "objective": {"type": "information_gain"},
+        "constraints": {"sampleSize": 1, "trialLimit": 2, "costWeights": {"subject":1,"trial":1,"session":1}},
+        "experimentalMode": "sequential",
+    }
+    invalid = tmp_path / "bad.csv"
+    invalid.write_text("x,z\n0,1")
+    with open(invalid, "rb") as f:
+        res = client.post(
+            f"/api/projects/{pid}/jobs",
+            data={"config": json.dumps(cfg)},
+            files={"pilot_data": ("bad.csv", f, "text/csv")},
+            headers=headers,
+        )
+    assert res.status_code == 400
+
+
+def test_invalid_pilot_data_on_upload(client, tmp_path):
+    token = get_auth_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    proj = client.post("/api/projects", json={"name": "P4", "description": ""}, headers=headers).json()
+    pid = proj["id"]
+    cfg = {
+        "metadata": {"name": "P4", "description": ""},
+        "model": {"type": "built-in", "templateName": "psychometric", "parameters": []},
+        "priors": {},
+        "designVariables": [{"name": "x", "type": "continuous", "range": [0,1]}],
+        "objective": {"type": "information_gain"},
+        "constraints": {"sampleSize": 1, "trialLimit": 2, "costWeights": {"subject":1,"trial":1,"session":1}},
+        "experimentalMode": "sequential",
+    }
+    res = client.post(
+        f"/api/projects/{pid}/jobs",
+        data={"config": json.dumps(cfg)},
+        headers=headers,
+    )
+    job = res.json()
+    jid = job["id"]
+    bad = tmp_path / "bad.csv"
+    bad.write_text("x,z\n0,1")
+    with open(bad, "rb") as f:
+        res2 = client.post(
+            f"/api/projects/{pid}/jobs/{jid}/data",
+            files={"pilot_data": ("bad.csv", f, "text/csv")},
+            headers=headers,
+        )
+    assert res2.status_code == 400
