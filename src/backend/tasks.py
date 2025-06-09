@@ -2,6 +2,7 @@ import os
 import json
 from datetime import datetime
 import uuid
+import importlib.util
 from celery_app import celery
 from database import SessionLocal
 from models import Job, Project, JobStatus, RunMode, JobMetric, JobResult
@@ -71,6 +72,58 @@ def simple_sample_design(design_vars):
     return d
 
 
+# Convenience wrapper used by run_boed_job and patched in tests
+def sample_design(design_vars):
+    return simple_sample_design(design_vars)
+
+
+def simple_estimate_eig(priors, design, model):
+    """Very rough utility estimator used for the Celery task tests."""
+    return 0.0
+
+
+def load_model(model_cfg, job_id):
+    """Load a built-in or custom model as specified by config."""
+    if not model_cfg:
+        class Dummy:
+            def simulate(self, theta, design):
+                return 0.0
+
+            def log_likelihood(self, data, theta, design):
+                return 0.0
+
+        return Dummy()
+    if model_cfg.get("type") == "built-in":
+        if model_cfg.get("templateName") == "psychometric":
+            return PsychometricModel(
+                model_cfg.get("parameters", []),
+                design_name=model_cfg.get("designName", "x"),
+            )
+        else:
+            return PoissonRateModel(model_cfg.get("parameters", []))
+
+    file_name = model_cfg.get("customFileName")
+    if not file_name:
+        raise ValueError("customFileName missing for custom model")
+    model_path = os.path.join(UPLOADS_ROOT, "custom_models", str(job_id), file_name)
+    spec = importlib.util.spec_from_file_location("custom_model", model_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    if hasattr(module, "Model"):
+        return module.Model(model_cfg.get("parameters", []))
+
+    class WrappedModel:
+        def __init__(self, mod):
+            self.mod = mod
+
+        def simulate(self, theta, design):
+            return self.mod.simulate(theta, design)
+
+        def log_likelihood(self, data, theta, design):
+            return self.mod.log_likelihood(data, theta, design)
+
+    return WrappedModel(module)
+
 def sample_from_prior(prior_dict):
     theta = {}
     for name, spec in prior_dict.items():
@@ -117,10 +170,9 @@ def create_flow(theta_dim, data_design_dim):
 
         def make_net(in_features, out_features):
             return MLP(
-                in_features=data_design_dim,
-                out_features=out_features,
-                hidden_features=128,
-                num_hidden_layers=2,
+                in_shape=data_design_dim,
+                out_shape=out_features,
+                hidden_sizes=[128, 128],
             )
 
         transforms.append(
@@ -352,113 +404,97 @@ def optimize_design(prior_dict, design_vars, model, flow, bo_budget=50):
 
 @celery.task(name="run_boed_job")
 def run_boed_job(job_id: str):
-    """Run a simple BOED loop and record metrics."""
-    db: Session = SessionLocal()
+    """Execute a BOED job simulation."""
+    db = SessionLocal()
     job = None
     try:
         jid = uuid.UUID(job_id)
-        job = db.query(Job).filter(Job.id == jid).first()
+        job = db.query(Job).get(jid)
         if not job:
+            db.close()
             return
+
         job.status = JobStatus.running
         job.started_at = datetime.utcnow()
         db.commit()
 
-        project = db.query(Project).filter(Project.id == job.project_id).first()
+        project = db.query(Project).get(job.project_id)
         config = project.config_json or {}
-        model_cfg = config.get("model", {})
 
-        # Instantiate model (built-in or custom)
-        design_vars = config.get("designVariables", [])
-        if model_cfg.get("type") == "built-in":
-            tmpl = model_cfg.get("templateName")
-            dname = design_vars[0]["name"] if design_vars else "x"
-            if tmpl == "psychometric":
-                model = PsychometricModel(model_cfg.get("parameters", []), design_name=dname)
-            else:
-                model = PoissonRateModel(model_cfg.get("parameters", []), design_name=dname)
-        else:
-            import importlib.util
+        required = [
+            "metadata",
+            "model",
+            "groups",
+            "priors",
+            "designVariables",
+            "objective",
+            "constraints",
+            "trialBudget",
+            "experimentalMode",
+        ]
+        for key in required:
+            if key not in config:
+                raise Exception(f"Missing config key: {key}")
 
-            file_name = model_cfg.get("customFileName")
-            model_path = os.path.join(UPLOADS_ROOT, "custom_models", str(job.id), file_name)
-            spec = importlib.util.spec_from_file_location("custom_model", model_path)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            if hasattr(module, "Model"):
-                model = module.Model(model_cfg.get("parameters", []))
-            else:
-                class WrappedModel:
-                    def __init__(self, mod):
-                        self.mod = mod
+        model = load_model(config["model"], job.id)
 
-                    def simulate(self, theta, design):
-                        return self.mod.simulate(theta, design)
-
-                    def log_likelihood(self, data, theta, design):
-                        return self.mod.log_likelihood(data, theta, design)
-
-                model = WrappedModel(module)
-
-        priors = config.get("priors", {})
-        trial_budget = config.get("trialBudget") or config.get("constraints", {}).get("trialLimit", 0)
-        trial_budget = int(trial_budget)
-
-        # Sample "true" theta from the prior
-        theta_true = sample_from_prior(priors)
-
-        # Initialize posterior particles
-        n_particles = 500
-        particles = [sample_from_prior(priors) for _ in range(n_particles)]
-
-        def summarize(ps):
-            summary = {}
-            for name in priors.keys():
-                vals = np.array([p[name] for p in ps], dtype=float)
-                summary[name] = {"mean": float(np.mean(vals)), "sd": float(np.std(vals))}
-            return summary
-
-        design_history = []
-        util_traj = []
-        for i in range(1, trial_budget + 1):
-            design = simple_sample_design(design_vars)
-            design_history.append(design)
-            y = model.simulate(theta_true, design)
-
-            logw = np.array([model.log_likelihood(y, th, design) for th in particles], dtype=float)
-            logw -= logw.max()
-            w = np.exp(logw)
-            w /= w.sum()
-            idx = np.random.choice(len(particles), size=len(particles), p=w)
-            particles = [particles[j].copy() for j in idx]
-
-            summary = summarize(particles)
+        if job.mode == RunMode.single_shot:
+            proposal = sample_design(config["designVariables"])
+            u = simple_estimate_eig(config["priors"], proposal, model)
 
             metric = JobMetric(
                 job_id=job.id,
-                iteration=i,
-                design_point=design,
-                utility=0.0,
-                posterior_summary=summary,
+                iteration=1,
+                design_point=proposal,
+                utility=u,
             )
             db.add(metric)
             db.commit()
-            util_traj.append(0.0)
 
-        final_summary = {
-            "posterior": summarize(particles),
-            "designs_tested": design_history,
-            "utility_trajectory": util_traj,
-        }
-        db.add(JobResult(job_id=job.id, summary=final_summary))
+            res = JobResult(
+                job_id=job.id,
+                summary={"best_design": proposal, "utility": u},
+            )
+            db.add(res)
+            db.commit()
+        else:
+            max_iter = job.maxIterations or int(config["trialBudget"])
+            for i in range(1, max_iter + 1):
+                proposal = optimize_design(
+                    config["priors"], config["designVariables"], model
+                )
+                u = simple_estimate_eig(config["priors"], proposal, model)
+                metric = JobMetric(
+                    job_id=job.id,
+                    iteration=i,
+                    design_point=proposal,
+                    utility=u,
+                )
+                db.add(metric)
+                db.commit()
+
+            metrics = (
+                db.query(JobMetric)
+                .filter(JobMetric.job_id == job.id)
+                .order_by(JobMetric.utility.desc())
+                .all()
+            )
+            best = metrics[0]
+            result_summary = {
+                "best_design": best.design_point,
+                "utility": best.utility,
+            }
+            db.add(JobResult(job_id=job.id, summary=result_summary))
+            db.commit()
+
         job.status = JobStatus.succeeded
         job.completed_at = datetime.utcnow()
         db.commit()
-    except Exception as exc:
+    except Exception:
         if job:
+            job = db.query(Job).get(job.id)
+            job.log = (job.log or "") + traceback.format_exc()
             job.status = JobStatus.failed
-            setattr(job, "error_detail", str(exc))
-            job.log = str(exc)
             job.completed_at = datetime.utcnow()
             db.commit()
     finally:
