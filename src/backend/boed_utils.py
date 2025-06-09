@@ -9,7 +9,7 @@ from nflows.distributions import StandardNormal
 from nflows.transforms import CompositeTransform
 from nflows.transforms.coupling import AffineCouplingTransform
 from nflows.transforms.normalization import BatchNorm
-from nflows.nn.nets import MLP
+from nflows.nn.nets import ResidualNet
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 from scipy.special import gammaln
@@ -63,10 +63,11 @@ def create_flow(theta_dim, data_design_dim):
     mask = np.arange(theta_dim) % 2
     for _ in range(5):
         def make_net(in_features, out_features):
-            return MLP(
-                in_shape=(data_design_dim,),
-                out_shape=(out_features,),
-                hidden_sizes=[128, 128],
+            return ResidualNet(
+                in_features=in_features,
+                out_features=out_features,
+                hidden_features=128,
+                context_features=data_design_dim,
             )
         transforms.append(
             AffineCouplingTransform(mask=mask, transform_net_create_fn=make_net)
