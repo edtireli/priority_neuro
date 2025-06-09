@@ -76,13 +76,14 @@ async def create_job(
 @router.get("/", response_model=list[JobOut])
 def list_jobs(
     project_id: UUID,
+    archived: bool = False,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
     project = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return db.query(Job).filter(Job.project_id == project_id).order_by(Job.submitted_at.desc()).all()
+    return db.query(Job).filter(Job.project_id == project_id, Job.archived == archived).order_by(Job.submitted_at.desc()).all()
 
 
 @router.post("/{job_id}/data", response_model=JobOut)
@@ -211,6 +212,24 @@ def retry_job(
     job.completed_at = None
     db.commit()
     run_optimisation_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    db.refresh(job)
+    return job
+
+
+@router.post("/{job_id}/archive", response_model=JobOut)
+def archive_job(
+    project_id: UUID,
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
+    if not job or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status not in (JobStatus.succeeded, JobStatus.failed):
+        raise HTTPException(status_code=400, detail="Only completed jobs can be archived")
+    job.archived = True
+    db.commit()
     db.refresh(job)
     return job
 

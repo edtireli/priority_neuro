@@ -33,10 +33,10 @@ export default function RunOptimisationPage() {
 
 
   // fetch jobs
-  const fetchJobs = async () => {
+  const fetchJobs = async (arch = false) => {
     try {
-      const res = await api.get(`/projects/${projectId}/jobs`);
-      const list = res.data.jobs || res.data; // backend returns list directly in some places
+      const res = await api.get(`/projects/${projectId}/jobs`, { params: { archived: arch } });
+      const list = res.data.jobs || res.data;
       setJobs(list);
       setLoadingError("");
     } catch (err) {
@@ -46,12 +46,12 @@ export default function RunOptimisationPage() {
   };
 
   useEffect(() => {
-    fetchJobs();
+    fetchJobs(filter === "archived");
     api.get(`/projects/${projectId}/config`).then((res) => setConfig(res.data.config));
-    const id = setInterval(fetchJobs, 5000);
+    const id = setInterval(() => fetchJobs(filter === "archived"), 5000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [projectId, filter]);
 
   const handleStart = () => {
     setStarting(true);
@@ -96,8 +96,17 @@ export default function RunOptimisationPage() {
     }
   };
 
+  const archiveJob = async (jobId) => {
+    try {
+      await api.post(`/projects/${projectId}/jobs/${jobId}/archive`);
+      fetchJobs(filter === "archived");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const visibleJobs = jobs?.filter((j) => {
-    if (filter === "all") return true;
+    if (filter === "all" || filter === "archived") return true;
     if (filter === "running") return j.status === "running" || j.status === "queued";
     if (filter === "completed") return j.status === "succeeded";
     if (filter === "failed") return j.status === "failed";
@@ -126,6 +135,7 @@ export default function RunOptimisationPage() {
           <MenuItem value="running">Running</MenuItem>
           <MenuItem value="completed">Completed</MenuItem>
           <MenuItem value="failed">Failed</MenuItem>
+          <MenuItem value="archived">Archived</MenuItem>
         </Select>
       </Box>
       {jobs && jobs.some((j) => j.status === "paused_awaiting_data") && (
@@ -147,7 +157,9 @@ export default function RunOptimisationPage() {
           )}
         </Box>
       ) : visibleJobs.length === 0 ? (
-        <Typography>No jobs yet. Click “Start New Optimization” to begin.</Typography>
+        <Typography>
+          {filter === "archived" ? "No archived jobs." : "No jobs yet. Click “Start New Optimization” to begin."}
+        </Typography>
       ) : (
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small">
@@ -199,13 +211,20 @@ export default function RunOptimisationPage() {
                         )}
                       </Box>
                     ) : job.status === "running" ? (
-                      <Button size="small" onClick={() => api.delete(`/projects/${projectId}/jobs/${job.id}`).then(fetchJobs)}>
+                      <Button size="small" onClick={() => api.delete(`/projects/${projectId}/jobs/${job.id}`).then(() => fetchJobs(filter === "archived"))}>
                         Cancel
                       </Button>
                     ) : (
-                      <Button component={Link} to={`/projects/${projectId}/jobs/${job.id}`} size="small">
-                        View
-                      </Button>
+                      <Box component="span" display="flex" gap={1}>
+                        <Button component={Link} to={`/projects/${projectId}/jobs/${job.id}`} size="small">
+                          View
+                        </Button>
+                        {!job.archived && ["succeeded", "failed"].includes(job.status) && (
+                          <Button size="small" onClick={() => archiveJob(job.id)}>
+                            Archive
+                          </Button>
+                        )}
+                      </Box>
                     )}
                   </TableCell>
                 </TableRow>
