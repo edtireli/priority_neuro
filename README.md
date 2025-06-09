@@ -1,6 +1,6 @@
-# Neuro Experimental Design
+# Priority
 
-**Neuro Experimental Design** is an open-source toolkit for machine-learning enhanced Bayesian Optimal Experimental Design (BOED). It combines generative modelling, neural density estimation and a modern web interface so that neuroscience researchers can efficiently optimise their experimental protocols.
+**Priority** is an open-source toolkit for machine-learning enhanced Bayesian Optimal Experimental Design (BOED). It combines generative modelling, neural density estimation and a modern web interface so that neuroscience researchers can efficiently optimise their experimental protocols.
 
 ## Features
 - Built-in templates for common generative models (e.g. psychometric and Poisson-rate) with the option to upload custom models.

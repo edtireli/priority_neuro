@@ -56,7 +56,7 @@ export default function Dashboard() {
   return (
     <Container sx={{ py: 4 }}>
       <Typography variant="h4" align="center" gutterBottom>
-        Welcome to Neuro-Exp-Design
+        Welcome to Priority
       </Typography>
       <Grid container spacing={4} justifyContent="center">
         {cards.map((card) => (
