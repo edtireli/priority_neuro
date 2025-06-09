@@ -64,7 +64,7 @@ def create_flow(theta_dim, data_design_dim):
     for _ in range(5):
         def make_net(in_features, out_features):
             return MLP(
-                in_shape=data_design_dim,
+                in_shape=(data_design_dim,),
                 out_shape=out_features,
                 hidden_sizes=[128, 128],
             )
