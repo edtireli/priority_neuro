@@ -1,4 +1,5 @@
 # priority
+![21ca02aa-ccef-4d75-ab07-d2f76e5cfe85 (2)](https://github.com/user-attachments/assets/a634dfde-e031-40af-9454-a4a0a0a3b968)
 
 **priority** is an open-source toolkit for machine-learning enhanced Bayesian Optimal Experimental Design (BOED). It combines generative modelling, neural density estimation and a modern web interface so that neuroscience researchers can efficiently optimise their experimental protocols.
 
