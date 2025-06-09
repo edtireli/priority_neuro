@@ -1,3 +1,4 @@
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -9,26 +10,40 @@ body {
   color: #fff;
 }
 
-a {
-  color: #fff;
+body.light-mode {
+  background-color: #fafafa;
+  color: #000;
 }
 
-/* Override default MUI primary buttons for dark background */
-.MuiButton-containedPrimary {
+a {
+  color: inherit;
+}
+
+.footer-logo {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 40px;
+  pointer-events: none;
+}
+
+/* Buttons for dark background */
+body:not(.light-mode) .MuiButton-containedPrimary {
   background-color: #ffffff;
   color: #000;
 }
 
-.MuiButton-containedPrimary:hover {
+body:not(.light-mode) .MuiButton-containedPrimary:hover {
   background-color: #e0e0e0;
 }
 
-.MuiButton-outlinedPrimary {
+body:not(.light-mode) .MuiButton-outlinedPrimary {
   color: #fff;
   border-color: #fff;
 }
 
-.MuiButton-outlinedPrimary:hover {
+body:not(.light-mode) .MuiButton-outlinedPrimary:hover {
   border-color: #e0e0e0;
   color: #e0e0e0;
 }
