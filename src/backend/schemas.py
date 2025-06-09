@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, validator, RootModel
+from pydantic import BaseModel, EmailStr, Field, validator, RootModel, ConfigDict
 from uuid import UUID
 from datetime import datetime
 from typing import Literal, List, Dict, Any
@@ -20,9 +20,7 @@ class UserOut(BaseModel):
     profile_picture_url: str | None = Field(None, alias="profile_picture")
     created_at: datetime
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class LoginRequest(BaseModel):
@@ -65,8 +63,7 @@ class ProjectOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ModelConfig(BaseModel):
@@ -163,8 +160,7 @@ class JobOut(BaseModel):
     completed_at: datetime | None
     archived: bool
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class JobStatusOut(BaseModel):
@@ -188,8 +184,7 @@ class JobMetricOut(BaseModel):
     posterior_summary: Dict[str, Any] | None
     timestamp: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class JobResultOut(BaseModel):
