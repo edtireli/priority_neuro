@@ -44,7 +44,7 @@ export default function Dashboard() {
     {
       title: "View Results",
       description: "Inspect completed job outputs and visuals.",
-      to: "/results",
+      to: "/jobs",
     },
     {
       title: "User Profile",
