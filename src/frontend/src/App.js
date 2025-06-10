@@ -91,7 +91,7 @@ function App() {
           }
         />
         <Route
-          path="/results"
+          path="/projects/:projectId/jobs/:jobId/results"
           element={
             <PrivateRoute authenticated={isAuthenticated}>
               <ResultsPage />
