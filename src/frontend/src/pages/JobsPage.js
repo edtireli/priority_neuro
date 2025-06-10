@@ -53,6 +53,8 @@ export default function JobsPage() {
 
   useEffect(() => {
     fetchJobs(filter === "archived");
+    const id = setInterval(() => fetchJobs(filter === "archived"), 5000);
+    return () => clearInterval(id);
   }, [filter]);
 
   const archiveJob = async (projectId, jobId) => {
@@ -161,7 +163,11 @@ export default function JobsPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    <JobSparkline projectId={job.project_id} jobId={job.id} />
+                    <JobSparkline
+                      projectId={job.project_id}
+                      jobId={job.id}
+                      status={job.status}
+                    />
                   </TableCell>
                   <TableCell>{job.submitted_at ? new Date(job.submitted_at).toLocaleString() : "-"}</TableCell>
                   <TableCell>{job.completed_at ? new Date(job.completed_at).toLocaleString() : "-"}</TableCell>

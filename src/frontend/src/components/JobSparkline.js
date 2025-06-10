@@ -4,26 +4,34 @@ import api from "../api";
 
 const cache = {};
 
-export default function JobSparkline({ projectId, jobId }) {
+export default function JobSparkline({ projectId, jobId, status }) {
   const theme = useTheme();
   const [data, setData] = useState(cache[jobId] || null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (cache[jobId]) return;
-    api
-      .get(`/projects/${projectId}/jobs/${jobId}/metrics`)
-      .then((res) => {
+    let id;
+    const fetchMetrics = async () => {
+      try {
+        const res = await api.get(
+          `/projects/${projectId}/jobs/${jobId}/metrics`
+        );
         const ordered = Array.isArray(res.data)
           ? res.data.sort((a, b) => a.iteration - b.iteration)
           : [];
         cache[jobId] = ordered;
         setData(ordered);
-      })
-      .catch(() => {
+        setError(false);
+      } catch {
         setError(true);
-      });
-  }, [projectId, jobId]);
+      }
+    };
+    fetchMetrics();
+    if (status === "running" || status === "queued") {
+      id = setInterval(fetchMetrics, 4000);
+    }
+    return () => clearInterval(id);
+  }, [projectId, jobId, status]);
 
   if (error) return (
     <Typography color="error" component="span" fontSize="0.8rem">N/A</Typography>
