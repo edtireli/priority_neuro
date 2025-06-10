@@ -36,7 +36,7 @@ function Step1_Metadata({ config, setConfig }) {
     const rows = text
       .trim()
       .split(/[\r\n]+/)
-      .map((r) => r.split(/[,\t]+/));
+      .map((r) => r.split(/[\t,]+/));
     if (rows.length === 0) return { headers: [], data: {} };
     let headers = rows[0];
     let start = 1;
@@ -48,8 +48,10 @@ function Step1_Metadata({ config, setConfig }) {
     headers.forEach((h) => (data[h] = []));
     for (let i = start; i < rows.length; i++) {
       rows[i].forEach((val, idx) => {
+        if (val === undefined) return;
         const num = parseFloat(val);
         if (!isNaN(num)) data[headers[idx]].push(num);
+        else data[headers[idx]].push(val);
       });
     }
     return { headers, data };
@@ -60,12 +62,12 @@ function Step1_Metadata({ config, setConfig }) {
     if (!file) return;
     try {
       const text = await file.text();
-      const parsed = parseCsv(text);
-      if (Object.keys(parsed.data).length === 0) {
-        setDataError("No numeric columns found");
-        return;
-      }
-      setDataSamples(parsed.data);
+    const parsed = parseCsv(text);
+    if (parsed.headers.length === 0) {
+      setDataError("File contained no data");
+      return;
+    }
+    setDataSamples(parsed.data);
       setDataHeaders(parsed.headers);
       setDataFileName(file.name);
       setDataError("");

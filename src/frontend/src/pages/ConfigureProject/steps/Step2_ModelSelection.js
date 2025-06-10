@@ -26,6 +26,9 @@ import {
 
 function Step2_ModelSelection({ config, setConfig }) {
   const { projectId } = useParams();
+  const dataHeaders = config.metadata?.dataHeaders || [];
+  const hasData = dataHeaders.length > 0;
+  const isPsychometric = selectedTemplate.toLowerCase() === "psychometric";
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(
     config.model.templateName || "",
@@ -33,7 +36,7 @@ function Step2_ModelSelection({ config, setConfig }) {
   const [customFile, setCustomFile] = useState(null);
   const [schema, setSchema] = useState(config.model.parameters || null);
   const [dvChoices, setDvChoices] = useState(config.model.dependentVariables || []);
-  const [dvs, setDvs] = useState([]);
+  const [dvs, setDvs] = useState(config.model.dependentVariables || []);
   const [error, setError] = useState("");
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [loadingSchema, setLoadingSchema] = useState(false);
@@ -82,10 +85,13 @@ function Step2_ModelSelection({ config, setConfig }) {
     api
       .get(`/templates/${name}/schema`)
       .then((res) => {
-        const lookup =
-          templateOutcomes[name] || templateOutcomes[name.toLowerCase()] || [];
         const schemaData = res.data.schema || res.data;
         setSchema(schemaData);
+        let lookup =
+          templateOutcomes[name] || templateOutcomes[name.toLowerCase()] || [];
+        if (name.toLowerCase() === "psychometric") {
+          lookup = hasData ? dataHeaders : [];
+        }
         setDvChoices(lookup);
         setDvs(lookup);
         setConfig((prev) => ({
@@ -146,6 +152,14 @@ function Step2_ModelSelection({ config, setConfig }) {
         : prev.filter((x) => x !== dv);
       return next;
     });
+  };
+
+  const addDv = () => setDvs((p) => [...p, ""]);
+  const updateDv = (idx, val) => {
+    setDvs((p) => p.map((d, i) => (i === idx ? val : d)));
+  };
+  const removeDv = (idx) => {
+    setDvs((p) => p.filter((_, i) => i !== idx));
   };
 
   useEffect(() => {
@@ -242,29 +256,81 @@ function Step2_ModelSelection({ config, setConfig }) {
               </TableBody>
             </Table>
           </TableContainer>
-          <Typography sx={{ mb: 1 }}>
-            Select one or more outcome measures that will be optimized.
-          </Typography>
-          {dvChoices.length === 0 ? (
-            <Typography>
-              No outcome variables defined. You can add them now or in the
-              Priors step.
-            </Typography>
+          {isPsychometric ? (
+            <Box>
+              <Typography sx={{ mb: 1 }}>
+                {hasData
+                  ? "Choose dependent variable columns from your data."
+                  : "Enter dependent variable names."}
+              </Typography>
+              {dvs.map((dv, idx) => (
+                <Grid
+                  container
+                  spacing={1}
+                  alignItems="center"
+                  key={idx}
+                  sx={{ mb: 1 }}
+                >
+                  <Grid item xs={10}>
+                    {hasData ? (
+                      <Select
+                        fullWidth
+                        value={dv}
+                        onChange={(e) => updateDv(idx, e.target.value)}
+                      >
+                        {dataHeaders.map((h) => (
+                          <MenuItem key={h} value={h}>
+                            {h}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    ) : (
+                      <TextField
+                        fullWidth
+                        value={dv}
+                        label="Dependent Variable"
+                        onChange={(e) => updateDv(idx, e.target.value)}
+                      />
+                    )}
+                  </Grid>
+                  <Grid item xs={2}>
+                    <Button onClick={() => removeDv(idx)}>Remove</Button>
+                  </Grid>
+                </Grid>
+              ))}
+              <Button variant="outlined" onClick={addDv} sx={{ mt: 1 }}>
+                Add Dependent Variable
+              </Button>
+            </Box>
           ) : (
             <Box>
-              {Array.isArray(dvChoices) &&
-                dvChoices.map((dv) => (
-                <FormControlLabel
-                  key={dv}
-                  control={
-                    <Checkbox
-                      checked={dvs.includes(dv)}
-                      onChange={(e) => handleDvChange(dv, e.target.checked)}
-                    />
-                  }
-                  label={dv}
-                />
-                ))}
+              <Typography sx={{ mb: 1 }}>
+                Select one or more outcome measures that will be optimized.
+              </Typography>
+              {dvChoices.length === 0 ? (
+                <Typography>
+                  No outcome variables defined. You can add them now or in the
+                  Priors step.
+                </Typography>
+              ) : (
+                <Box>
+                  {Array.isArray(dvChoices) &&
+                    dvChoices.map((dv) => (
+                      <FormControlLabel
+                        key={dv}
+                        control={
+                          <Checkbox
+                            checked={dvs.includes(dv)}
+                            onChange={(e) =>
+                              handleDvChange(dv, e.target.checked)
+                            }
+                          />
+                        }
+                        label={dv}
+                      />
+                    ))}
+                </Box>
+              )}
             </Box>
           )}
         </Box>
