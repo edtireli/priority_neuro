@@ -23,7 +23,7 @@ eig, se = estimate_eig(priors, design, model, N=1000)
 Passing `use_control_variates=True` activates a control variate based on the prior predictive log-likelihood which can dramatically reduce estimator variance:
 
 ```python
-eig, se, N_used = estimate_eig(
+eig, se, ci_l, ci_u, N_used = estimate_eig(
     priors,
     design,
     model,
@@ -35,14 +35,16 @@ eig, se, N_used = estimate_eig(
     ci_threshold=0.01,
     N_max=5000,
     use_optimal_beta=True,
+    confidence_level=0.95,
     random_seed=42,
 )
-print(f"EIG = {eig:.3f} ± {se:.3f} (N={N_used})")
+print(f"EIG = {eig:.3f} ± {se:.3f} ({ci_l:.3f}-{ci_u:.3f}, N={N_used})")
 ```
 
-The returned standard error allows plotting error bars in the web interface.  
-When `ci_threshold` is provided the estimator adaptively increases the number of
-samples until the relative error falls below the threshold or `N_max` is
-reached.  Antithetic variates and Sobol QMC sampling can further improve
-efficiency.  Setting `use_optimal_beta=True` estimates the optimal control
+The returned standard error and confidence interval bounds allow plotting error
+bars in the web interface. When `ci_threshold` is provided the estimator
+continues sampling until the relative CI width drops below this threshold or
+`N_max` is reached. The `confidence_level` parameter controls the interval
+coverage. Antithetic variates and Sobol QMC sampling can further improve
+efficiency. Setting `use_optimal_beta=True` estimates the optimal control
 variate coefficient automatically.

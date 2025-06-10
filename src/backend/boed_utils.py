@@ -168,6 +168,7 @@ def estimate_eig(
     ci_threshold: float | None = None,
     N_max: int = 10000,
     use_optimal_beta: bool = False,
+    confidence_level: float = 0.95,
     random_seed: int | None = None,
     **kwargs,
 ):
@@ -177,7 +178,7 @@ def estimate_eig(
     1) estimate_eig(prior_dict, design, model, n_samples=200)
     2) estimate_eig(design, flow, prior_dict, model, M_test=2000)
 
-    Returns (mean, standard_error, N_used).
+    Returns (mean, standard_error, ci_lower, ci_upper, N_used).
     """
 
     if random_seed is not None:
@@ -248,12 +249,11 @@ def estimate_eig(
 
         utilities = []
         h_vals = []
-        total_samples = 0
+        batch = N
         while True:
-            theta_samples = sample_theta(N)
+            theta_samples = sample_theta(batch)
             if use_antithetic:
                 theta_samples += [antithetic(th) for th in theta_samples]
-            total_samples += len(theta_samples)
             for theta in theta_samples:
                 y = model.simulate(theta, design)
                 lp_theta = model.log_likelihood(y, theta, design)
@@ -268,13 +268,20 @@ def estimate_eig(
             arr = np.array(utilities, dtype=float)
             mean = arr.mean()
             se = arr.std(ddof=1) / np.sqrt(len(arr))
+            from scipy.stats import norm
+
+            z = norm.ppf((1 + confidence_level) / 2)
+            ci_lower = mean - z * se
+            ci_upper = mean + z * se
+            width = ci_upper - ci_lower
+            N_used = len(arr)
             if (
                 ci_threshold is None
-                or abs(se / mean) <= ci_threshold
-                or len(arr) >= N_max
+                or (width / abs(mean) <= ci_threshold)
+                or (N_used >= N_max)
             ):
                 break
-            N = min(N_max - len(arr), N)
+            batch = min(N_max - N_used, max(batch * 2, N))
 
         if use_control_variates:
             h_arr = np.array(h_vals)
@@ -288,7 +295,12 @@ def estimate_eig(
 
         mean = float(arr.mean())
         se = float(arr.std(ddof=1) / np.sqrt(len(arr)))
-        return mean, se, len(arr)
+        from scipy.stats import norm
+
+        z = norm.ppf((1 + confidence_level) / 2)
+        ci_lower = float(mean - z * se)
+        ci_upper = float(mean + z * se)
+        return mean, se, ci_lower, ci_upper, len(arr)
 
 
 def optimize_design(
@@ -312,18 +324,29 @@ def optimize_design(
         d = sample_design_local()
         res = util_fn(d)
         if isinstance(res, tuple):
-            if len(res) == 3:
-                u, se, _ = res
+            if len(res) == 5:
+                u, se, ci_l, ci_u, N_used = res
+                log.info(
+                    f"EIG={u:.4f} \u00b1{se:.4f} ({ci_l:.4f}–{ci_u:.4f}), N={N_used}"
+                )
+            elif len(res) == 3:
+                u, se, N_used = res
+                log.info(f"EIG={u:.4f} \u00b1{se:.4f} (N={N_used})")
             else:
                 u, se = res
+                log.info(f"EIG={u:.4f} \u00b1{se:.4f}")
         else:
             u, se = res, None
-        log.info(f"EIG={u:.4f} \u00b1{(se or 0.0):.4f}")
+            log.info(f"EIG={u:.4f}")
         evaluated_d.append([d[name] for name in sorted(d.keys())])
         evaluated_u.append(u)
         rec = {"design": d, "utility": u}
         if se is not None:
             rec["se"] = se
+        if isinstance(res, tuple) and len(res) == 5:
+            rec["ci_lower"] = ci_l
+            rec["ci_upper"] = ci_u
+            rec["N_used"] = N_used
         evaluated_records.append(rec)
 
     X = np.array(evaluated_d)
@@ -408,13 +431,20 @@ def optimize_design(
 
         res = util_fn(best_proposal)
         if isinstance(res, tuple):
-            if len(res) == 3:
-                u_new, se_new, _ = res
+            if len(res) == 5:
+                u_new, se_new, ci_l, ci_u, N_used = res
+                log.info(
+                    f"EIG={u_new:.4f} \u00b1{se_new:.4f} ({ci_l:.4f}–{ci_u:.4f}), N={N_used}"
+                )
+            elif len(res) == 3:
+                u_new, se_new, N_used = res
+                log.info(f"EIG={u_new:.4f} \u00b1{se_new:.4f} (N={N_used})")
             else:
                 u_new, se_new = res
+                log.info(f"EIG={u_new:.4f} \u00b1{se_new:.4f}")
         else:
             u_new, se_new = res, None
-        log.info(f"EIG={u_new:.4f} \u00b1{(se_new or 0.0):.4f}")
+            log.info(f"EIG={u_new:.4f}")
         evaluated_d.append(
             [best_proposal[name] for name in sorted(best_proposal.keys())]
         )
@@ -422,6 +452,10 @@ def optimize_design(
         rec = {"design": best_proposal, "utility": u_new}
         if se_new is not None:
             rec["se"] = se_new
+        if isinstance(res, tuple) and len(res) == 5:
+            rec["ci_lower"] = ci_l
+            rec["ci_upper"] = ci_u
+            rec["N_used"] = N_used
         evaluated_records.append(rec)
         X = np.array(evaluated_d)
         y = np.array(evaluated_u)
