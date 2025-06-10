@@ -51,8 +51,7 @@ def test_run_sequence_optimizer_job(monkeypatch):
         "enableGPSurrogate": False,
         "trialBudget": 10,
         "stateWindow": 1,
-        "rewardDefinition": {"type": "trials_to_threshold"},
-        "terminationCriterion": {"type": "cumulative_reward", "threshold": -100},
+        "terminationCriterion": {"type": "trials_to_threshold", "threshold": 1},
     }
 
     monkeypatch.setattr(so, "load_model", lambda cfg, jid: DummyBernoulli([]))

@@ -14,7 +14,6 @@ function Step6b_SequenceSettings({ config, setConfig }) {
     config.objective?.options?.sequenceSettings || {
       agentType: "thompson",
       stateWindow: 1,
-      rewardDefinition: "",
       enableGPSurrogate: false,
       explorationRate: 0.0,
       trialBudget: 10,
@@ -67,15 +66,6 @@ function Step6b_SequenceSettings({ config, setConfig }) {
             ...p,
             stateWindow: Number(e.target.value),
           }))
-        }
-      />
-      <TextField
-        fullWidth
-        sx={{ mb: 2 }}
-        label="Reward Definition"
-        value={settings.rewardDefinition}
-        onChange={(e) =>
-          setSettings((p) => ({ ...p, rewardDefinition: e.target.value }))
         }
       />
       <Box sx={{ mb: 2 }}>

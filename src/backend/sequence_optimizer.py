@@ -69,15 +69,29 @@ def enumerate_actions(design_vars: List[Dict[str, Any]]) -> List[Dict[str, Any]]
 
 
 def compute_reward(
-    t: int, history: List[Dict[str, Any]], criterion_met: bool, reward_def: Dict[str, Any]
-) -> float:
-    """Compute reward according to the configured definition."""
+    t: int, history: List[Dict[str, Any]], terminationCriterion: Dict[str, Any]
+) -> tuple[float, bool]:
+    """Compute reward and determine if the termination criterion is met."""
 
-    rtype = reward_def.get("type", "default")
-    if rtype == "trials_to_threshold":
-        # Penalise each trial until the target criterion is met
-        return 0.0 if criterion_met else -1.0
-    return 1.0 if criterion_met else 0.0
+    ctype = terminationCriterion.get("type")
+    thr = float(terminationCriterion.get("threshold", 0.0))
+
+    if ctype == "trials_to_threshold":
+        criterion_met = t >= thr
+        reward = 0.0 if criterion_met else -1.0
+    elif ctype == "cumulative_reward":
+        cumulative = sum(h.get("reward", 0.0) for h in history)
+        criterion_met = cumulative >= thr
+        reward = cumulative
+    elif ctype == "last_accuracy":
+        last_acc = history[-1].get("accuracy", 0.0) if history else 0.0
+        criterion_met = last_acc >= thr
+        reward = last_acc
+    else:
+        criterion_met = False
+        reward = 0.0
+
+    return reward, criterion_met
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +179,6 @@ def run_sequence_optimization_job(
 
     trial_budget = int(seq_opts["trialBudget"])
     state_window = int(seq_opts["stateWindow"])
-    reward_def = seq_opts.get("rewardDefinition", {})
     criterion_cfg = seq_opts["terminationCriterion"]
 
     best_reward = float("-inf")
@@ -183,20 +196,7 @@ def run_sequence_optimization_job(
         w = w / np.sum(w)
         idx = np.random.choice(len(posterior), size=len(posterior), p=w)
         posterior = [posterior[i] for i in idx]
-        if criterion_cfg.get("type") == "posterior_variance":
-            names = sorted(posterior[0].keys())
-            arr = np.array([[p[n] for n in names] for p in posterior])
-            var = arr.var(axis=0).mean()
-            criterion_met = var <= float(criterion_cfg.get("threshold", 0.0))
-        elif criterion_cfg.get("type") == "cumulative_reward":
-            criterion_met = cumulative_reward >= float(criterion_cfg.get("threshold", 0.0))
-        elif criterion_cfg.get("type") == "last_accuracy":
-            last_acc = history[-1].get("accuracy", 0.0) if history else 0.0
-            criterion_met = last_acc >= float(criterion_cfg.get("threshold", 1.0))
-        else:
-            criterion_met = False
-
-        reward = compute_reward(t, history, criterion_met, reward_def)
+        reward, criterion_met = compute_reward(t, history, criterion_cfg)
         next_state = extract_state(
             posterior, history + [{"action": action}], t + 1, state_window=state_window
         )
