@@ -3,7 +3,6 @@ import Plot from "react-plotly.js";
 import {
   Typography,
   TextField,
-  Button,
   Grid,
   Box,
   Select,
@@ -17,10 +16,21 @@ import {
 
 function Step4_Priors({ config, setConfig }) {
   const parameters = config.model.parameters || [];
+  const dataSamples = config.metadata?.dataSamples || {};
+  const samples = dataSamples;
   const [priors, setPriors] = useState(() => {
     const obj = {};
     parameters.forEach((p) => {
-      obj[p.name] = { ...(config.priors[p.name] || p.default_prior) };
+      if (Array.isArray(dataSamples[p.name]) && dataSamples[p.name].length > 0) {
+        const vals = dataSamples[p.name];
+        const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const sd = Math.sqrt(
+          vals.reduce((s, v) => s + (v - mean) * (v - mean), 0) / vals.length
+        );
+        obj[p.name] = { dist: "Normal", mean, sd };
+      } else {
+        obj[p.name] = { ...(config.priors[p.name] || p.default_prior) };
+      }
     });
     return obj;
   });
@@ -50,29 +60,6 @@ function Step4_Priors({ config, setConfig }) {
       ...prev,
       [name]: { ...prev[name], [field]: value },
     }));
-  };
-
-  const handleFileUpload = (name, file) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = reader.result;
-      const vals = text
-        .split(/[\n,]+/)
-        .map((v) => parseFloat(v))
-        .filter((v) => !isNaN(v));
-      if (!vals.length) return;
-      setSamples((prev) => ({ ...prev, [name]: vals }));
-      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const sd = Math.sqrt(
-        vals.reduce((s, v) => s + (v - mean) * (v - mean), 0) / vals.length
-      );
-      setPriors((prev) => ({
-        ...prev,
-        [name]: { dist: "Normal", mean, sd },
-      }));
-    };
-    reader.readAsText(file);
   };
 
   const normalPdf = (mean, sd, xs) =>
