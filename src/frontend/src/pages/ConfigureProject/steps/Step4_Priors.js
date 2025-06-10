@@ -3,6 +3,7 @@ import Plot from "react-plotly.js";
 import {
   Typography,
   TextField,
+  Button,
   Grid,
   Box,
   Select,
