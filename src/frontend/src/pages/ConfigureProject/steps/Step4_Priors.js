@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Plot from "react-plotly.js";
 import {
   Typography,
   TextField,
@@ -11,6 +12,7 @@ import {
   InputLabel,
   FormHelperText,
   Alert,
+  Slider,
 } from "@mui/material";
 
 function Step4_Priors({ config, setConfig }) {
@@ -22,6 +24,7 @@ function Step4_Priors({ config, setConfig }) {
     });
     return obj;
   });
+  const [samples, setSamples] = useState({});
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -48,6 +51,34 @@ function Step4_Priors({ config, setConfig }) {
       [name]: { ...prev[name], [field]: value },
     }));
   };
+
+  const handleFileUpload = (name, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result;
+      const vals = text
+        .split(/[\n,]+/)
+        .map((v) => parseFloat(v))
+        .filter((v) => !isNaN(v));
+      if (!vals.length) return;
+      setSamples((prev) => ({ ...prev, [name]: vals }));
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const sd = Math.sqrt(
+        vals.reduce((s, v) => s + (v - mean) * (v - mean), 0) / vals.length
+      );
+      setPriors((prev) => ({
+        ...prev,
+        [name]: { dist: "Normal", mean, sd },
+      }));
+    };
+    reader.readAsText(file);
+  };
+
+  const normalPdf = (mean, sd, xs) =>
+    xs.map(
+      (x) => (1 / (sd * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - mean) / sd) ** 2)
+    );
 
   const handleDistChange = (param, dist) => {
     const defaults = param.default_prior || {};
@@ -128,6 +159,19 @@ function Step4_Priors({ config, setConfig }) {
                 <MenuItem value="Beta">Beta</MenuItem>
               </Select>
             </FormControl>
+            <Box sx={{ mt: 1 }}>
+              <Button variant="outlined" component="label" size="small">
+                Upload Data
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  hidden
+                  onChange={(e) =>
+                    handleFileUpload(param.name, e.target.files[0])
+                  }
+                />
+              </Button>
+            </Box>
             {pr.dist === "Normal" && (
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={6}>
@@ -154,6 +198,42 @@ function Step4_Priors({ config, setConfig }) {
                     fullWidth
                   />
                 </Grid>
+                {samples[param.name] && (
+                  <Grid item xs={12} sx={{ mt: 2 }}>
+                    <Typography variant="body2">Adjust Fit</Typography>
+                    <Typography variant="caption">Mean: {pr.mean}</Typography>
+                    <Slider
+                      value={pr.mean ?? 0}
+                      min={Math.min(...samples[param.name])}
+                      max={Math.max(...samples[param.name])}
+                      step={
+                        (Math.max(...samples[param.name]) -
+                          Math.min(...samples[param.name])) /
+                        100
+                      }
+                      onChange={(e, val) =>
+                        updateField(param.name, "mean", val)
+                      }
+                    />
+                    <Typography variant="caption">SD: {pr.sd}</Typography>
+                    <Slider
+                      value={pr.sd ?? 1}
+                      min={0.01}
+                      max={
+                        Math.max(...samples[param.name]) -
+                        Math.min(...samples[param.name])
+                      }
+                      step={
+                        (Math.max(...samples[param.name]) -
+                          Math.min(...samples[param.name])) /
+                          100 || 0.01
+                      }
+                      onChange={(e, val) =>
+                        updateField(param.name, "sd", val)
+                      }
+                    />
+                  </Grid>
+                )}
               </Grid>
             )}
             {pr.dist === "Gamma" && (
@@ -219,6 +299,38 @@ function Step4_Priors({ config, setConfig }) {
             <FormHelperText sx={{ mt: 1 }}>
               Default: {formatPrior(param.default_prior)}
             </FormHelperText>
+            {samples[param.name] && pr.dist === "Normal" && (
+              <Box sx={{ mt: 2 }}>
+                {(() => {
+                  const dataVals = samples[param.name];
+                  const minX = Math.min(...dataVals);
+                  const maxX = Math.max(...dataVals);
+                  const xs = [];
+                  for (let i = 0; i < 100; i++)
+                    xs.push(minX + (i / 99) * (maxX - minX));
+                  const ys = normalPdf(pr.mean ?? 0, pr.sd ?? 1, xs);
+                  const data = [
+                    {
+                      x: dataVals,
+                      type: "histogram",
+                      histnorm: "probability density",
+                      opacity: 0.6,
+                      name: "Data",
+                    },
+                    { x: xs, y: ys, type: "scatter", mode: "lines", name: "Fit" },
+                  ];
+                  return (
+                    <Plot
+                      data={data}
+                      layout={{ barmode: "overlay", margin: { t: 30 } }}
+                      useResizeHandler
+                      style={{ width: "100%", height: "300px" }}
+                      config={{ responsive: true }}
+                    />
+                  );
+                })()}
+              </Box>
+            )}
           </Box>
         );
         })}
