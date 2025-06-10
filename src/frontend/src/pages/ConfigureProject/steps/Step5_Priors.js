@@ -66,6 +66,49 @@ function Step5_Priors({ config, setConfig }) {
       (x) => (1 / (sd * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - mean) / sd) ** 2)
     );
 
+  // Lanczos approximation for the Gamma function
+  const gammaFunc = (z) => {
+    const g = 7;
+    const p = [
+      0.99999999999980993,
+      676.5203681218851,
+      -1259.1392167224028,
+      771.32342877765313,
+      -176.61502916214059,
+      12.507343278686905,
+      -0.13857109526572012,
+      9.9843695780195716e-6,
+      1.5056327351493116e-7,
+    ];
+    if (z < 0.5) {
+      return Math.PI / (Math.sin(Math.PI * z) * gammaFunc(1 - z));
+    }
+    z -= 1;
+    let x = p[0];
+    for (let i = 1; i < g + 2; i++) x += p[i] / (z + i);
+    const t = z + g + 0.5;
+    return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+  };
+
+  const gammaPdf = (shape, scale, xs) =>
+    xs.map((x) =>
+      x <= 0
+        ? 0
+        :
+          Math.pow(x, shape - 1) *
+          Math.exp(-x / scale) /
+          (Math.pow(scale, shape) * gammaFunc(shape))
+    );
+
+  const betaPdf = (alpha, beta, xs) => {
+    const betaNorm = gammaFunc(alpha) * gammaFunc(beta) / gammaFunc(alpha + beta);
+    return xs.map((x) =>
+      x <= 0 || x >= 1
+        ? 0
+        : Math.pow(x, alpha - 1) * Math.pow(1 - x, beta - 1) / betaNorm
+    );
+  };
+
   const handleDistChange = (param, dist) => {
     const defaults = param.default_prior || {};
     const base = { dist };
@@ -309,6 +352,29 @@ function Step5_Priors({ config, setConfig }) {
                     fullWidth
                   />
                 </Grid>
+                {dataSamples[param.name] && (
+                  <Grid item xs={12} sx={{ mt: 2 }}>
+                    <Typography variant="body2">Adjust Fit</Typography>
+                    <Typography variant="caption">Alpha: {pr.alpha}</Typography>
+                    <Slider
+                      value={pr.alpha ?? 1}
+                      min={0.1}
+                      max={(pr.alpha ?? 1) * 5}
+                      step={0.1}
+                      onChange={(e, val) =>
+                        updateField(param.name, "alpha", val)
+                      }
+                    />
+                    <Typography variant="caption">Beta: {pr.beta}</Typography>
+                    <Slider
+                      value={pr.beta ?? 1}
+                      min={0.1}
+                      max={(pr.beta ?? 1) * 5}
+                      step={0.1}
+                      onChange={(e, val) => updateField(param.name, "beta", val)}
+                    />
+                  </Grid>
+                )}
               </Grid>
             )}
             <FormHelperText sx={{ mt: 1 }}>
@@ -327,6 +393,72 @@ function Step5_Priors({ config, setConfig }) {
                   const data = [
                     {
                       x: dataVals,
+                      type: "histogram",
+                      histnorm: "probability density",
+                      opacity: 0.6,
+                      name: "Data",
+                    },
+                    { x: xs, y: ys, type: "scatter", mode: "lines", name: "Fit" },
+                  ];
+                  return (
+                    <Plot
+                      data={data}
+                      layout={{ barmode: "overlay", margin: { t: 30 } }}
+                      useResizeHandler
+                      style={{ width: "100%", height: "300px" }}
+                      config={{ responsive: true }}
+                    />
+                  );
+                })()}
+              </Box>
+            )}
+            {dataSamples[param.name] && pr.dist === "Gamma" && (
+              <Box sx={{ mt: 2 }}>
+                {(() => {
+                  const dataVals = dataSamples[param.name];
+                  const minX = Math.min(...dataVals);
+                  const maxX = Math.max(...dataVals);
+                  const xs = [];
+                  for (let i = 0; i < 100; i++)
+                    xs.push(minX + (i / 99) * (maxX - minX));
+                  const ys = gammaPdf(pr.shape ?? 1, pr.scale ?? 1, xs);
+                  const data = [
+                    {
+                      x: dataVals,
+                      type: "histogram",
+                      histnorm: "probability density",
+                      opacity: 0.6,
+                      name: "Data",
+                    },
+                    { x: xs, y: ys, type: "scatter", mode: "lines", name: "Fit" },
+                  ];
+                  return (
+                    <Plot
+                      data={data}
+                      layout={{ barmode: "overlay", margin: { t: 30 } }}
+                      useResizeHandler
+                      style={{ width: "100%", height: "300px" }}
+                      config={{ responsive: true }}
+                    />
+                  );
+                })()}
+              </Box>
+            )}
+            {dataSamples[param.name] && pr.dist === "Beta" && (
+              <Box sx={{ mt: 2 }}>
+                {(() => {
+                  const dataVals = dataSamples[param.name];
+                  const minX = Math.min(...dataVals);
+                  const maxX = Math.max(...dataVals);
+                  const scaledData = dataVals.map(
+                    (v) => (v - minX) / (maxX - minX)
+                  );
+                  const xs = [];
+                  for (let i = 0; i < 100; i++) xs.push(i / 99);
+                  const ys = betaPdf(pr.alpha ?? 1, pr.beta ?? 1, xs);
+                  const data = [
+                    {
+                      x: scaledData,
                       type: "histogram",
                       histnorm: "probability density",
                       opacity: 0.6,
