@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import uuid
 import importlib.util
 from typing import Any
+from backend.sequence_optimizer import run_sequence_optimization_job
 from celery_app import celery
 from database import SessionLocal
 from models import Job, Project, JobStatus, RunMode, JobMetric, JobResult
@@ -179,8 +180,7 @@ def run_boed_job(job_id: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            run_seq = _load_sequence_optimizer()
-            run_seq(job, project, config, seq_opts, db)
+            run_sequence_optimization_job(job, project, config, seq_opts, db)
             return
 
         objective = config.get("objective", {}).get("type")
@@ -374,8 +374,7 @@ def run_sequence_optimization_job_task(job_id: str):
             .get("sequenceSettings", {})
         )
 
-        run_seq = _load_sequence_optimizer()
-        run_seq(job, project, config, seq_opts, db)
+        run_sequence_optimization_job(job, project, config, seq_opts, db)
     except Exception:
         if job:
             job = db.query(Job).get(job.id)
@@ -411,8 +410,7 @@ def run_optimisation_task(self, job_id_str: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            run_seq = _load_sequence_optimizer()
-            run_seq(job, project, config, seq_opts, db)
+            run_sequence_optimization_job(job, project, config, seq_opts, db)
             return
 
         import torch  # heavy import only when task actually runs
