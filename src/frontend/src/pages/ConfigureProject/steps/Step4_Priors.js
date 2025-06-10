@@ -34,6 +34,7 @@ function Step4_Priors({ config, setConfig }) {
     });
     return obj;
   });
+  const [samples, setSamples] = useState({});
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -60,7 +61,6 @@ function Step4_Priors({ config, setConfig }) {
       [name]: { ...prev[name], [field]: value },
     }));
   };
-
 
   const normalPdf = (mean, sd, xs) =>
     xs.map(
@@ -146,6 +146,19 @@ function Step4_Priors({ config, setConfig }) {
                 <MenuItem value="Beta">Beta</MenuItem>
               </Select>
             </FormControl>
+            <Box sx={{ mt: 1 }}>
+              <Button variant="outlined" component="label" size="small">
+                Upload Data
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  hidden
+                  onChange={(e) =>
+                    handleFileUpload(param.name, e.target.files[0])
+                  }
+                />
+              </Button>
+            </Box>
             {pr.dist === "Normal" && (
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={6}>
