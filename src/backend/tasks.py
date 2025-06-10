@@ -16,6 +16,7 @@ from celery.signals import task_failure
 from sqlalchemy.orm import Session
 import numpy as np
 from models.expressions import PsychometricModel, PoissonRateModel
+from sequence_optimizer import run_sequence_optimization_job
 from boed_utils import (
     fit_flow,
     estimate_eig,
@@ -317,6 +318,41 @@ def run_boed_job(job_id: str):
             job.completed_at = datetime.now(timezone.utc)
             db.commit()
         return
+    finally:
+        db.close()
+
+
+@celery.task(name="run_sequence_optimization_job")
+def run_sequence_optimization_job_task(job_id: str):
+    """Celery entry point for sequence optimisation jobs."""
+    db: Session = SessionLocal()
+    job = None
+    try:
+        jid = uuid.UUID(job_id)
+        job = db.query(Job).get(jid)
+        if not job:
+            db.close()
+            return
+        job.status = JobStatus.running
+        job.started_at = datetime.now(timezone.utc)
+        db.commit()
+
+        project = db.query(Project).get(job.project_id)
+        config = project.config_json or {}
+        seq_opts = (
+            config.get("objective", {})
+            .get("options", {})
+            .get("sequenceSettings", {})
+        )
+
+        run_sequence_optimization_job(job, project, config, seq_opts, db)
+    except Exception:
+        if job:
+            job = db.query(Job).get(job.id)
+            job.log = (job.log or "") + traceback.format_exc()
+            job.status = JobStatus.failed
+            job.completed_at = datetime.now(timezone.utc)
+            db.commit()
     finally:
         db.close()
 
