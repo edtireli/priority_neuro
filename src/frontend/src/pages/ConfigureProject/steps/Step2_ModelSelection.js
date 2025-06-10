@@ -28,11 +28,11 @@ function Step2_ModelSelection({ config, setConfig }) {
   const { projectId } = useParams();
   const dataHeaders = config.metadata?.dataHeaders || [];
   const hasData = dataHeaders.length > 0;
-  const isPsychometric = selectedTemplate.toLowerCase() === "psychometric";
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(
     config.model.templateName || "",
   );
+  const isPsychometric = selectedTemplate.toLowerCase() === "psychometric";
   const [customFile, setCustomFile] = useState(null);
   const [schema, setSchema] = useState(config.model.parameters || null);
   const [dvChoices, setDvChoices] = useState(config.model.dependentVariables || []);
