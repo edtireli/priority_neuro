@@ -39,6 +39,7 @@ function Step7_Constraints({ config, setConfig }) {
             value={constraints.sampleSize || groupTotal}
             min={0}
             max={groupTotal * 2 || 100}
+            valueLabelDisplay="on"
             onChange={(_, val) => updateField("sampleSize", val)}
           />
         </Grid>
@@ -48,6 +49,7 @@ function Step7_Constraints({ config, setConfig }) {
             value={constraints.trialLimit || groupTotal}
             min={0}
             max={groupTotal * 2 || 100}
+            valueLabelDisplay="on"
             onChange={(_, val) => updateField("trialLimit", val)}
           />
         </Grid>
@@ -58,6 +60,7 @@ function Step7_Constraints({ config, setConfig }) {
             min={0}
             max={10}
             step={0.1}
+            valueLabelDisplay="on"
             onChange={(_, val) =>
               setConstraints((prev) => ({
                 ...prev,
@@ -73,6 +76,7 @@ function Step7_Constraints({ config, setConfig }) {
             min={0}
             max={10}
             step={0.1}
+            valueLabelDisplay="on"
             onChange={(_, val) =>
               setConstraints((prev) => ({
                 ...prev,
@@ -88,6 +92,7 @@ function Step7_Constraints({ config, setConfig }) {
             min={0}
             max={10}
             step={0.1}
+            valueLabelDisplay="on"
             onChange={(_, val) =>
               setConstraints((prev) => ({
                 ...prev,
