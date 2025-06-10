@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
+import Plot from "react-plotly.js";
 import {
   Typography,
   TextField,
-  Button,
   Grid,
   Box,
   Select,
@@ -11,14 +11,26 @@ import {
   InputLabel,
   FormHelperText,
   Alert,
+  Slider,
 } from "@mui/material";
 
 function Step4_Priors({ config, setConfig }) {
   const parameters = config.model.parameters || [];
+  const dataSamples = config.metadata?.dataSamples || {};
+  const samples = dataSamples;
   const [priors, setPriors] = useState(() => {
     const obj = {};
     parameters.forEach((p) => {
-      obj[p.name] = { ...(config.priors[p.name] || p.default_prior) };
+      if (Array.isArray(dataSamples[p.name]) && dataSamples[p.name].length > 0) {
+        const vals = dataSamples[p.name];
+        const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const sd = Math.sqrt(
+          vals.reduce((s, v) => s + (v - mean) * (v - mean), 0) / vals.length
+        );
+        obj[p.name] = { dist: "Normal", mean, sd };
+      } else {
+        obj[p.name] = { ...(config.priors[p.name] || p.default_prior) };
+      }
     });
     return obj;
   });
@@ -48,6 +60,12 @@ function Step4_Priors({ config, setConfig }) {
       [name]: { ...prev[name], [field]: value },
     }));
   };
+
+
+  const normalPdf = (mean, sd, xs) =>
+    xs.map(
+      (x) => (1 / (sd * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - mean) / sd) ** 2)
+    );
 
   const handleDistChange = (param, dist) => {
     const defaults = param.default_prior || {};
@@ -154,6 +172,42 @@ function Step4_Priors({ config, setConfig }) {
                     fullWidth
                   />
                 </Grid>
+                {samples[param.name] && (
+                  <Grid item xs={12} sx={{ mt: 2 }}>
+                    <Typography variant="body2">Adjust Fit</Typography>
+                    <Typography variant="caption">Mean: {pr.mean}</Typography>
+                    <Slider
+                      value={pr.mean ?? 0}
+                      min={Math.min(...samples[param.name])}
+                      max={Math.max(...samples[param.name])}
+                      step={
+                        (Math.max(...samples[param.name]) -
+                          Math.min(...samples[param.name])) /
+                        100
+                      }
+                      onChange={(e, val) =>
+                        updateField(param.name, "mean", val)
+                      }
+                    />
+                    <Typography variant="caption">SD: {pr.sd}</Typography>
+                    <Slider
+                      value={pr.sd ?? 1}
+                      min={0.01}
+                      max={
+                        Math.max(...samples[param.name]) -
+                        Math.min(...samples[param.name])
+                      }
+                      step={
+                        (Math.max(...samples[param.name]) -
+                          Math.min(...samples[param.name])) /
+                          100 || 0.01
+                      }
+                      onChange={(e, val) =>
+                        updateField(param.name, "sd", val)
+                      }
+                    />
+                  </Grid>
+                )}
               </Grid>
             )}
             {pr.dist === "Gamma" && (
@@ -219,6 +273,38 @@ function Step4_Priors({ config, setConfig }) {
             <FormHelperText sx={{ mt: 1 }}>
               Default: {formatPrior(param.default_prior)}
             </FormHelperText>
+            {samples[param.name] && pr.dist === "Normal" && (
+              <Box sx={{ mt: 2 }}>
+                {(() => {
+                  const dataVals = samples[param.name];
+                  const minX = Math.min(...dataVals);
+                  const maxX = Math.max(...dataVals);
+                  const xs = [];
+                  for (let i = 0; i < 100; i++)
+                    xs.push(minX + (i / 99) * (maxX - minX));
+                  const ys = normalPdf(pr.mean ?? 0, pr.sd ?? 1, xs);
+                  const data = [
+                    {
+                      x: dataVals,
+                      type: "histogram",
+                      histnorm: "probability density",
+                      opacity: 0.6,
+                      name: "Data",
+                    },
+                    { x: xs, y: ys, type: "scatter", mode: "lines", name: "Fit" },
+                  ];
+                  return (
+                    <Plot
+                      data={data}
+                      layout={{ barmode: "overlay", margin: { t: 30 } }}
+                      useResizeHandler
+                      style={{ width: "100%", height: "300px" }}
+                      config={{ responsive: true }}
+                    />
+                  );
+                })()}
+              </Box>
+            )}
           </Box>
         );
         })}

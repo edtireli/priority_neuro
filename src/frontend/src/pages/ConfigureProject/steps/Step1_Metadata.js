@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Typography, TextField, Grid, RadioGroup, FormControlLabel, Radio } from "@mui/material";
+import {
+  Typography,
+  TextField,
+  Grid,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Button,
+} from "@mui/material";
 
 function Step1_Metadata({ config, setConfig }) {
   const [name, setName] = useState(config.metadata.name || "");
@@ -13,6 +21,54 @@ function Step1_Metadata({ config, setConfig }) {
   const [modality, setModality] = useState(
     config.metadata.data_modality || ""
   );
+  const [dataSamples, setDataSamples] = useState(
+    config.metadata.dataSamples || null
+  );
+  const [dataFileName, setDataFileName] = useState(
+    config.metadata.dataFileName || ""
+  );
+  const [dataError, setDataError] = useState("");
+
+  const parseCsv = (text) => {
+    const rows = text
+      .trim()
+      .split(/[\r\n]+/)
+      .map((r) => r.split(/[,\t]+/));
+    if (rows.length === 0) return {};
+    let headers = rows[0];
+    let start = 1;
+    if (headers.every((v) => !isNaN(parseFloat(v)))) {
+      headers = headers.map((_, i) => `col${i + 1}`);
+      start = 0;
+    }
+    const data = {};
+    headers.forEach((h) => (data[h] = []));
+    for (let i = start; i < rows.length; i++) {
+      rows[i].forEach((val, idx) => {
+        const num = parseFloat(val);
+        if (!isNaN(num)) data[headers[idx]].push(num);
+      });
+    }
+    return data;
+  };
+
+  const handleDataUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = parseCsv(text);
+      if (Object.keys(parsed).length === 0) {
+        setDataError("No numeric columns found");
+        return;
+      }
+      setDataSamples(parsed);
+      setDataFileName(file.name);
+      setDataError("");
+    } catch (err) {
+      setDataError("Failed to parse file");
+    }
+  };
 
   useEffect(() => {
     setConfig((prev) => ({
@@ -23,9 +79,11 @@ function Step1_Metadata({ config, setConfig }) {
         institution,
         contact_email: contact,
         data_modality: modality,
+        dataSamples,
+        dataFileName,
       },
     }));
-  }, [name, description, institution, contact, modality, setConfig]);
+  }, [name, description, institution, contact, modality, dataSamples, dataFileName, setConfig]);
 
   return (
     <div>
@@ -93,6 +151,22 @@ function Step1_Metadata({ config, setConfig }) {
               label="Combined"
             />
           </RadioGroup>
+        </Grid>
+        <Grid item xs={12}>
+          <Button variant="outlined" component="label">
+            Upload Data
+            <input type="file" accept=".csv,.txt" hidden onChange={handleDataUpload} />
+          </Button>
+          {dataFileName && (
+            <Typography variant="caption" sx={{ ml: 1 }}>
+              {dataFileName}
+            </Typography>
+          )}
+          {dataError && (
+            <Typography color="error" variant="body2">
+              {dataError}
+            </Typography>
+          )}
         </Grid>
       </Grid>
       {/* Navigation handled by WizardNav */}
