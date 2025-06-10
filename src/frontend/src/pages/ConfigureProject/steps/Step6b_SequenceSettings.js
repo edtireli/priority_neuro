@@ -10,8 +10,6 @@ import {
 } from "@mui/material";
 
 function Step6b_SequenceSettings({ config, setConfig }) {
-  if (config.objective?.type !== "sequence_optimization") return null;
-
   const init =
     config.objective?.options?.sequenceSettings || {
       agentType: "thompson",
@@ -25,6 +23,7 @@ function Step6b_SequenceSettings({ config, setConfig }) {
   const [settings, setSettings] = useState(init);
 
   useEffect(() => {
+    if (config.objective?.type !== "sequence_optimization") return;
     setConfig((prev) => ({
       ...prev,
       objective: {
@@ -35,7 +34,9 @@ function Step6b_SequenceSettings({ config, setConfig }) {
         },
       },
     }));
-  }, [settings, setConfig]);
+  }, [settings, setConfig, config.objective?.type]);
+
+  if (config.objective?.type !== "sequence_optimization") return null;
 
   return (
     <div>
