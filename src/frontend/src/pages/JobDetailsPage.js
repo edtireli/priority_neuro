@@ -233,28 +233,6 @@ export default function JobDetailsPage() {
     return best ? best.util : null;
   };
 
-  const renderSparkline = () => {
-    if (metrics.length < 2) return null;
-    const utilities = metrics.map((m) => m.utility);
-    const max = Math.max(...utilities);
-    const min = Math.min(...utilities);
-    const width = 200;
-    const height = 40;
-    const norm = (u) => height - ((u - min) / (max - min || 1)) * height;
-    const points = utilities
-      .map((u, i) => `${(i / (utilities.length - 1)) * width},${norm(u)}`)
-      .join(" ");
-    return (
-      <svg width={width} height={height}>
-        <polyline
-          fill="none"
-          stroke="#1976d2"
-          strokeWidth={2}
-          points={points}
-        />
-      </svg>
-    );
-  };
 
   const downloadHtmlReport = () => {
     const plots = document.querySelectorAll(".js-plotly-plot");
@@ -290,6 +268,57 @@ export default function JobDetailsPage() {
           margin: { t: 30 },
           xaxis: { title: xKey },
           yaxis: { title: yKey },
+        }}
+        style={{ width: "100%", height: "300px" }}
+        useResizeHandler
+      config={{ responsive: true }}
+      />
+    );
+  };
+
+  const renderDataWithPrior = () => {
+    if (
+      !pilotData ||
+      !Array.isArray(pilotData) ||
+      pilotData.length === 0 ||
+      !priors
+    )
+      return null;
+    const keys = Object.keys(pilotData[0]);
+    if (keys.length < 2) return null;
+    const yKey = keys[1];
+    const yVals = pilotData.map((d) => parseFloat(d[yKey]));
+    const prior = priors[yKey];
+    if (!prior) return null;
+    const minX = Math.min(
+      ...yVals,
+      prior.low ?? prior.mean - 4 * (prior.sd || 1)
+    );
+    const maxX = Math.max(
+      ...yVals,
+      prior.high ?? prior.mean + 4 * (prior.sd || 1)
+    );
+    const xs = [];
+    for (let i = 0; i < 100; i++) xs.push(minX + (i / 99) * (maxX - minX));
+    const priorYs = priorPdf(prior, xs);
+    return (
+      <Plot
+        data={[
+          {
+            x: yVals,
+            type: "histogram",
+            histnorm: "probability density",
+            opacity: 0.6,
+            name: "Data",
+          },
+          { x: xs, y: priorYs, type: "scatter", mode: "lines", name: "Prior" },
+        ]}
+        layout={{
+          barmode: "overlay",
+          hovermode: "closest",
+          xaxis: { title: yKey },
+          yaxis: { title: "Density" },
+          margin: { t: 30 },
         }}
         style={{ width: "100%", height: "300px" }}
         useResizeHandler
@@ -479,10 +508,32 @@ export default function JobDetailsPage() {
 
       {job.status === "running" && job.maxIterations && (
         <Box sx={{ mt: 2 }}>
-          <LinearProgress variant="determinate" value={(job.iteration / job.maxIterations) * 100} />
-          <Typography sx={{ mt: 1 }}>{Math.round((job.iteration / job.maxIterations) * 100)}%</Typography>
-          <Box sx={{ mt: 2 }}>{renderSparkline()}</Box>
-          <Box sx={{ mt: 2 }}>{renderPilotScatter()}</Box>
+          {config?.metadata?.description && (
+            <Typography sx={{ mb: 2 }}>{config.metadata.description}</Typography>
+          )}
+          {renderDataWithPrior()}
+          <Box sx={{ mt: 3 }}>
+            <Plot
+              data={[{ x: utilX, y: utilY, mode: "lines+markers", name: "Utility" }]}
+              layout={{
+                hovermode: "closest",
+                xaxis: { title: "Iteration" },
+                yaxis: { title: "Utility" },
+                margin: { t: 30 },
+              }}
+              useResizeHandler
+              style={{ width: "100%", height: "300px" }}
+              config={{ responsive: true }}
+            />
+          </Box>
+          <LinearProgress
+            sx={{ mt: 2 }}
+            variant="determinate"
+            value={(job.iteration / job.maxIterations) * 100}
+          />
+          <Typography sx={{ mt: 1 }}>
+            {Math.round((job.iteration / job.maxIterations) * 100)}%
+          </Typography>
         </Box>
       )}
 
