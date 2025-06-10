@@ -16,6 +16,10 @@ from celery.signals import task_failure
 from sqlalchemy.orm import Session
 import numpy as np
 from models.expressions import PsychometricModel, PoissonRateModel
+try:
+    from .sequence_optimizer import run_sequence_optimization_job
+except ImportError:  # fallback when not imported as part of the package
+    from sequence_optimizer import run_sequence_optimization_job
 from boed_utils import (
     fit_flow,
     estimate_eig,
@@ -159,7 +163,10 @@ def run_boed_job(job_id: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            from .sequence_optimizer import run_sequence_optimization_job
+            try:
+                from .sequence_optimizer import run_sequence_optimization_job
+            except ImportError:
+                from sequence_optimizer import run_sequence_optimization_job
             run_sequence_optimization_job(job, project, config, seq_opts, db)
             return
 
@@ -354,7 +361,10 @@ def run_sequence_optimization_job_task(job_id: str):
             .get("sequenceSettings", {})
         )
 
-        from .sequence_optimizer import run_sequence_optimization_job
+        try:
+            from .sequence_optimizer import run_sequence_optimization_job
+        except ImportError:
+            from sequence_optimizer import run_sequence_optimization_job
         run_sequence_optimization_job(job, project, config, seq_opts, db)
     except Exception:
         if job:
@@ -391,7 +401,10 @@ def run_optimisation_task(self, job_id_str: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            from .sequence_optimizer import run_sequence_optimization_job
+            try:
+                from .sequence_optimizer import run_sequence_optimization_job
+            except ImportError:
+                from sequence_optimizer import run_sequence_optimization_job
             run_sequence_optimization_job(job, project, config, seq_opts, db)
             return
 
