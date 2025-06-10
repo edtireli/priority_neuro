@@ -1,20 +1,22 @@
 import React from "react";
 import { Stepper, Step, StepButton } from "@mui/material";
 
-function WizardNav({ step, setStep }) {
-  const labels = [
+function WizardNav({ step, setStep, showSequence }) {
+  let labels = [
     "Metadata",
     "Model Selection",
     "Groups",
     "Design Vars",
     "Priors",
     "Objective",
-    "Sequence",
     "Constraints",
     "Misc",
     "Review",
     "Submit",
   ];
+  if (showSequence) {
+    labels.splice(6, 0, "Sequence");
+  }
 
   return (
     <Stepper

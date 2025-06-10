@@ -45,6 +45,18 @@ function Step6_Objective({ config, setConfig }) {
             as quickly as possible.
           </Typography>
         </Box>
+        <Box sx={{ mb: 1 }}>
+          <FormControlLabel
+            value="sequence_optimization"
+            control={<Radio />}
+            label="Sequence Optimisation"
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>
+            Searches for an optimal sequence of actions using a bandit-style
+            algorithm. Best when you need an explicit action sequence rather
+            than a single design.
+          </Typography>
+        </Box>
         <Box>
           <FormControlLabel
             value="training_efficiency"
