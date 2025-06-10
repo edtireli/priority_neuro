@@ -6,6 +6,7 @@ function Step9_Review({ config, setStep }) {
   const estTime = Math.ceil(
     ((config.trialBudget || 0) * (config.designVariables?.length || 1)) / 50
   );
+  const nextStep = config.objective?.type === "sequence_optimization" ? 11 : 10;
   return (
     <div>
       <h3>Review Your Configuration</h3>
@@ -24,7 +25,11 @@ function Step9_Review({ config, setStep }) {
       </pre>
       <p>Estimated compute time: ~{estTime} minutes</p>
       <Box display="flex" justifyContent="flex-end" gap={1}>
-        <Button variant="contained" color="primary" onClick={() => setStep(11)}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setStep(nextStep)}
+        >
           Submit
         </Button>
       </Box>

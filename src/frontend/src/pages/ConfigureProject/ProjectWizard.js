@@ -98,7 +98,8 @@ function ProjectWizard() {
       setConfig(parsed);
       setImportModalOpen(false);
       setImportError("");
-      setStep(10);
+      const seq = parsed.objective?.type === "sequence_optimization";
+      setStep(seq ? 10 : 9);
     } catch (err) {
       setImportError(err.message);
     }
@@ -132,7 +133,11 @@ function ProjectWizard() {
           Import JSON
         </Button>
       </Box>
-      <WizardNav step={step} setStep={setStep} />
+      <WizardNav
+        step={step}
+        setStep={setStep}
+        showSequence={config.objective?.type === "sequence_optimization"}
+      />
       <Card sx={{ p: 2 }}>
         <CardContent>
           {step === 1 && (
@@ -153,17 +158,21 @@ function ProjectWizard() {
           {step === 6 && (
             <Step6_Objective config={config} setConfig={setConfig} />
           )}
-          {step === 7 && (
+          {config.objective?.type === "sequence_optimization" && step === 7 && (
             <Step6b_SequenceSettings config={config} setConfig={setConfig} />
           )}
-          {step === 8 && (
+          {step === (config.objective?.type === "sequence_optimization" ? 8 : 7) && (
             <Step7_Constraints config={config} setConfig={setConfig} />
           )}
-          {step === 9 && (
+          {step === (config.objective?.type === "sequence_optimization" ? 9 : 8) && (
             <Step8_MiscSettings config={config} setConfig={setConfig} />
           )}
-      {step === 10 && <Step9_Review config={config} setStep={setStep} />}
-      {step === 11 && <Step10_Submit config={config} />}
+      {step === (config.objective?.type === "sequence_optimization" ? 10 : 9) && (
+        <Step9_Review config={config} setStep={setStep} />
+      )}
+      {step === (config.objective?.type === "sequence_optimization" ? 11 : 10) && (
+        <Step10_Submit config={config} />
+      )}
       </CardContent>
       </Card>
 

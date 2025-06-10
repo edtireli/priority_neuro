@@ -28,7 +28,6 @@ function Step10_Submit({ config }) {
         objective: config.objective,
         constraints: config.constraints,
         misc: config.misc,
-        advancedOptions: config.advancedOptions,
         trialBudget: config.trialBudget,
         experimentalMode: config.experimentalMode,
         ...(config.sequentialSettings && {
@@ -38,6 +37,15 @@ function Step10_Submit({ config }) {
           },
         }),
       };
+
+      if (config.objective?.type === "sequence_optimization") {
+        cfg.advancedOptions = {
+          sequenceSettings:
+            config.objective.options?.sequenceSettings || {},
+        };
+      } else {
+        cfg.advancedOptions = config.advancedOptions;
+      }
 
       if (config.misc?.gpuEnabled) cfg.computeType = "gpu";
 

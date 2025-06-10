@@ -153,6 +153,15 @@ def run_boed_job(job_id: str):
         project = db.query(Project).get(job.project_id)
         config = project.config_json or {}
         adv = config.get("advancedOptions", {})
+        obj_type = config.get("objective", {}).get("type")
+        seq_opts = (
+            config.get("objective", {})
+            .get("options", {})
+            .get("sequenceSettings", {})
+        )
+        if obj_type == "sequence_optimization":
+            run_sequence_optimization_job(job, project, config, seq_opts, db)
+            return
 
         objective = config.get("objective", {}).get("type")
         if objective == "group_separation" and not config.get("groups"):
@@ -374,6 +383,15 @@ def run_optimisation_task(self, job_id_str: str):
         config = project.config_json
         adv = config.get("advanced_options", {})
         adv = config.get("advancedOptions", adv)
+        obj_type = config.get("objective", {}).get("type")
+        seq_opts = (
+            config.get("objective", {})
+            .get("options", {})
+            .get("sequenceSettings", {})
+        )
+        if obj_type == "sequence_optimization":
+            run_sequence_optimization_job(job, project, config, seq_opts, db)
+            return
 
         import torch  # heavy import only when task actually runs
 
