@@ -235,17 +235,17 @@ function Step5_Priors({ config, setConfig }) {
                     fullWidth
                   />
                 </Grid>
-                {dataSamples[param.name] && (
+                {(dataSamples[param.name] || dataSamples[dependentVar]) && (
                   <Grid item xs={12} sx={{ mt: 2 }}>
                     <Typography variant="body2">Adjust Fit</Typography>
                     <Typography variant="caption">Mean: {pr.mean}</Typography>
                     <Slider
                       value={pr.mean ?? 0}
-                      min={Math.min(...dataSamples[param.name])}
-                      max={Math.max(...dataSamples[param.name])}
+                      min={Math.min(...(dataSamples[param.name] || dataSamples[dependentVar]))}
+                      max={Math.max(...(dataSamples[param.name] || dataSamples[dependentVar]))}
                       step={
-                        (Math.max(...dataSamples[param.name]) -
-                          Math.min(...dataSamples[param.name])) /
+                        (Math.max(...(dataSamples[param.name] || dataSamples[dependentVar])) -
+                          Math.min(...(dataSamples[param.name] || dataSamples[dependentVar]))) /
                         100
                       }
                       onChange={(e, val) =>
@@ -257,12 +257,12 @@ function Step5_Priors({ config, setConfig }) {
                       value={pr.sd ?? 1}
                       min={0.01}
                       max={
-                        Math.max(...dataSamples[param.name]) -
-                        Math.min(...dataSamples[param.name])
+                        Math.max(...(dataSamples[param.name] || dataSamples[dependentVar])) -
+                        Math.min(...(dataSamples[param.name] || dataSamples[dependentVar]))
                       }
                       step={
-                        (Math.max(...dataSamples[param.name]) -
-                          Math.min(...dataSamples[param.name])) /
+                        (Math.max(...(dataSamples[param.name] || dataSamples[dependentVar])) -
+                          Math.min(...(dataSamples[param.name] || dataSamples[dependentVar]))) /
                           100 || 0.01
                       }
                       onChange={(e, val) =>
@@ -301,7 +301,7 @@ function Step5_Priors({ config, setConfig }) {
                     fullWidth
                   />
                 </Grid>
-                {dataSamples[param.name] && (
+                {(dataSamples[param.name] || dataSamples[dependentVar]) && (
                   <Grid item xs={12} sx={{ mt: 2 }}>
                     <Typography variant="body2">Adjust Fit</Typography>
                     <Typography variant="caption">Shape: {pr.shape}</Typography>
@@ -352,7 +352,7 @@ function Step5_Priors({ config, setConfig }) {
                     fullWidth
                   />
                 </Grid>
-                {dataSamples[param.name] && (
+                {(dataSamples[param.name] || dataSamples[dependentVar]) && (
                   <Grid item xs={12} sx={{ mt: 2 }}>
                     <Typography variant="body2">Adjust Fit</Typography>
                     <Typography variant="caption">Alpha: {pr.alpha}</Typography>
@@ -380,10 +380,12 @@ function Step5_Priors({ config, setConfig }) {
             <FormHelperText sx={{ mt: 1 }}>
               Default: {formatPrior(param.default_prior)}
             </FormHelperText>
-            {dataSamples[param.name] && pr.dist === "Normal" && (
+            {((dataSamples[param.name] || dataSamples[dependentVar]) &&
+              pr.dist === "Normal") && (
               <Box sx={{ mt: 2 }}>
                 {(() => {
-                  const dataVals = dataSamples[param.name];
+                  const dataVals =
+                    dataSamples[param.name] || dataSamples[dependentVar];
                   const minX = Math.min(...dataVals);
                   const maxX = Math.max(...dataVals);
                   const xs = [];
@@ -412,10 +414,12 @@ function Step5_Priors({ config, setConfig }) {
                 })()}
               </Box>
             )}
-            {dataSamples[param.name] && pr.dist === "Gamma" && (
+            {((dataSamples[param.name] || dataSamples[dependentVar]) &&
+              pr.dist === "Gamma") && (
               <Box sx={{ mt: 2 }}>
                 {(() => {
-                  const dataVals = dataSamples[param.name];
+                  const dataVals =
+                    dataSamples[param.name] || dataSamples[dependentVar];
                   const minX = Math.min(...dataVals);
                   const maxX = Math.max(...dataVals);
                   const xs = [];
@@ -444,10 +448,12 @@ function Step5_Priors({ config, setConfig }) {
                 })()}
               </Box>
             )}
-            {dataSamples[param.name] && pr.dist === "Beta" && (
+            {((dataSamples[param.name] || dataSamples[dependentVar]) &&
+              pr.dist === "Beta") && (
               <Box sx={{ mt: 2 }}>
                 {(() => {
-                  const dataVals = dataSamples[param.name];
+                  const dataVals =
+                    dataSamples[param.name] || dataSamples[dependentVar];
                   const minX = Math.min(...dataVals);
                   const maxX = Math.max(...dataVals);
                   const scaledData = dataVals.map(
