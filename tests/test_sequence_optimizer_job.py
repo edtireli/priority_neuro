@@ -43,7 +43,7 @@ def test_run_sequence_optimizer_job(monkeypatch):
         "model": {},
         "priors": {"p": {"dist": "Uniform", "low": 0.2, "high": 0.8}},
         "designVariables": [],
-        "objective": {"type": "information_gain", "options": {"sequenceSettings": {}}},
+        "objective": {"type": "sequence_optimization", "options": {"sequenceSettings": {}}},
     }
     seq_opts = {
         "agentType": "thompson",
