@@ -309,11 +309,27 @@ def estimate_eig(
 
 
 def optimize_design(
-    prior_dict, design_vars, model, flow, bo_budget=50, util_fn=estimate_eig
+    prior_dict,
+    design_vars,
+    model,
+    flow,
+    bo_budget=50,
+    util_fn=estimate_eig,
+    *,
+    n_restarts: int = 10,
+    prune_fraction: float = 0.5,
+    random_fallback: int = 50,
 ):
     evaluated_d = []
     evaluated_u = []
     evaluated_records = []
+
+    cont_bounds = []
+    cont_names = []
+    for dv in design_vars:
+        if dv["type"] == "continuous":
+            cont_bounds.append(tuple(dv["range"]))
+            cont_names.append(dv["name"])
 
     def sample_design_local():
         d = {}
@@ -380,9 +396,8 @@ def optimize_design(
                         new_combos.append(nc)
                 discrete_combos = new_combos
 
-        for combo in discrete_combos:
-
-            def ei_objective(x):
+        def ei_objective_factory(combo):
+            def _obj(x):
                 point = np.array(
                     [
                         *x,
@@ -405,28 +420,54 @@ def optimize_design(
                 ) + sigma * np.exp(-0.5 * z**2) / np.sqrt(2 * np.pi)
                 return -ei
 
-            bounds = []
-            cont_names = []
-            for dv in design_vars:
-                if dv["type"] == "continuous":
-                    bounds.append(tuple(dv["range"]))
-                    cont_names.append(dv["name"])
+            return _obj
 
-            if bounds:
-                x0 = np.random.uniform([b[0] for b in bounds], [b[1] for b in bounds])
+        # initial pruning of discrete combos
+        combo_scores = []
+        for combo in discrete_combos:
+            obj = ei_objective_factory(combo)
+            if cont_bounds:
+                x0_est = np.random.uniform(
+                    [b[0] for b in cont_bounds],
+                    [b[1] for b in cont_bounds],
+                )
+                score = -obj(x0_est)
+            else:
+                score = -obj(np.array([]))
+            combo_scores.append((combo, score))
+
+        combo_scores.sort(key=lambda t: t[1], reverse=True)
+        keep_n = max(1, int(np.ceil((1.0 - prune_fraction) * len(combo_scores))))
+        pruned_combos = [c for c, _ in combo_scores[:keep_n]]
+        log.info(
+            f"Pruned {len(combo_scores) - keep_n} of {len(combo_scores)} discrete combos"
+        )
+
+        for combo in pruned_combos:
+            obj = ei_objective_factory(combo)
+            if cont_bounds:
                 from scipy.optimize import minimize
 
-                res = minimize(ei_objective, x0, bounds=bounds, method="L-BFGS-B")
-                if res.success:
-                    ei_val = -res.fun
-                    if ei_val > best_ei:
-                        best_ei = ei_val
-                        best_proposal = {
-                            **{n: v for n, v in zip(cont_names, res.x)},
-                            **combo,
-                        }
+                best_val = -np.inf
+                best_cont = None
+                for _ in range(n_restarts):
+                    x0 = np.random.uniform(
+                        [b[0] for b in cont_bounds],
+                        [b[1] for b in cont_bounds],
+                    )
+                    res = minimize(obj, x0, bounds=cont_bounds, method="L-BFGS-B")
+                    if res.success and -res.fun > best_val:
+                        best_val = -res.fun
+                        best_cont = res.x
+
+                if best_cont is not None and best_val > best_ei:
+                    best_ei = best_val
+                    best_proposal = {
+                        **{n: v for n, v in zip(cont_names, best_cont)},
+                        **combo,
+                    }
             else:
-                ei_val = -ei_objective(np.array([]))
+                ei_val = -obj(np.array([]))
                 if ei_val > best_ei:
                     best_ei = ei_val
                     best_proposal = combo
@@ -468,6 +509,22 @@ def optimize_design(
         if u_new > evaluated_u[best_idx]:
             best_idx = len(evaluated_u) - 1
             best_design = best_proposal
+
+    log.info(f"Random fallback tried {random_fallback} samples")
+    for _ in range(random_fallback):
+        d_rand = sample_design_local()
+        res = util_fn(d_rand)
+        if isinstance(res, tuple):
+            u_fallback = res[0]
+        else:
+            u_fallback = res
+        evaluated_d.append([d_rand[name] for name in sorted(d_rand.keys())])
+        evaluated_u.append(u_fallback)
+        rec = {"design": d_rand, "utility": u_fallback}
+        evaluated_records.append(rec)
+        if u_fallback > evaluated_u[best_idx]:
+            best_idx = len(evaluated_u) - 1
+            best_design = d_rand
 
     return best_design, evaluated_records
 
