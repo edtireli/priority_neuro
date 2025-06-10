@@ -17,7 +17,7 @@ import {
 function Step4_Priors({ config, setConfig }) {
   const parameters = config.model.parameters || [];
   const dataSamples = config.metadata?.dataSamples || {};
-  const samples = dataSamples;
+  const [samples, setSamples] = useState(dataSamples);
   const [priors, setPriors] = useState(() => {
     const obj = {};
     parameters.forEach((p) => {
@@ -34,7 +34,6 @@ function Step4_Priors({ config, setConfig }) {
     });
     return obj;
   });
-  const [samples, setSamples] = useState({});
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -81,6 +80,25 @@ function Step4_Priors({ config, setConfig }) {
       base.beta = priors[param.name].beta ?? defaults.beta ?? 1;
     }
     setPriors((prev) => ({ ...prev, [param.name]: base }));
+  };
+
+  const handleFileUpload = (name, file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const vals = text
+        .split(/[\s,]+/)
+        .map((v) => parseFloat(v))
+        .filter((v) => !isNaN(v));
+      if (vals.length === 0) return;
+      setSamples((prev) => ({ ...prev, [name]: vals }));
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const sd = Math.sqrt(
+        vals.reduce((s, v) => s + (v - mean) * (v - mean), 0) / vals.length
+      );
+      setPriors((prev) => ({ ...prev, [name]: { dist: "Normal", mean, sd } }));
+    };
+    if (file) reader.readAsText(file);
   };
 
   const validate = () => {
