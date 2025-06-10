@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from datetime import datetime, timezone
 import uuid
 import importlib.util
@@ -25,6 +26,8 @@ from boed_utils import (
     sample_from_prior,
     compute_group_separation_utility,
 )
+
+log = logging.getLogger(__name__)
 
 RESULTS_ROOT = os.getenv("RESULTS_ROOT", "results")
 UPLOADS_ROOT = os.getenv("UPLOADS_ROOT", "uploads")
@@ -85,6 +88,7 @@ def load_model(model_cfg: dict, job_id: uuid.UUID) -> Any:
     """Instantiate a model object based on the configuration."""
 
     if not model_cfg or not model_cfg.get("type"):
+
         class Dummy:
             def simulate(self, theta, design):
                 return 0.0
@@ -108,9 +112,7 @@ def load_model(model_cfg: dict, job_id: uuid.UUID) -> Any:
     if not file_name:
         raise ValueError("customFileName missing for custom model")
 
-    model_path = os.path.join(
-        UPLOADS_ROOT, "custom_models", str(job_id), file_name
-    )
+    model_path = os.path.join(UPLOADS_ROOT, "custom_models", str(job_id), file_name)
     spec = importlib.util.spec_from_file_location("custom_model", model_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -129,7 +131,6 @@ def load_model(model_cfg: dict, job_id: uuid.UUID) -> Any:
             return self.mod.log_likelihood(data, theta, design)
 
     return WrappedModel(module)
-
 
 
 @celery.task(name="run_boed_job")
@@ -153,7 +154,9 @@ def run_boed_job(job_id: str):
 
         objective = config.get("objective", {}).get("type")
         if objective == "group_separation" and not config.get("groups"):
-            raise Exception("groups configuration required for group_separation objective")
+            raise Exception(
+                "groups configuration required for group_separation objective"
+            )
 
         required = [
             "metadata",
@@ -196,9 +199,9 @@ def run_boed_job(job_id: str):
             theta_true = sample_from_prior(priors)
             y_obs = model.simulate(theta_true, design)
             samples = [sample_from_prior(priors) for _ in range(200)]
-            log_w = np.array([
-                model.log_likelihood(y_obs, th, design) for th in samples
-            ])
+            log_w = np.array(
+                [model.log_likelihood(y_obs, th, design) for th in samples]
+            )
             w = np.exp(log_w - np.max(log_w))
             w = w / np.sum(w)
             idx = np.random.choice(len(samples), size=len(samples), p=w)
@@ -237,14 +240,31 @@ def run_boed_job(job_id: str):
             max_iter = job.maxIterations or int(config["trialBudget"])
             last_proposal = None
             import inspect
+
             for i in range(1, max_iter + 1):
                 if len(inspect.signature(optimize_design).parameters) == 3:
                     proposal = optimize_design(priors, design_vars, model)
                 else:
                     if objective == "group_separation":
-                        util = lambda d: compute_group_separation_utility(priors, d, model, config["groups"])
+                        util = lambda d: compute_group_separation_utility(
+                            priors, d, model, config["groups"]
+                        )
                     else:
-                        util = lambda d: estimate_eig(d, flow, priors, model)
+                        util = lambda d: estimate_eig(
+                            d,
+                            flow,
+                            priors,
+                            model,
+                            use_control_variates=adv.get("use_control_variates", False),
+                            control_variate=adv.get("control_variate", "prior_loglik"),
+                            beta=adv.get("beta", 1.0),
+                            sampling_method=adv.get("sampling_method", "MC"),
+                            use_antithetic=adv.get("use_antithetic", False),
+                            ci_threshold=adv.get("ci_threshold"),
+                            N_max=adv.get("N_max", 10000),
+                            use_optimal_beta=adv.get("use_optimal_beta", False),
+                            random_seed=adv.get("random_seed"),
+                        )
                     proposal, _ = optimize_design(
                         priors,
                         design_vars,
@@ -254,7 +274,9 @@ def run_boed_job(job_id: str):
                         util_fn=util,
                     )
                 if objective == "group_separation":
-                    u = compute_group_separation_utility(priors, proposal, model, config["groups"])
+                    u = compute_group_separation_utility(
+                        priors, proposal, model, config["groups"]
+                    )
                 else:
                     u = simple_estimate_eig(priors, proposal, model)
                 metric = JobMetric(
@@ -314,6 +336,7 @@ def run_optimisation_task(self, job_id_str: str):
         project = db.query(Project).filter(Project.id == job.project_id).first()
         config = project.config_json
         adv = config.get("advanced_options", {})
+        adv = config.get("advancedOptions", adv)
 
         import torch  # heavy import only when task actually runs
 
@@ -394,9 +417,23 @@ def run_optimisation_task(self, job_id_str: str):
             flow,
             bo_budget=adv.get("bo_budget", 20),
         )
-        best_u = estimate_eig(
-            best_design, flow, config["priors"], model, M_test=adv.get("M_test", 1000)
+        best_u, best_se = estimate_eig(
+            best_design,
+            flow,
+            config["priors"],
+            model,
+            M_test=adv.get("M_test", 1000),
+            use_control_variates=adv.get("use_control_variates", False),
+            control_variate=adv.get("control_variate", "prior_loglik"),
+            beta=adv.get("beta", 1.0),
+            sampling_method=adv.get("sampling_method", "MC"),
+            use_antithetic=adv.get("use_antithetic", False),
+            ci_threshold=adv.get("ci_threshold"),
+            N_max=adv.get("N_max", 10000),
+            use_optimal_beta=adv.get("use_optimal_beta", False),
+            random_seed=adv.get("random_seed"),
         )
+        log.info(f"EIG={best_u:.4f} \u00b1{best_se:.4f}")
 
         evaluated_designs = eval_records
         top_designs = sorted(
@@ -465,6 +502,7 @@ def run_optimisation_task(self, job_id_str: str):
             "project_id": str(project.id),
             "optimalDesign": best_design,
             "utilityValue": best_u,
+            "utilitySE": best_se,
             "evaluatedDesigns": evaluated_designs,
             "topDesigns": top_designs,
             "priorSamples": prior_samples,
@@ -478,7 +516,13 @@ def run_optimisation_task(self, job_id_str: str):
         detailed_path = os.path.join(results_dir, "result_detailed.json")
         with open(result_path, "w") as f:
             json.dump(
-                {"optimalDesign": best_design, "utilityValue": best_u}, f, indent=2
+                {
+                    "optimalDesign": best_design,
+                    "utilityValue": best_u,
+                    "utilitySE": best_se,
+                },
+                f,
+                indent=2,
             )
 
         with open(detailed_path, "w") as f:
