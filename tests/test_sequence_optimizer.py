@@ -2,7 +2,12 @@ import os
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "backend"))
 import numpy as np
-from sequence_optimizer import ThompsonBanditAgent, GPSurrogateAgent
+import pytest
+from sequence_optimizer import (
+    ThompsonBanditAgent,
+    GPSurrogateAgent,
+    compute_reward,
+)
 
 
 def test_thompson_bandit_agent_learns_best_arm():
@@ -31,3 +36,29 @@ def test_gp_surrogate_agent_selects_near_optimal_action():
         agent.update(a, r, None)
     best_idx = agent.select_action(None)
     assert abs(actions[best_idx]["x"] - 2.0) <= 1.0
+
+
+def test_compute_reward_trials_to_threshold():
+    r, met = compute_reward(2, [], {"type": "trials_to_threshold", "threshold": 2})
+    assert met is True
+    assert r == 0.0
+    r, met = compute_reward(1, [], {"type": "trials_to_threshold", "threshold": 2})
+    assert met is False
+    assert r == -1.0
+
+
+def test_compute_reward_cumulative_reward():
+    hist = [
+        {"t": 1, "action": {}, "reward": 0.6},
+        {"t": 2, "action": {}, "reward": 0.5},
+    ]
+    r, met = compute_reward(3, hist, {"type": "cumulative_reward", "threshold": 1.0})
+    assert met is True
+    assert r == pytest.approx(1.1)
+
+
+def test_compute_reward_last_accuracy():
+    hist = [{"t": 1, "action": {}, "reward": 0.0, "accuracy": 0.7}]
+    r, met = compute_reward(2, hist, {"type": "last_accuracy", "threshold": 0.5})
+    assert met is True
+    assert r == 0.7
