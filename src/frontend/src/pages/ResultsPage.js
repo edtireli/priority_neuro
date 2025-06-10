@@ -118,6 +118,7 @@ export default function ResultsPage() {
   const sortedMetrics = [...(metrics || [])].sort((a, b) => a.iteration - b.iteration);
   const utilX = sortedMetrics.map((m) => m.iteration);
   const utilY = sortedMetrics.map((m) => m.utility);
+  const utilErr = sortedMetrics.map((m) => m.se);
 
   const flowEpochs = flowLog ? flowLog.map((r) => r.epoch) : [];
   const trainLoss = flowLog ? flowLog.map((r) => r.train_loss) : [];
@@ -132,6 +133,7 @@ export default function ResultsPage() {
 
   const bestDesign = result?.summary?.best_design;
   const bestUtility = result?.summary?.utility;
+  const bestUtilitySE = result?.summary?.utilitySE;
   const bestIter =
     bestDesign &&
     sortedMetrics.find(
@@ -259,7 +261,13 @@ export default function ResultsPage() {
       {tab === 0 && (
         <Box>
           <Plot
-            data={[{ x: utilX, y: utilY, mode: "lines+markers", name: "Utility" }]}
+            data={[{
+              x: utilX,
+              y: utilY,
+              error_y: { type: "data", array: utilErr },
+              mode: "lines+markers",
+              name: "Utility",
+            }]}
             layout={{
               hovermode: "closest",
               xaxis: { title: "Iteration" },
@@ -272,7 +280,8 @@ export default function ResultsPage() {
           />
           {bestDesign && (
             <Typography sx={{ mt: 2 }}>
-              Best design at iteration {bestIter ?? "-"}: {JSON.stringify(bestDesign)} → utility = {bestUtility?.toFixed?.(2)}
+              Best design at iteration {bestIter ?? "-"}: {JSON.stringify(bestDesign)} →
+              utility = {bestUtility?.toFixed?.(2)}{bestUtilitySE ? ` ± ${bestUtilitySE.toFixed(2)}` : ""}
             </Typography>
           )}
         </Box>

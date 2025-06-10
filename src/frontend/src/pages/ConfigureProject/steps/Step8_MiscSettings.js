@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Typography, TextField, Checkbox, FormControlLabel, Button, Grid, Box } from "@mui/material";
+import {
+  Typography,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+  Button,
+  Grid,
+  Box,
+  Select,
+  MenuItem,
+} from "@mui/material";
 
 function Step8_MiscSettings({ config, setConfig }) {
   const [settings, setSettings] = useState(config.misc || {
@@ -13,14 +23,32 @@ function Step8_MiscSettings({ config, setConfig }) {
     jobName: "",
   });
 
+  const [adv, setAdv] = useState(
+    config.advancedOptions || {
+      use_antithetic: false,
+      sampling_method: "MC",
+      ci_threshold: "",
+      N_max: 10000,
+      use_optimal_beta: false,
+    }
+  );
+
   const update = (field, value) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
 
+  const updateAdv = (field, value) => {
+    setAdv((prev) => ({ ...prev, [field]: value }));
+  };
+
   useEffect(() => {
     if (settings.notifyEmail && !settings.emailAddress) return;
-    setConfig((prev) => ({ ...prev, misc: settings }));
-  }, [settings, setConfig]);
+    setConfig((prev) => ({
+      ...prev,
+      misc: settings,
+      advancedOptions: adv,
+    }));
+  }, [settings, adv, setConfig]);
 
   return (
     <div>
@@ -89,6 +117,56 @@ function Step8_MiscSettings({ config, setConfig }) {
             value={settings.jobName || ""}
             onChange={(e) => update("jobName", e.target.value)}
             fullWidth
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={adv.use_antithetic}
+                onChange={(e) => updateAdv("use_antithetic", e.target.checked)}
+              />
+            }
+            label="Use Antithetic Variates"
+          />
+        </Grid>
+        <Grid item xs={6}>
+          <Select
+            fullWidth
+            value={adv.sampling_method}
+            onChange={(e) => updateAdv("sampling_method", e.target.value)}
+          >
+            <MenuItem value="MC">MC</MenuItem>
+            <MenuItem value="QMC">QMC</MenuItem>
+          </Select>
+        </Grid>
+        <Grid item xs={6}>
+          <TextField
+            label="N_max"
+            type="number"
+            value={adv.N_max}
+            onChange={(e) => updateAdv("N_max", Number(e.target.value))}
+            fullWidth
+          />
+        </Grid>
+        <Grid item xs={6}>
+          <TextField
+            label="CI Threshold"
+            type="number"
+            value={adv.ci_threshold}
+            onChange={(e) => updateAdv("ci_threshold", e.target.value)}
+            fullWidth
+          />
+        </Grid>
+        <Grid item xs={6}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={adv.use_optimal_beta}
+                onChange={(e) => updateAdv("use_optimal_beta", e.target.checked)}
+              />
+            }
+            label="Auto Optimal Beta"
           />
         </Grid>
       </Grid>

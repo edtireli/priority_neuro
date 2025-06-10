@@ -28,6 +28,7 @@ function Step10_Submit({ config }) {
         objective: config.objective,
         constraints: config.constraints,
         misc: config.misc,
+        advancedOptions: config.advancedOptions,
         trialBudget: config.trialBudget,
         experimentalMode: config.experimentalMode,
         ...(config.sequentialSettings && {
