@@ -17,7 +17,7 @@ Example result visualisations include utility curves for 1D designs and heatmaps
 The Python API exposes `estimate_eig` for computing expected information gain. By default it uses plain Monte Carlo sampling:
 
 ```python
-eig, se = estimate_eig(priors, design, model, N=1000)
+eig, se = estimate_eig(priors, design, model, n_samples=1000)
 ```
 
 Passing `use_control_variates=True` activates a control variate based on the prior predictive log-likelihood which can dramatically reduce estimator variance:
@@ -27,7 +27,7 @@ eig, se, ci_l, ci_u, N_used = estimate_eig(
     priors,
     design,
     model,
-    N=1000,
+    n_samples=1000,
     use_control_variates=True,
     beta=0.5,
     use_antithetic=True,
