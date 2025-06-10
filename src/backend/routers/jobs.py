@@ -48,8 +48,31 @@ async def create_job(
     job_name = cfg.get("metadata", {}).get("name", "Job")
 
     status_val = JobStatus.queued
-    if run_mode == RunMode.sequential and pilot_data is None:
-        status_val = JobStatus.paused_awaiting_data
+    pilot_contents = None
+    if run_mode == RunMode.sequential:
+        if pilot_data is not None:
+            pilot_contents = await pilot_data.read()
+        else:
+            meta = cfg.get("metadata", {})
+            headers = meta.get("dataHeaders")
+            samples = meta.get("dataSamples")
+            if headers and isinstance(samples, dict):
+                import csv
+                from io import StringIO
+
+                buf = StringIO()
+                writer = csv.writer(buf)
+                writer.writerow(headers)
+                n_rows = max(len(samples.get(h, [])) for h in headers)
+                for i in range(n_rows):
+                    row = []
+                    for h in headers:
+                        col = samples.get(h, [])
+                        row.append(col[i] if i < len(col) else "")
+                    writer.writerow(row)
+                pilot_contents = buf.getvalue().encode("utf-8")
+        if pilot_contents is None:
+            status_val = JobStatus.paused_awaiting_data
 
     job = Job(
         project_id=project_id,
@@ -70,16 +93,15 @@ async def create_job(
         with open(file_path, "wb") as f:
             f.write(await custom_model.read())
 
-    if pilot_data:
-        contents = await pilot_data.read()
+    if pilot_contents:
         design_vars = cfg.get("designVariables", [])
         dep_vars = cfg.get("model", {}).get("dependentVariables", [])
-        validate_pilot_data(contents, design_vars, dep_vars)
+        validate_pilot_data(pilot_contents, design_vars, dep_vars)
         data_dir = os.path.join(uploads_root, "pilot_data")
         os.makedirs(data_dir, exist_ok=True)
         file_path = os.path.join(data_dir, f"{job.id}.csv")
         with open(file_path, "wb") as f:
-            f.write(contents)
+            f.write(pilot_contents)
 
     if status_val == JobStatus.queued:
         run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
