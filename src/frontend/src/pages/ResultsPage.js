@@ -24,7 +24,8 @@ export default function ResultsPage() {
     const fetchJobs = async () => {
       try {
         const res = await api.get("/jobs", { params: { archived: true } });
-        setJobs(res.data);
+        const succeeded = res.data.filter((j) => j.status === "succeeded");
+        setJobs(succeeded);
       } catch (err) {
         setError(err.response?.data?.detail || err.message);
       }
