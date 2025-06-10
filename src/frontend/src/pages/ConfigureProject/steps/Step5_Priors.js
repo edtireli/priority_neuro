@@ -14,7 +14,7 @@ import {
   Slider,
 } from "@mui/material";
 
-function Step4_Priors({ config, setConfig }) {
+function Step5_Priors({ config, setConfig }) {
   const parameters = config.model.parameters || [];
   const dataSamples = config.metadata?.dataSamples || {};
   const dependentVar = config.model?.dependentVariables?.[0];
@@ -354,4 +354,4 @@ function Step4_Priors({ config, setConfig }) {
   );
 }
 
-export default Step4_Priors;
+export default Step5_Priors;

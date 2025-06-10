@@ -10,13 +10,13 @@ import {
   Tooltip,
 } from "@mui/material";
 
-function Step5_DesignVariables({ config, setConfig }) {
+function Step4_DesignVariables({ config, setConfig }) {
   const [vars, setVars] = useState(config.designVariables || []);
   const [dvs, setDvs] = useState(config.model.dependentVariables || []);
   const [trialBudget, setTrialBudget] = useState(config.trialBudget || 100);
   const [mode, setMode] = useState(config.experimentalMode || "sequential");
   const [seq, setSeq] = useState(
-    config.sequentialSettings || { pilotFile: null, batchSize: 10, maxIter: "" }
+    config.sequentialSettings || { batchSize: 10, maxIter: "" }
   );
 
   // If design variables are empty but uploaded data has additional columns,
@@ -95,8 +95,7 @@ function Step5_DesignVariables({ config, setConfig }) {
         In <strong>sequential</strong> mode the optimiser runs a small batch of
         trials, updates the model with the new data and then proposes the next
         batch. In <strong>batch</strong> mode all trials are planned at once with
-        no intermediate updates. Pilot data can only be uploaded when using
-        sequential mode as it seeds the first batch.
+        no intermediate updates.
       </Typography>
       <Box sx={{ border: "1px solid #ccc", p: 2, mb: 3, borderRadius: 1 }}>
         <Typography variant="h6" sx={{ mb: 1 }}>
@@ -268,37 +267,6 @@ function Step5_DesignVariables({ config, setConfig }) {
               </Grid>
             </>
           )}
-          <Grid item xs={12} sm={4}>
-            <Tooltip
-              title={
-                mode !== "sequential"
-                  ? "Switch to sequential mode to enable pilot data upload"
-                  : ""
-              }
-            >
-              <span>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  disabled={mode !== "sequential"}
-                >
-                  Upload Pilot Data
-                  <input
-                    type="file"
-                    accept=".csv"
-                    hidden
-                    disabled={mode !== "sequential"}
-                    onChange={(e) =>
-                      setSeq((p) => ({ ...p, pilotFile: e.target.files[0] }))
-                    }
-                  />
-                </Button>
-              </span>
-            </Tooltip>
-            {mode === "sequential" && seq.pilotFile && (
-              <span style={{ marginLeft: 8 }}>{seq.pilotFile.name}</span>
-            )}
-          </Grid>
         </Grid>
       </Box>
       {/* Navigation handled by WizardNav */}
@@ -306,4 +274,4 @@ function Step5_DesignVariables({ config, setConfig }) {
   );
 }
 
-export default Step5_DesignVariables;
+export default Step4_DesignVariables;

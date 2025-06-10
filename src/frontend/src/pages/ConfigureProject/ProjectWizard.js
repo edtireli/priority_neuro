@@ -19,8 +19,8 @@ import WizardNav from "../../components/WizardNav";
 import Step1_Metadata from "./steps/Step1_Metadata";
 import Step2_ModelSelection from "./steps/Step2_ModelSelection";
 import Step3_Groups from "./steps/Step3_Groups";
-import Step4_Priors from "./steps/Step4_Priors";
-import Step5_DesignVariables from "./steps/Step5_DesignVariables";
+import Step4_DesignVariables from "./steps/Step4_DesignVariables";
+import Step5_Priors from "./steps/Step5_Priors";
 import Step6_Objective from "./steps/Step6_Objective";
 import Step7_Constraints from "./steps/Step7_Constraints";
 import Step8_MiscSettings from "./steps/Step8_MiscSettings";
@@ -144,10 +144,10 @@ function ProjectWizard() {
             <Step3_Groups config={config} setConfig={setConfig} />
           )}
           {step === 4 && (
-            <Step5_DesignVariables config={config} setConfig={setConfig} />
+            <Step4_DesignVariables config={config} setConfig={setConfig} />
           )}
           {step === 5 && (
-            <Step4_Priors config={config} setConfig={setConfig} />
+            <Step5_Priors config={config} setConfig={setConfig} />
           )}
           {step === 6 && (
             <Step6_Objective config={config} setConfig={setConfig} />
