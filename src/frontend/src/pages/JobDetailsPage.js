@@ -104,6 +104,10 @@ export default function JobDetailsPage() {
       fetchFlowLog();
       fetchConfig();
       fetchPilotData();
+    } else if (job.status === "running") {
+      fetchMetrics();
+      fetchPilotData();
+      if (!config) fetchConfig();
     }
   }, [job?.status]);
 
@@ -129,6 +133,11 @@ export default function JobDetailsPage() {
     try {
       const res = await api.get(`/projects/${projectId}/jobs/${jobId}/status`);
       setJob(res.data);
+      if (res.data.status === "running") {
+        fetchMetrics();
+        fetchPilotData();
+        if (!config) fetchConfig();
+      }
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
     }
@@ -224,6 +233,29 @@ export default function JobDetailsPage() {
     return best ? best.util : null;
   };
 
+  const renderSparkline = () => {
+    if (metrics.length < 2) return null;
+    const utilities = metrics.map((m) => m.utility);
+    const max = Math.max(...utilities);
+    const min = Math.min(...utilities);
+    const width = 200;
+    const height = 40;
+    const norm = (u) => height - ((u - min) / (max - min || 1)) * height;
+    const points = utilities
+      .map((u, i) => `${(i / (utilities.length - 1)) * width},${norm(u)}`)
+      .join(" ");
+    return (
+      <svg width={width} height={height}>
+        <polyline
+          fill="none"
+          stroke="#1976d2"
+          strokeWidth={2}
+          points={points}
+        />
+      </svg>
+    );
+  };
+
   const downloadHtmlReport = () => {
     const plots = document.querySelectorAll(".js-plotly-plot");
     let body = "<html><head><script src='https://cdn.plot.ly/plotly-2.26.0.min.js'></script></head><body>";
@@ -241,6 +273,29 @@ export default function JobDetailsPage() {
     a.download = `job-${jobId}-report.html`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const renderPilotScatter = () => {
+    if (!pilotData || !Array.isArray(pilotData) || pilotData.length === 0)
+      return null;
+    const keys = Object.keys(pilotData[0]);
+    if (keys.length < 2) return null;
+    const [xKey, yKey] = keys;
+    const x = pilotData.map((d) => parseFloat(d[xKey]));
+    const y = pilotData.map((d) => parseFloat(d[yKey]));
+    return (
+      <Plot
+        data={[{ x, y, mode: "markers" }]}
+        layout={{
+          margin: { t: 30 },
+          xaxis: { title: xKey },
+          yaxis: { title: yKey },
+        }}
+        style={{ width: "100%", height: "300px" }}
+        useResizeHandler
+        config={{ responsive: true }}
+      />
+    );
   };
 
   if (!job)
@@ -426,6 +481,8 @@ export default function JobDetailsPage() {
         <Box sx={{ mt: 2 }}>
           <LinearProgress variant="determinate" value={(job.iteration / job.maxIterations) * 100} />
           <Typography sx={{ mt: 1 }}>{Math.round((job.iteration / job.maxIterations) * 100)}%</Typography>
+          <Box sx={{ mt: 2 }}>{renderSparkline()}</Box>
+          <Box sx={{ mt: 2 }}>{renderPilotScatter()}</Box>
         </Box>
       )}
 
@@ -436,6 +493,7 @@ export default function JobDetailsPage() {
             Upload File
             <input type="file" accept=".csv" hidden onChange={(e) => uploadPilot(e.target.files[0])} />
           </Button>
+          <Box sx={{ mt: 2 }}>{renderPilotScatter()}</Box>
         </Box>
       )}
 
