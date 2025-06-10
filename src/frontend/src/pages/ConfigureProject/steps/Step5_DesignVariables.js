@@ -12,6 +12,7 @@ import {
 
 function Step5_DesignVariables({ config, setConfig }) {
   const [vars, setVars] = useState(config.designVariables || []);
+  const [dvs, setDvs] = useState(config.model.dependentVariables || []);
   const [trialBudget, setTrialBudget] = useState(config.trialBudget || 100);
   const [mode, setMode] = useState(config.experimentalMode || "sequential");
   const [seq, setSeq] = useState(
@@ -26,7 +27,7 @@ function Step5_DesignVariables({ config, setConfig }) {
       const samples = config.metadata.dataSamples || {};
       if (headers.length > 1) {
         const suggested = headers.slice(1).map((h) => {
-          const arr = samples[h] || [];
+          const arr = (samples[h] || []).filter((v) => typeof v === "number");
           const min = arr.length ? Math.min(...arr) : 0;
           const max = arr.length ? Math.max(...arr) : 1;
           return { name: h, type: "continuous", range: [min, max], step: 1, values: [], units: "" };
@@ -40,12 +41,13 @@ function Step5_DesignVariables({ config, setConfig }) {
   useEffect(() => {
     const nextCfg = {
       designVariables: vars,
+      model: { ...config.model, dependentVariables: dvs },
       trialBudget,
       experimentalMode: mode,
     };
     if (mode === "sequential") nextCfg.sequentialSettings = seq;
     setConfig((prev) => ({ ...prev, ...nextCfg }));
-  }, [vars, trialBudget, mode, seq, setConfig]);
+  }, [vars, trialBudget, mode, seq, dvs, setConfig]);
 
   const addVariable = () => {
     setVars((prev) => [
@@ -72,13 +74,22 @@ function Step5_DesignVariables({ config, setConfig }) {
     setVars((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const addDv = () => setDvs((p) => [...p, ""]);
+  const updateDv = (idx, val) => {
+    setDvs((p) => p.map((d, i) => (i === idx ? val : d)));
+  };
+  const removeDv = (idx) => {
+    setDvs((p) => p.filter((_, i) => i !== idx));
+  };
+
 
   return (
     <div>
-      <h3>Define Design Variables</h3>
+      <h3>Design Variables</h3>
       <Typography sx={{ mb: 2 }}>
-        Step 5: Define design variables to optimize, e.g. stimulusIntensity
-        range 0–1.
+        Step 4: Define your dependent and independent variables. Dependent
+        variables are measured outcomes, while independent variables are the
+        factors the optimiser can manipulate.
       </Typography>
       <Typography sx={{ mb: 2 }}>
         In <strong>sequential</strong> mode the optimiser runs a small batch of
@@ -87,12 +98,36 @@ function Step5_DesignVariables({ config, setConfig }) {
         no intermediate updates. Pilot data can only be uploaded when using
         sequential mode as it seeds the first batch.
       </Typography>
-      {Array.isArray(vars) &&
-        vars.map((v, idx) => (
-        <Box
-          key={idx}
-          sx={{ border: "1px solid #ccc", p: 2, mb: 2 }}
-        >
+      <Box sx={{ border: "1px solid #ccc", p: 2, mb: 3, borderRadius: 1 }}>
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Dependent Variables
+        </Typography>
+        {dvs.map((dv, idx) => (
+          <Grid container spacing={1} alignItems="center" key={idx} sx={{ mb: 1 }}>
+            <Grid item xs={10}>
+              <TextField
+                fullWidth
+                value={dv}
+                label="Dependent Variable"
+                onChange={(e) => updateDv(idx, e.target.value)}
+              />
+            </Grid>
+            <Grid item xs={2}>
+              <Button onClick={() => removeDv(idx)}>Remove</Button>
+            </Grid>
+          </Grid>
+        ))}
+        <Button variant="outlined" onClick={addDv} sx={{ mt: 1 }}>
+          Add Dependent Variable
+        </Button>
+      </Box>
+      {Array.isArray(vars) && (
+        <Box sx={{ border: "1px solid #ccc", p: 2, mb: 3, borderRadius: 1 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Independent Variables
+          </Typography>
+          {vars.map((v, idx) => (
+            <Box key={idx} sx={{ border: "1px solid #ccc", p: 2, mb: 2 }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={3}>
               <TextField
@@ -181,11 +216,13 @@ function Step5_DesignVariables({ config, setConfig }) {
               </Button>
             </Grid>
           </Grid>
+            </Box>
+          ))}
+          <Button variant="outlined" onClick={addVariable} sx={{ mb: 2 }}>
+            Add Variable
+          </Button>
         </Box>
-        ))}
-      <Button variant="outlined" onClick={addVariable} sx={{ mb: 2 }}>
-        Add Variable
-      </Button>
+      )}
       <Box sx={{ mb: 2 }}>
         <TextField
           label="Total Trial Budget"

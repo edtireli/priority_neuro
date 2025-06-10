@@ -136,7 +136,7 @@ function Step4_Priors({ config, setConfig }) {
         </Box>
       )}
       <Typography variant="subtitle1" gutterBottom>
-      Step 4: Encode your existing knowledge about each model parameter as a “prior.” Priors tell the optimizer which values you believe are most plausible before collecting any data.  
+      Step 5: Encode your existing knowledge about each model parameter as a “prior.” Priors tell the optimizer which values you believe are most plausible before collecting any data.
       For each parameter below:
       • choose a distribution family (e.g. Normal, Gamma)  
       • enter its defining numbers (e.g. mean = 0.5, sd = 0.2 for a Normal)  
@@ -258,6 +258,27 @@ function Step4_Priors({ config, setConfig }) {
                     fullWidth
                   />
                 </Grid>
+                {dataSamples[param.name] && (
+                  <Grid item xs={12} sx={{ mt: 2 }}>
+                    <Typography variant="body2">Adjust Fit</Typography>
+                    <Typography variant="caption">Shape: {pr.shape}</Typography>
+                    <Slider
+                      value={pr.shape ?? 1}
+                      min={0.1}
+                      max={(pr.shape ?? 1) * 5}
+                      step={0.1}
+                      onChange={(e, val) => updateField(param.name, "shape", val)}
+                    />
+                    <Typography variant="caption">Scale: {pr.scale}</Typography>
+                    <Slider
+                      value={pr.scale ?? 1}
+                      min={0.1}
+                      max={(pr.scale ?? 1) * 5}
+                      step={0.1}
+                      onChange={(e, val) => updateField(param.name, "scale", val)}
+                    />
+                  </Grid>
+                )}
               </Grid>
             )}
             {pr.dist === "Beta" && (

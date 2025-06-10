@@ -144,10 +144,10 @@ function ProjectWizard() {
             <Step3_Groups config={config} setConfig={setConfig} />
           )}
           {step === 4 && (
-            <Step4_Priors config={config} setConfig={setConfig} />
+            <Step5_DesignVariables config={config} setConfig={setConfig} />
           )}
           {step === 5 && (
-            <Step5_DesignVariables config={config} setConfig={setConfig} />
+            <Step4_Priors config={config} setConfig={setConfig} />
           )}
           {step === 6 && (
             <Step6_Objective config={config} setConfig={setConfig} />

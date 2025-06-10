@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Typography, TextField, Button, Grid, Box } from "@mui/material";
+import { Typography, TextField, Button, Grid, Box, Select, MenuItem } from "@mui/material";
 
 function Step3_Groups({ config, setConfig }) {
   const [groups, setGroups] = useState(
@@ -8,20 +8,31 @@ function Step3_Groups({ config, setConfig }) {
       { name: "", N: 10 },
     ]
   );
+  const samples = config.metadata?.dataSamples || {};
+  const stringColumns = Object.keys(samples).filter((c) =>
+    samples[c].some((v) => typeof v === "string")
+  );
+  const defaultCol = (() => {
+    const lower = stringColumns.map((c) => c.toLowerCase());
+    let idx = lower.indexOf("group");
+    if (idx === -1) idx = lower.indexOf("groups");
+    return idx !== -1 ? stringColumns[idx] : "";
+  })();
+  const [selectedCol, setSelectedCol] = useState(defaultCol);
 
-  // When data samples are available and groups have not been customised,
-  // guess group names and sizes from the uploaded data columns.
+  // When a data column with strings is selected, derive groups from unique names
   useEffect(() => {
-    if (
-      config.metadata?.dataSamples &&
-      (!config.groups || config.groups.length === 0 || groups.every((g) => !g.name))
-    ) {
-      const samples = config.metadata.dataSamples;
-      const guessed = Object.keys(samples).map((k) => ({ name: k, N: samples[k].length }));
-      if (guessed.length > 0) setGroups(guessed);
+    if (selectedCol && samples[selectedCol]) {
+      const vals = samples[selectedCol].map((v) => String(v));
+      const unique = Array.from(new Set(vals));
+      const guessed = unique.map((n) => ({
+        name: n,
+        N: vals.filter((v) => String(v) === n).length,
+      }));
+      setGroups(guessed);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.metadata?.dataSamples]);
+  }, [selectedCol]);
 
   useEffect(() => {
     setConfig((prev) => ({ ...prev, groups }));
@@ -51,6 +62,24 @@ function Step3_Groups({ config, setConfig }) {
         Step 3: Define experimental groups and sample sizes, e.g.
         Control N=20, Treatment N=20.
       </Typography>
+      {stringColumns.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Select column containing group labels
+          </Typography>
+          <Select
+            value={selectedCol}
+            onChange={(e) => setSelectedCol(e.target.value)}
+            fullWidth
+          >
+            {stringColumns.map((c) => (
+              <MenuItem key={c} value={c}>
+                {c}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
+      )}
       {Array.isArray(groups) &&
         groups.map((g, idx) => (
         <Box key={idx} sx={{ mb: 2 }}>
