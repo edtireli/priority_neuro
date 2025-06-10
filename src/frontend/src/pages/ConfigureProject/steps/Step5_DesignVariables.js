@@ -18,6 +18,25 @@ function Step5_DesignVariables({ config, setConfig }) {
     config.sequentialSettings || { pilotFile: null, batchSize: 10, maxIter: "" }
   );
 
+  // If design variables are empty but uploaded data has additional columns,
+  // suggest variables based on those column ranges.
+  useEffect(() => {
+    if (vars.length === 0 && config.metadata?.dataHeaders) {
+      const headers = config.metadata.dataHeaders;
+      const samples = config.metadata.dataSamples || {};
+      if (headers.length > 1) {
+        const suggested = headers.slice(1).map((h) => {
+          const arr = samples[h] || [];
+          const min = arr.length ? Math.min(...arr) : 0;
+          const max = arr.length ? Math.max(...arr) : 1;
+          return { name: h, type: "continuous", range: [min, max], step: 1, values: [], units: "" };
+        });
+        if (suggested.length > 0) setVars(suggested);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.metadata?.dataHeaders]);
+
   useEffect(() => {
     const nextCfg = {
       designVariables: vars,

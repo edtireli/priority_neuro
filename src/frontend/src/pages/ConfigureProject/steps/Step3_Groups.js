@@ -2,10 +2,26 @@ import React, { useState, useEffect } from "react";
 import { Typography, TextField, Button, Grid, Box } from "@mui/material";
 
 function Step3_Groups({ config, setConfig }) {
-  const [groups, setGroups] = useState(config.groups || [
-    { name: "", N: 10 },
-    { name: "", N: 10 },
-  ]);
+  const [groups, setGroups] = useState(
+    config.groups || [
+      { name: "", N: 10 },
+      { name: "", N: 10 },
+    ]
+  );
+
+  // When data samples are available and groups have not been customised,
+  // guess group names and sizes from the uploaded data columns.
+  useEffect(() => {
+    if (
+      config.metadata?.dataSamples &&
+      (!config.groups || config.groups.length === 0 || groups.every((g) => !g.name))
+    ) {
+      const samples = config.metadata.dataSamples;
+      const guessed = Object.keys(samples).map((k) => ({ name: k, N: samples[k].length }));
+      if (guessed.length > 0) setGroups(guessed);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.metadata?.dataSamples]);
 
   useEffect(() => {
     setConfig((prev) => ({ ...prev, groups }));
