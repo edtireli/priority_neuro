@@ -18,7 +18,9 @@ body {
 
 body.light-mode {
   background-color: #ffffff;
-  background-image: url('../public/background_inverted.png');
+  background-image:
+    linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)),
+    url('../public/background_inverted.png');
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
