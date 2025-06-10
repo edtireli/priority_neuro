@@ -9,6 +9,7 @@ function WizardNav({ step, setStep }) {
     "Design Vars",
     "Priors",
     "Objective",
+    "Sequence",
     "Constraints",
     "Misc",
     "Review",

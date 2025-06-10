@@ -22,6 +22,7 @@ import Step3_Groups from "./steps/Step3_Groups";
 import Step4_DesignVariables from "./steps/Step4_DesignVariables";
 import Step5_Priors from "./steps/Step5_Priors";
 import Step6_Objective from "./steps/Step6_Objective";
+import Step6b_SequenceSettings from "./steps/Step6b_SequenceSettings";
 import Step7_Constraints from "./steps/Step7_Constraints";
 import Step8_MiscSettings from "./steps/Step8_MiscSettings";
 import Step9_Review from "./steps/Step9_Review";
@@ -97,7 +98,7 @@ function ProjectWizard() {
       setConfig(parsed);
       setImportModalOpen(false);
       setImportError("");
-      setStep(9);
+      setStep(10);
     } catch (err) {
       setImportError(err.message);
     }
@@ -153,13 +154,16 @@ function ProjectWizard() {
             <Step6_Objective config={config} setConfig={setConfig} />
           )}
           {step === 7 && (
-            <Step7_Constraints config={config} setConfig={setConfig} />
+            <Step6b_SequenceSettings config={config} setConfig={setConfig} />
           )}
           {step === 8 && (
+            <Step7_Constraints config={config} setConfig={setConfig} />
+          )}
+          {step === 9 && (
             <Step8_MiscSettings config={config} setConfig={setConfig} />
           )}
-      {step === 9 && <Step9_Review config={config} setStep={setStep} />}
-      {step === 10 && <Step10_Submit config={config} />}
+      {step === 10 && <Step9_Review config={config} setStep={setStep} />}
+      {step === 11 && <Step10_Submit config={config} />}
       </CardContent>
       </Card>
 
