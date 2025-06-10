@@ -418,7 +418,7 @@ def run_optimisation_task(self, job_id_str: str):
             flow,
             bo_budget=adv.get("bo_budget", 20),
         )
-        best_u, best_se = estimate_eig(
+        best_u, best_se, ci_l, ci_u, N_used = estimate_eig(
             best_design,
             flow,
             config["priors"],
@@ -434,7 +434,9 @@ def run_optimisation_task(self, job_id_str: str):
             use_optimal_beta=adv.get("use_optimal_beta", False),
             random_seed=adv.get("random_seed"),
         )
-        log.info(f"EIG={best_u:.4f} \u00b1{best_se:.4f}")
+        log.info(
+            f"EIG={best_u:.4f} \u00b1{best_se:.4f} ({ci_l:.4f}–{ci_u:.4f}), N={N_used}"
+        )
 
         evaluated_designs = eval_records
         top_designs = sorted(
@@ -504,6 +506,8 @@ def run_optimisation_task(self, job_id_str: str):
             "optimalDesign": best_design,
             "utilityValue": best_u,
             "utilitySE": best_se,
+            "ci_lower": ci_l,
+            "ci_upper": ci_u,
             "evaluatedDesigns": evaluated_designs,
             "topDesigns": top_designs,
             "priorSamples": prior_samples,
@@ -521,6 +525,8 @@ def run_optimisation_task(self, job_id_str: str):
                     "optimalDesign": best_design,
                     "utilityValue": best_u,
                     "utilitySE": best_se,
+                    "ci_lower": ci_l,
+                    "ci_upper": ci_u,
                 },
                 f,
                 indent=2,

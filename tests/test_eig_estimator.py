@@ -17,7 +17,7 @@ def test_eig_estimation_accuracy():
     prior = {"p": {"dist": "Uniform", "low": 0.0, "high": 1.0}}
     design = {}
     model = BernoulliModel([{"name": "p"}])
-    est, se, _ = estimate_eig(prior, design, model, n_samples=5000, random_seed=1)
+    est, se, _, _, _ = estimate_eig(prior, design, model, n_samples=5000, random_seed=1)
     true_val = analytic_eig_uniform_bernoulli()
     assert abs(est - true_val) < 0.02
 
@@ -26,8 +26,8 @@ def test_control_variate_variance_reduction():
     prior = {"p": {"dist": "Uniform", "low": 0.0, "high": 1.0}}
     model = BernoulliModel([{"name": "p"}])
     design = {}
-    _, se_mc, _ = estimate_eig(prior, design, model, n_samples=4000, random_seed=0)
-    _, se_cv, _ = estimate_eig(
+    _, se_mc, _, _, _ = estimate_eig(prior, design, model, n_samples=4000, random_seed=0)
+    _, se_cv, _, _, _ = estimate_eig(
         prior,
         design,
         model,
@@ -51,8 +51,8 @@ def test_antithetic_variance_reduction():
     prior = {"p": {"dist": "Uniform", "low": 0.0, "high": 1.0}}
     model = BernoulliModel([{"name": "p"}])
     design = {}
-    _, se_mc, _ = estimate_eig(prior, design, model, n_samples=1000, random_seed=0)
-    _, se_ant, _ = estimate_eig(
+    _, se_mc, _, _, _ = estimate_eig(prior, design, model, n_samples=1000, random_seed=0)
+    _, se_ant, _, _, _ = estimate_eig(
         prior,
         design,
         model,
@@ -84,8 +84,8 @@ def test_qmc_reproducibility_and_variance():
         random_seed=7,
     )
     assert res1 == res2
-    _, se_mc, _ = estimate_eig(prior, design, model, n_samples=1024, random_seed=7)
-    _, se_qmc, _ = res1
+    _, se_mc, _, _, _ = estimate_eig(prior, design, model, n_samples=1024, random_seed=7)
+    _, se_qmc, _, _, _ = res1
     assert se_qmc <= 0.95 * se_mc
 
 
@@ -93,7 +93,7 @@ def test_adaptive_sampling():
     prior = {"p": {"dist": "Uniform", "low": 0.0, "high": 1.0}}
     model = BernoulliModel([{"name": "p"}])
     design = {}
-    mean, se, N_used = estimate_eig(
+    mean, se, ci_l, ci_u, N_used = estimate_eig(
         prior,
         design,
         model,
@@ -102,15 +102,16 @@ def test_adaptive_sampling():
         N_max=500,
         random_seed=1,
     )
+    width = ci_u - ci_l
     assert N_used >= 100
-    assert abs(se / mean) <= 0.02 or N_used == 500
+    assert width / abs(mean) <= 0.02 or N_used == 500
 
 
 def test_optimal_beta():
     prior = {"p": {"dist": "Uniform", "low": 0.0, "high": 1.0}}
     model = BernoulliModel([{"name": "p"}])
     design = {}
-    _, se_fixed, _ = estimate_eig(
+    _, se_fixed, _, _, _ = estimate_eig(
         prior,
         design,
         model,
@@ -119,7 +120,7 @@ def test_optimal_beta():
         beta=1.0,
         random_seed=0,
     )
-    _, se_opt, _ = estimate_eig(
+    _, se_opt, _, _, _ = estimate_eig(
         prior,
         design,
         model,
@@ -129,3 +130,33 @@ def test_optimal_beta():
         random_seed=0,
     )
     assert se_opt < se_fixed
+
+
+def test_confidence_interval():
+    prior = {"p": {"dist": "Uniform", "low": 0.0, "high": 1.0}}
+    model = BernoulliModel([{"name": "p"}])
+    design = {}
+    mean, se, ci_l, ci_u, _ = estimate_eig(prior, design, model, n_samples=1000, random_seed=2)
+    from scipy.stats import norm
+
+    z = norm.ppf(0.975)
+    assert abs(ci_l - (mean - z * se)) < 1e-8
+    assert abs(ci_u - (mean + z * se)) < 1e-8
+
+
+def test_adaptive_sampling_threshold():
+    prior = {"p": {"dist": "Uniform", "low": 0.0, "high": 1.0}}
+    model = BernoulliModel([{"name": "p"}])
+    design = {}
+    mean, se, ci_l, ci_u, N_used = estimate_eig(
+        prior,
+        design,
+        model,
+        n_samples=50,
+        ci_threshold=0.01,
+        N_max=200,
+        random_seed=3,
+    )
+    width = ci_u - ci_l
+    assert N_used >= 50
+    assert width / abs(mean) <= 0.01 or N_used == 200
