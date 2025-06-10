@@ -3,7 +3,6 @@ import Plot from "react-plotly.js";
 import {
   Typography,
   TextField,
-  Button,
   Grid,
   Box,
   Select,
@@ -18,7 +17,7 @@ import {
 function Step4_Priors({ config, setConfig }) {
   const parameters = config.model.parameters || [];
   const dataSamples = config.metadata?.dataSamples || {};
-  const [samples, setSamples] = useState(dataSamples);
+  const dependentVar = config.model?.dependentVariables?.[0];
   const [priors, setPriors] = useState(() => {
     const obj = {};
     parameters.forEach((p) => {
@@ -83,24 +82,6 @@ function Step4_Priors({ config, setConfig }) {
     setPriors((prev) => ({ ...prev, [param.name]: base }));
   };
 
-  const handleFileUpload = (name, file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target.result;
-      const vals = text
-        .split(/[\s,]+/)
-        .map((v) => parseFloat(v))
-        .filter((v) => !isNaN(v));
-      if (vals.length === 0) return;
-      setSamples((prev) => ({ ...prev, [name]: vals }));
-      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const sd = Math.sqrt(
-        vals.reduce((s, v) => s + (v - mean) * (v - mean), 0) / vals.length
-      );
-      setPriors((prev) => ({ ...prev, [name]: { dist: "Normal", mean, sd } }));
-    };
-    if (file) reader.readAsText(file);
-  };
 
   const validate = () => {
     const errs = {};
@@ -134,6 +115,26 @@ function Step4_Priors({ config, setConfig }) {
   return (
     <div>
       <h3>Specify Priors</h3>
+      {dependentVar && dataSamples[dependentVar] && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2">
+            Observed {dependentVar}
+          </Typography>
+          {(() => {
+            const dataVals = dataSamples[dependentVar];
+            const hist = [{ x: dataVals, type: "histogram" }];
+            return (
+              <Plot
+                data={hist}
+                layout={{ margin: { t: 30 } }}
+                useResizeHandler
+                style={{ width: "100%", height: "300px" }}
+                config={{ responsive: true }}
+              />
+            );
+          })()}
+        </Box>
+      )}
       <Typography variant="subtitle1" gutterBottom>
       Step 4: Encode your existing knowledge about each model parameter as a “prior.” Priors tell the optimizer which values you believe are most plausible before collecting any data.  
       For each parameter below:
@@ -165,19 +166,6 @@ function Step4_Priors({ config, setConfig }) {
                 <MenuItem value="Beta">Beta</MenuItem>
               </Select>
             </FormControl>
-            <Box sx={{ mt: 1 }}>
-              <Button variant="outlined" component="label" size="small">
-                Upload Data
-                <input
-                  type="file"
-                  accept=".csv,.txt"
-                  hidden
-                  onChange={(e) =>
-                    handleFileUpload(param.name, e.target.files[0])
-                  }
-                />
-              </Button>
-            </Box>
             {pr.dist === "Normal" && (
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={6}>
@@ -204,17 +192,17 @@ function Step4_Priors({ config, setConfig }) {
                     fullWidth
                   />
                 </Grid>
-                {samples[param.name] && (
+                {dataSamples[param.name] && (
                   <Grid item xs={12} sx={{ mt: 2 }}>
                     <Typography variant="body2">Adjust Fit</Typography>
                     <Typography variant="caption">Mean: {pr.mean}</Typography>
                     <Slider
                       value={pr.mean ?? 0}
-                      min={Math.min(...samples[param.name])}
-                      max={Math.max(...samples[param.name])}
+                      min={Math.min(...dataSamples[param.name])}
+                      max={Math.max(...dataSamples[param.name])}
                       step={
-                        (Math.max(...samples[param.name]) -
-                          Math.min(...samples[param.name])) /
+                        (Math.max(...dataSamples[param.name]) -
+                          Math.min(...dataSamples[param.name])) /
                         100
                       }
                       onChange={(e, val) =>
@@ -226,12 +214,12 @@ function Step4_Priors({ config, setConfig }) {
                       value={pr.sd ?? 1}
                       min={0.01}
                       max={
-                        Math.max(...samples[param.name]) -
-                        Math.min(...samples[param.name])
+                        Math.max(...dataSamples[param.name]) -
+                        Math.min(...dataSamples[param.name])
                       }
                       step={
-                        (Math.max(...samples[param.name]) -
-                          Math.min(...samples[param.name])) /
+                        (Math.max(...dataSamples[param.name]) -
+                          Math.min(...dataSamples[param.name])) /
                           100 || 0.01
                       }
                       onChange={(e, val) =>
@@ -305,10 +293,10 @@ function Step4_Priors({ config, setConfig }) {
             <FormHelperText sx={{ mt: 1 }}>
               Default: {formatPrior(param.default_prior)}
             </FormHelperText>
-            {samples[param.name] && pr.dist === "Normal" && (
+            {dataSamples[param.name] && pr.dist === "Normal" && (
               <Box sx={{ mt: 2 }}>
                 {(() => {
-                  const dataVals = samples[param.name];
+                  const dataVals = dataSamples[param.name];
                   const minX = Math.min(...dataVals);
                   const maxX = Math.max(...dataVals);
                   const xs = [];

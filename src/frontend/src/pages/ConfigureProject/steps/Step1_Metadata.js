@@ -24,6 +24,9 @@ function Step1_Metadata({ config, setConfig }) {
   const [dataSamples, setDataSamples] = useState(
     config.metadata.dataSamples || null
   );
+  const [dataHeaders, setDataHeaders] = useState(
+    config.metadata.dataHeaders || []
+  );
   const [dataFileName, setDataFileName] = useState(
     config.metadata.dataFileName || ""
   );
@@ -34,7 +37,7 @@ function Step1_Metadata({ config, setConfig }) {
       .trim()
       .split(/[\r\n]+/)
       .map((r) => r.split(/[,\t]+/));
-    if (rows.length === 0) return {};
+    if (rows.length === 0) return { headers: [], data: {} };
     let headers = rows[0];
     let start = 1;
     if (headers.every((v) => !isNaN(parseFloat(v)))) {
@@ -49,7 +52,7 @@ function Step1_Metadata({ config, setConfig }) {
         if (!isNaN(num)) data[headers[idx]].push(num);
       });
     }
-    return data;
+    return { headers, data };
   };
 
   const handleDataUpload = async (e) => {
@@ -58,11 +61,12 @@ function Step1_Metadata({ config, setConfig }) {
     try {
       const text = await file.text();
       const parsed = parseCsv(text);
-      if (Object.keys(parsed).length === 0) {
+      if (Object.keys(parsed.data).length === 0) {
         setDataError("No numeric columns found");
         return;
       }
-      setDataSamples(parsed);
+      setDataSamples(parsed.data);
+      setDataHeaders(parsed.headers);
       setDataFileName(file.name);
       setDataError("");
     } catch (err) {
@@ -80,10 +84,11 @@ function Step1_Metadata({ config, setConfig }) {
         contact_email: contact,
         data_modality: modality,
         dataSamples,
+        dataHeaders,
         dataFileName,
       },
     }));
-  }, [name, description, institution, contact, modality, dataSamples, dataFileName, setConfig]);
+  }, [name, description, institution, contact, modality, dataSamples, dataHeaders, dataFileName, setConfig]);
 
   return (
     <div>

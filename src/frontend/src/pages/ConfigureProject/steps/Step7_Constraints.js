@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Typography, TextField, Button, Grid, Box } from "@mui/material";
+import { Typography, Grid, Slider } from "@mui/material";
 
 function Step7_Constraints({ config, setConfig }) {
   const [constraints, setConstraints] = useState(
@@ -9,7 +9,9 @@ function Step7_Constraints({ config, setConfig }) {
       costWeights: { subject: "", trial: "", session: "" },
     },
   );
-  const [errors, setErrors] = useState({});
+  const groupTotal = Array.isArray(config.groups)
+    ? config.groups.reduce((s, g) => s + (g.N || 0), 0)
+    : 0;
 
   useEffect(() => {
     setConfig((prev) => ({ ...prev, constraints }));
@@ -19,14 +21,6 @@ function Step7_Constraints({ config, setConfig }) {
     setConstraints((prev) => ({ ...prev, [field]: value }));
   };
 
-  const validateField = (name, value) => {
-    if (value === null || value === "" || Number(value) > 0) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-      return true;
-    }
-    setErrors((prev) => ({ ...prev, [name]: "Must be > 0" }));
-    return false;
-  };
 
 
   return (
@@ -40,81 +34,66 @@ function Step7_Constraints({ config, setConfig }) {
       </Typography>
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={6}>
-          <TextField
-            label="Maximum Sample Size"
-            type="number"
-            fullWidth
-            value={constraints.sampleSize || ""}
-            onChange={(e) => updateField("sampleSize", Number(e.target.value))}
-            onBlur={(e) => validateField("sampleSize", Number(e.target.value))}
-            error={!!errors.sampleSize}
-            helperText={errors.sampleSize}
+          <Typography gutterBottom>Maximum Sample Size</Typography>
+          <Slider
+            value={constraints.sampleSize || groupTotal}
+            min={0}
+            max={groupTotal * 2 || 100}
+            onChange={(_, val) => updateField("sampleSize", val)}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField
-            label="Maximum Trial Limit"
-            type="number"
-            fullWidth
-            value={constraints.trialLimit || ""}
-            onChange={(e) => updateField("trialLimit", Number(e.target.value))}
-            onBlur={(e) => validateField("trialLimit", Number(e.target.value))}
-            error={!!errors.trialLimit}
-            helperText={errors.trialLimit}
+          <Typography gutterBottom>Maximum Trial Limit</Typography>
+          <Slider
+            value={constraints.trialLimit || groupTotal}
+            min={0}
+            max={groupTotal * 2 || 100}
+            onChange={(_, val) => updateField("trialLimit", val)}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
-          <TextField
-            label="Cost per subject"
-            type="number"
-            step="0.1"
-            fullWidth
-            value={constraints.costWeights.subject}
-            onChange={(e) =>
+          <Typography gutterBottom>Cost per subject</Typography>
+          <Slider
+            value={constraints.costWeights.subject || 1}
+            min={0}
+            max={10}
+            step={0.1}
+            onChange={(_, val) =>
               setConstraints((prev) => ({
                 ...prev,
-                costWeights: { ...prev.costWeights, subject: Number(e.target.value) },
+                costWeights: { ...prev.costWeights, subject: val },
               }))
             }
-            onBlur={(e) => validateField("subject", Number(e.target.value))}
-            error={!!errors.subject}
-            helperText={errors.subject || "Default: 1"}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
-          <TextField
-            label="Cost per trial"
-            type="number"
-            step="0.1"
-            fullWidth
-            value={constraints.costWeights.trial}
-            onChange={(e) =>
+          <Typography gutterBottom>Cost per trial</Typography>
+          <Slider
+            value={constraints.costWeights.trial || 1}
+            min={0}
+            max={10}
+            step={0.1}
+            onChange={(_, val) =>
               setConstraints((prev) => ({
                 ...prev,
-                costWeights: { ...prev.costWeights, trial: Number(e.target.value) },
+                costWeights: { ...prev.costWeights, trial: val },
               }))
             }
-            onBlur={(e) => validateField("trial", Number(e.target.value))}
-            error={!!errors.trial}
-            helperText={errors.trial || "Default: 1"}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
-          <TextField
-            label="Cost per session"
-            type="number"
-            step="0.1"
-            fullWidth
-            value={constraints.costWeights.session}
-            onChange={(e) =>
+          <Typography gutterBottom>Cost per session</Typography>
+          <Slider
+            value={constraints.costWeights.session || 1}
+            min={0}
+            max={10}
+            step={0.1}
+            onChange={(_, val) =>
               setConstraints((prev) => ({
                 ...prev,
-                costWeights: { ...prev.costWeights, session: Number(e.target.value) },
+                costWeights: { ...prev.costWeights, session: val },
               }))
             }
-            onBlur={(e) => validateField("session", Number(e.target.value))}
-            error={!!errors.session}
-            helperText={errors.session || "Default: 1"}
           />
         </Grid>
       </Grid>
