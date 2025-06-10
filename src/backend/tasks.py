@@ -159,7 +159,7 @@ def run_boed_job(job_id: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            from sequence_optimizer import run_sequence_optimization_job
+            from .sequence_optimizer import run_sequence_optimization_job
             run_sequence_optimization_job(job, project, config, seq_opts, db)
             return
 
@@ -354,7 +354,7 @@ def run_sequence_optimization_job_task(job_id: str):
             .get("sequenceSettings", {})
         )
 
-        from sequence_optimizer import run_sequence_optimization_job
+        from .sequence_optimizer import run_sequence_optimization_job
         run_sequence_optimization_job(job, project, config, seq_opts, db)
     except Exception:
         if job:
@@ -391,7 +391,7 @@ def run_optimisation_task(self, job_id_str: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            from sequence_optimizer import run_sequence_optimization_job
+            from .sequence_optimizer import run_sequence_optimization_job
             run_sequence_optimization_job(job, project, config, seq_opts, db)
             return
 
