@@ -32,6 +32,26 @@ log = logging.getLogger(__name__)
 RESULTS_ROOT = os.getenv("RESULTS_ROOT", "results")
 UPLOADS_ROOT = os.getenv("UPLOADS_ROOT", "uploads")
 
+
+def _load_sequence_optimizer():
+    """Return the ``run_sequence_optimization_job`` callable.
+
+    When ``tasks`` is executed outside of the ``backend`` package the relative
+    import ``.sequence_optimizer`` fails.  This helper falls back to loading the
+    module directly from the current directory so Celery workers started from
+    ``src/backend`` continue to function.
+    """
+    try:
+        from .sequence_optimizer import run_sequence_optimization_job
+        return run_sequence_optimization_job
+    except Exception:
+        module_path = os.path.join(os.path.dirname(__file__), "sequence_optimizer.py")
+        spec = importlib.util.spec_from_file_location("sequence_optimizer", module_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+        return module.run_sequence_optimization_job
+
 conf = ConnectionConfig(
     MAIL_USERNAME="your_smtp_username",
     MAIL_PASSWORD="your_smtp_password",
@@ -159,11 +179,8 @@ def run_boed_job(job_id: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            try:
-                from .sequence_optimizer import run_sequence_optimization_job
-            except ImportError:
-                from sequence_optimizer import run_sequence_optimization_job
-            run_sequence_optimization_job(job, project, config, seq_opts, db)
+            run_seq = _load_sequence_optimizer()
+            run_seq(job, project, config, seq_opts, db)
             return
 
         objective = config.get("objective", {}).get("type")
@@ -357,11 +374,8 @@ def run_sequence_optimization_job_task(job_id: str):
             .get("sequenceSettings", {})
         )
 
-        try:
-            from .sequence_optimizer import run_sequence_optimization_job
-        except ImportError:
-            from sequence_optimizer import run_sequence_optimization_job
-        run_sequence_optimization_job(job, project, config, seq_opts, db)
+        run_seq = _load_sequence_optimizer()
+        run_seq(job, project, config, seq_opts, db)
     except Exception:
         if job:
             job = db.query(Job).get(job.id)
@@ -397,11 +411,8 @@ def run_optimisation_task(self, job_id_str: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            try:
-                from .sequence_optimizer import run_sequence_optimization_job
-            except ImportError:
-                from sequence_optimizer import run_sequence_optimization_job
-            run_sequence_optimization_job(job, project, config, seq_opts, db)
+            run_seq = _load_sequence_optimizer()
+            run_seq(job, project, config, seq_opts, db)
             return
 
         import torch  # heavy import only when task actually runs
