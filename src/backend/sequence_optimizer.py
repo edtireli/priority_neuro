@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import numpy as np
 
-from models import JobMetric, JobResult, JobStatus
+from models import JobMetric, JobResult, JobStatus, BernoulliModel
 from tasks import load_model
 from boed_utils import sample_from_prior
 
@@ -229,4 +229,3 @@ def run_sequence_optimization_job(
     job.status = JobStatus.succeeded
     job.completed_at = datetime.now(timezone.utc)
     db.commit()
-    db.close()
