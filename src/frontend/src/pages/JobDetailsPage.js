@@ -401,7 +401,17 @@ export default function JobDetailsPage() {
   };
 
   return (
-    <Container sx={{ py: 4 }}>
+    <Container
+      sx={{
+        py: 4,
+        backgroundColor: (theme) =>
+          theme.palette.mode === "dark"
+            ? "rgba(0,0,0,0.6)"
+            : "rgba(255,255,255,0.8)",
+        borderRadius: 2,
+        p: 3,
+      }}
+    >
       <Typography variant="h5" gutterBottom>
         Job {job.id}
       </Typography>
