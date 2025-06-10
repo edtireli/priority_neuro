@@ -151,6 +151,7 @@ def run_boed_job(job_id: str):
 
         project = db.query(Project).get(job.project_id)
         config = project.config_json or {}
+        adv = config.get("advancedOptions", {})
 
         objective = config.get("objective", {}).get("type")
         if objective == "group_separation" and not config.get("groups"):
