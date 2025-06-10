@@ -197,6 +197,11 @@ def estimate_eig(
             control_variate=control_variate,
             beta=beta,
             sampling_method=sampling_method,
+            use_antithetic=use_antithetic,
+            ci_threshold=ci_threshold,
+            N_max=N_max,
+            use_optimal_beta=use_optimal_beta,
+            confidence_level=confidence_level,
             random_seed=random_seed,
         )
     else:
