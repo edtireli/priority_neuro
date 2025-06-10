@@ -70,6 +70,7 @@ export default function ResultsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         const [mRes, rRes, fRes, cRes] = await Promise.all([
           api.get(`/projects/${projectId}/jobs/${jobId}/metrics`),
@@ -131,6 +132,11 @@ export default function ResultsPage() {
 
   const bestDesign = result?.summary?.best_design;
   const bestUtility = result?.summary?.utility;
+  const bestIter =
+    bestDesign &&
+    sortedMetrics.find(
+      (m) => JSON.stringify(m.design_point) === JSON.stringify(bestDesign)
+    )?.iteration;
 
   const renderSlopePosterior = () => {
     if (!slopePrior) return null;
@@ -266,7 +272,7 @@ export default function ResultsPage() {
           />
           {bestDesign && (
             <Typography sx={{ mt: 2 }}>
-              Best design at iteration {sortedMetrics.find((m) => JSON.stringify(m.design_point) === JSON.stringify(bestDesign))?.iteration ?? "-"}: {JSON.stringify(bestDesign)} → utility = {bestUtility?.toFixed?.(2)}
+              Best design at iteration {bestIter ?? "-"}: {JSON.stringify(bestDesign)} → utility = {bestUtility?.toFixed?.(2)}
             </Typography>
           )}
         </Box>
