@@ -16,6 +16,7 @@ from celery.signals import task_failure
 from sqlalchemy.orm import Session
 import numpy as np
 from models.expressions import PsychometricModel, PoissonRateModel
+from .sequence_optimizer import run_sequence_optimization_job
 from boed_utils import (
     fit_flow,
     estimate_eig,
