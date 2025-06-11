@@ -13,6 +13,7 @@ from database import Base
 from dependencies import get_db
 from models import User
 from tasks import run_optimisation_task
+import tasks
 
 engine = create_engine(
     os.environ["DATABASE_URL"],
@@ -31,7 +32,13 @@ def client(tmp_path, monkeypatch):
             db.close()
 
     monkeypatch.setenv("RESULTS_ROOT", str(tmp_path / "results"))
+    monkeypatch.setenv("UPLOADS_ROOT", str(tmp_path / "uploads"))
     monkeypatch.setattr("tasks.SessionLocal", TestingSessionLocal)
+    tasks.celery.conf.task_always_eager = True
+    tasks.celery.conf.broker_url = 'memory://'
+    tasks.celery.conf.result_backend = 'cache+memory://'
+    from tasks import send_verification_email
+    send_verification_email.apply_async = lambda *a, **k: None
     app.dependency_overrides[get_db] = override_get_db
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
@@ -92,9 +99,10 @@ def test_results_detailed_endpoint(client, tmp_path):
     assert "optimalDesign" in data and "utilityValue" in data
     assert len(data["evaluatedDesigns"]) >= 22
     assert len(data["topDesigns"]) == 10
+    expected_n = config["advanced_options"].get("M_test", 2000)
     if isinstance(data["priorSamples"], list):
-        assert len(data["priorSamples"]) == 2000
-        assert len(data["posteriorSamples"]) == 2000
+        assert len(data["priorSamples"]) == expected_n
+        assert len(data["posteriorSamples"]) == expected_n
     else:
         assert all("bins" in v and "density" in v for v in data["priorSamples"].values())
     if data.get("learningCurve"):

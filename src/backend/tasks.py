@@ -450,7 +450,7 @@ def run_optimisation_task(self, job_id_str: str):
             evaluated_designs, key=lambda r: r["utility"], reverse=True
         )[:10]
 
-        n_samples = 2000
+        n_samples = adv.get("M_test", 2000)
         prior_samples = [sample_from_prior(config["priors"]) for _ in range(n_samples)]
         theta0 = sample_from_prior(config["priors"])
         y_obs = model.simulate(theta0, best_design)
