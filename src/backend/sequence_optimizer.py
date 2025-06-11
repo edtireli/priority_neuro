@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from models import JobResult, JobStatus, BernoulliModel, JobMetric, Job, Project
+from models import JobResult, JobStatus, JobMetric, Job, Project
 from model_loader import load_model
 from boed_utils import sample_from_prior
 try:  # allow running as script without package context
@@ -63,7 +63,10 @@ def enumerate_actions(design_vars: List[Dict[str, Any]]) -> List[Dict[str, Any]]
         for c in combos:
             for val in values:
                 nc = c.copy()
-                nc[dv["name"]] = float(val)
+                if dv.get("type") == "discrete":
+                    nc[dv["name"]] = val
+                else:
+                    nc[dv["name"]] = float(val)
                 new.append(nc)
         combos = new
     return combos
@@ -103,6 +106,7 @@ def compute_reward(
 
 
 def optimize_sequence_local(
+    config_model: Dict[str, Any],
     priors: Dict[str, Any],
     design_vars: List[Dict[str, Any]],
     posterior: Dict[str, Any],
@@ -112,7 +116,7 @@ def optimize_sequence_local(
 ) -> List[Dict[str, Any]]:
     """Run the sequence optimisation loop locally and return the best sequence."""
 
-    model = BernoulliModel([])
+    model = load_model(config_model, job.id if job else None)
     true_theta = sample_from_prior(priors)
     n_particles = 100
     particles = [sample_from_prior(priors) for _ in range(n_particles)]
@@ -166,6 +170,7 @@ def run_sequence_optimization_job(
     priors = config.get("priors", {})
     design_vars = config.get("designVariables", [])
     sequence = optimize_sequence_local(
+        config.get("model", {}),
         priors,
         design_vars,
         {},
@@ -190,11 +195,13 @@ class SequenceOptimizer:
 
     def __init__(
         self,
+        config_model: Dict[str, Any],
         priors: Dict[str, Any],
         design_vars: List[Dict[str, Any]],
         posterior: Dict[str, Any],
         max_iterations: int,
     ) -> None:
+        self.config_model = config_model
         self.priors = priors
         self.design_vars = design_vars
         self.posterior = posterior
@@ -202,6 +209,7 @@ class SequenceOptimizer:
 
     def optimize_sequence(self) -> List[Dict[str, Any]]:
         return optimize_sequence_local(
+            self.config_model,
             self.priors,
             self.design_vars,
             self.posterior,

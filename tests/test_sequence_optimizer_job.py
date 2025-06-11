@@ -11,13 +11,14 @@ from sqlalchemy.pool import StaticPool
 from database import Base
 from models import Project, Job, User, JobStatus, RunMode, ComputeType, JobMetric, JobResult
 import sequence_optimizer as so
+from models.expressions import BernoulliModel
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
 
-class DummyBernoulli(so.BernoulliModel):
+class DummyBernoulli(BernoulliModel):
     pass
 
 

@@ -652,6 +652,7 @@ def optimize_design_with_posterior(
         db.close()
 
     seq_opt = SequenceOptimizer(
+        config_model=cfg.get("model", {}),
         priors=cfg.get("priors", {}),
         design_vars=cfg.get("design_vars", cfg.get("designVariables", [])),
         posterior=post,
