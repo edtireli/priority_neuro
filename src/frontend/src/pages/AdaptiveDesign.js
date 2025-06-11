@@ -5,9 +5,9 @@ import api from "../api";
 
 export default function AdaptiveDesign() {
   const { projectId } = useParams();
-  const [file, setFile] = useState<File | null>(null);
-  const [design, setDesign] = useState<any>(null);
-  const [error, setError] = useState<string>("");
+  const [file, setFile] = useState(null);
+  const [design, setDesign] = useState(null);
+  const [error, setError] = useState("");
 
   const handleSubmit = async () => {
     setError("");
@@ -21,7 +21,7 @@ export default function AdaptiveDesign() {
       await api.post(`/projects/${projectId}/adaptive/data`, data);
       const res = await api.get(`/projects/${projectId}/adaptive/next-design`);
       setDesign(res.data);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.response?.data?.detail || err.message);
     }
   };
@@ -51,7 +51,7 @@ export default function AdaptiveDesign() {
           <Typography variant="h6">Next Design</Typography>
           {Array.isArray(design.sequence) ? (
             <ul>
-              {design.sequence.map((step: any, i: number) => (
+              {design.sequence.map((step, i) => (
                 <li key={i}>{JSON.stringify(step)}</li>
               ))}
             </ul>
