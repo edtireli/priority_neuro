@@ -50,7 +50,7 @@ The project comprises a Python backend and a React frontend. A complete setup gu
 ## Bugs
 * UI might be cut off depending on PC display size
 
-Key hyperparameters can be adjusted in `advanced_options` (`n_train`, `epochs`, `bo_budget`, `M_test`, `gp_restarts`). Results can be viewed at `/projects/{pid}/jobs/{jid}/results` or `/results-detailed`.
+Key hyperparameters can be adjusted in `advancedOptions` (`n_train`, `epochs`, `bo_budget`, `N_max`, `gp_restarts`). Results can be viewed at `/projects/{pid}/jobs/{jid}/results` or `/results-detailed`.
 
 ## Documentation
 Refer to [docs/architecture.md](docs/architecture.md) for details on the API and configuration workflow, and [docs/usage.md](docs/usage.md) for step-by-step instructions.

@@ -80,7 +80,7 @@ def test_results_detailed_endpoint(client, tmp_path):
         "designVariables": [
             {"name": "x", "type": "continuous", "range": [0.0, 1.0]}
         ],
-        "advanced_options": {"n_train": 200, "bo_budget": 22, "M_test": 100, "epochs": 5},
+        "advancedOptions": {"n_train": 200, "bo_budget": 22, "N_max": 100, "epochs": 5},
         "experimentalMode": "batch",
     }
     client.put(f"/api/projects/{pid}/config", json=config, headers=headers)
@@ -99,7 +99,7 @@ def test_results_detailed_endpoint(client, tmp_path):
     assert "optimalDesign" in data and "utilityValue" in data
     assert len(data["evaluatedDesigns"]) >= 22
     assert len(data["topDesigns"]) == 10
-    expected_n = config["advanced_options"].get("M_test", 2000)
+    expected_n = config["advancedOptions"].get("N_max", 2000)
     if isinstance(data["priorSamples"], list):
         assert len(data["priorSamples"]) == expected_n
         assert len(data["posteriorSamples"]) == expected_n
