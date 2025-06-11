@@ -5,6 +5,16 @@ from datetime import datetime, timezone
 import uuid
 import importlib.util
 from typing import Any
+try:
+    from backend.sequence_optimizer import run_sequence_optimization_job
+except ModuleNotFoundError:  # allow running without PYTHONPATH set
+    import sys
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(current_dir, ".."))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    from backend.sequence_optimizer import run_sequence_optimization_job
 from celery_app import celery
 from database import SessionLocal
 from models import Job, Project, JobStatus, RunMode, JobMetric, JobResult
@@ -159,10 +169,6 @@ def run_boed_job(job_id: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            try:
-                from .sequence_optimizer import run_sequence_optimization_job
-            except ImportError:
-                from sequence_optimizer import run_sequence_optimization_job
             run_sequence_optimization_job(job, project, config, seq_opts, db)
             return
 
@@ -357,10 +363,6 @@ def run_sequence_optimization_job_task(job_id: str):
             .get("sequenceSettings", {})
         )
 
-        try:
-            from .sequence_optimizer import run_sequence_optimization_job
-        except ImportError:
-            from sequence_optimizer import run_sequence_optimization_job
         run_sequence_optimization_job(job, project, config, seq_opts, db)
     except Exception:
         if job:
@@ -397,10 +399,6 @@ def run_optimisation_task(self, job_id_str: str):
             .get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
-            try:
-                from .sequence_optimizer import run_sequence_optimization_job
-            except ImportError:
-                from sequence_optimizer import run_sequence_optimization_job
             run_sequence_optimization_job(job, project, config, seq_opts, db)
             return
 
