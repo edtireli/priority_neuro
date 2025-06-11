@@ -51,7 +51,12 @@ function ProjectWizard() {
             groups: [],
             priors: {},
             designVariables: [],
-            objective: {},
+            objective: {
+              type: "",
+              options: {},
+              template: "",
+              simulateOnly: false,
+            },
             constraints: {
               sampleSize: null,
               trialLimit: null,
