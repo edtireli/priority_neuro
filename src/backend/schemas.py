@@ -1,4 +1,13 @@
-from pydantic import BaseModel, EmailStr, Field, validator, RootModel, ConfigDict
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    validator,
+    RootModel,
+    ConfigDict,
+    StrictFloat,
+    StrictInt,
+)
 from uuid import UUID
 from datetime import datetime
 from typing import Literal, List, Dict, Any
@@ -141,6 +150,26 @@ class CalciumDataConfig(BaseModel):
     format: Literal["NWB", "TIFF"]
 
 
+class AdvancedOptionsConfig(BaseModel):
+    sampling_method: Literal["MC", "QMC"] = "MC"
+    use_antithetic: bool = False
+    ci_threshold: StrictFloat | None = None
+    N_max: StrictInt = 10000
+    use_optimal_beta: bool = False
+
+    @validator("ci_threshold")
+    def non_negative_ci(cls, v):
+        if v is not None and v < 0:
+            raise ValueError("ci_threshold must be non-negative")
+        return v
+
+    @validator("N_max")
+    def positive_N_max(cls, v):
+        if v < 1:
+            raise ValueError("N_max must be >= 1")
+        return v
+
+
 class ProjectConfig(BaseModel):
     metadata: Dict[Literal["name", "description"], str | None]
     model: ModelConfig
@@ -149,6 +178,7 @@ class ProjectConfig(BaseModel):
     objective: ObjectiveConfig
     constraints: ConstraintsConfig
     calciumData: CalciumDataConfig | None = None
+    advancedOptions: AdvancedOptionsConfig | None = None
 
 
 class JobCreate(BaseModel):

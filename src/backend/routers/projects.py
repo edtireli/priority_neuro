@@ -76,6 +76,6 @@ def update_project_config(
     project = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    project.config_json = payload.dict()
+    project.config_json = payload.model_dump()
     db.commit()
     return

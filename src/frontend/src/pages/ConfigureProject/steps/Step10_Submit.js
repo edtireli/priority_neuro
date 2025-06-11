@@ -44,7 +44,30 @@ function Step10_Submit({ config }) {
             config.objective.options?.sequenceSettings || {},
         };
       } else {
-        cfg.advancedOptions = config.advancedOptions;
+        if (config.advancedOptions) {
+          if (
+            config.advancedOptions.ci_threshold === "" ||
+            Number.isNaN(Number(config.advancedOptions.ci_threshold))
+          ) {
+            setSubmitting(false);
+            return setError("CI Threshold must be numeric");
+          }
+          if (
+            config.advancedOptions.N_max === "" ||
+            Number.isNaN(Number(config.advancedOptions.N_max))
+          ) {
+            setSubmitting(false);
+            return setError("N_max must be numeric");
+          }
+          cfg.advancedOptions = {
+            ...config.advancedOptions,
+            ci_threshold:
+              config.advancedOptions.ci_threshold === ""
+                ? null
+                : Number(config.advancedOptions.ci_threshold),
+            N_max: Number(config.advancedOptions.N_max),
+          };
+        }
       }
 
       if (config.misc?.gpuEnabled) cfg.computeType = "gpu";

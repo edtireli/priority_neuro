@@ -186,6 +186,10 @@ def estimate_eig(
     Returns (mean, standard_error, ci_lower, ci_upper, N_used).
     """
 
+    ci = None
+    if ci_threshold is not None:
+        ci = float(ci_threshold)
+
     if random_seed is not None:
         np.random.seed(random_seed)
 
@@ -286,8 +290,8 @@ def estimate_eig(
             width = ci_upper - ci_lower
             N_used = len(arr)
             if (
-                ci_threshold is None
-                or (width / abs(mean) <= ci_threshold)
+                ci is None
+                or (width / abs(mean) <= ci)
                 or (N_used >= N_max)
             ):
                 break
