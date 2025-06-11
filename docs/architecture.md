@@ -6,7 +6,7 @@
 
 ## Project Configuration
 
-Built-in generative-model templates live in `src/backend/models/templates.py`. Two example templates (`psychometric` and `poisson_rate`) expose parameter schemas with default prior hyperparameters.
+Built-in generative-model templates live in `src/backend/models/templates.py` and `src/backend/template_models`. Templates include `psychometric`, `poisson_rate` and `learning_curve`, each exposing a parameter schema with default priors.
 
 API endpoints for interacting with templates are provided by `routers/templates.py`:
 
@@ -18,5 +18,7 @@ Projects store their wizard configuration JSON in the `config_json` column. Endp
 
 * `GET /api/projects/{project_id}/config` – retrieve current configuration
 * `PUT /api/projects/{project_id}/config` – save configuration
+
+The `ObjectiveConfig` schema includes a `simulateOnly` flag for sequence optimisation jobs. When enabled the backend generates synthetic data from a specified template (e.g. `learning_curve`) instead of requiring uploaded trial data.
 
 The frontend exposes a wizard at `/projects/:projectId/configure` implemented in React. It loads existing configuration, walks through seven steps (metadata, model selection, priors, design variables, objective, constraints, review) and saves the final JSON via the above endpoints.

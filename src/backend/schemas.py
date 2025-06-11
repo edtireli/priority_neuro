@@ -113,8 +113,15 @@ class DesignVariable(BaseModel):
 
 
 class ObjectiveConfig(BaseModel):
-    type: Literal["group_separation", "information_gain", "training_efficiency"]
+    type: Literal[
+        "group_separation",
+        "information_gain",
+        "training_efficiency",
+        "sequence_optimization",
+    ]
     options: Dict[str, Any] | None = None
+    template: str | None = None
+    simulateOnly: bool = False
 
 
 class ConstraintsConfig(BaseModel):
