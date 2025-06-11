@@ -40,6 +40,15 @@ The project comprises a Python backend and a React frontend. A complete setup gu
 4. **Estimate utility** – evaluate the resulting design with Monte Carlo sampling.
 5. **Inspect results** – `result.json` and `result_detailed.json` contain the optimal design, top candidates and learning curves.
 
+## Nice to have
+* Dark mode UI
+
+## Tests
+* Checking for disk space before start (ensure 10gb) 
+
+## Bugs
+* UI might be cut off depending on PC display size
+
 Key hyperparameters can be adjusted in `advanced_options` (`n_train`, `epochs`, `bo_budget`, `M_test`, `gp_restarts`). Results can be viewed at `/projects/{pid}/jobs/{jid}/results` or `/results-detailed`.
 
 ## Documentation
