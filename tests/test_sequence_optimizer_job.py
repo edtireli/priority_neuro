@@ -9,11 +9,24 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from database import Base
-from models import Project, Job, User, JobStatus, RunMode, ComputeType, JobMetric, JobResult
+from models import (
+    Project,
+    Job,
+    User,
+    JobStatus,
+    RunMode,
+    ComputeType,
+    JobMetric,
+    JobResult,
+)
 import sequence_optimizer as so
 from models.expressions import BernoulliModel
 
-engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+engine = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
@@ -24,7 +37,9 @@ class DummyBernoulli(BernoulliModel):
 
 def create_entities(cfg):
     db = TestingSessionLocal()
-    user = User(email=f"{uuid.uuid4()}@x.com", full_name="U", institution="I", password_hash="x")
+    user = User(
+        email=f"{uuid.uuid4()}@x.com", full_name="U", institution="I", password_hash="x"
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -32,7 +47,13 @@ def create_entities(cfg):
     db.add(project)
     db.commit()
     db.refresh(project)
-    job = Job(project_id=project.id, job_name="J", mode=RunMode.single_shot, compute_type=ComputeType.cpu, status=JobStatus.queued)
+    job = Job(
+        project_id=project.id,
+        job_name="J",
+        mode=RunMode.single_shot,
+        compute_type=ComputeType.cpu,
+        status=JobStatus.queued,
+    )
     db.add(job)
     db.commit()
     db.refresh(job)
@@ -44,7 +65,10 @@ def test_run_sequence_optimizer_job(monkeypatch):
         "model": {},
         "priors": {"p": {"dist": "Uniform", "low": 0.2, "high": 0.8}},
         "designVariables": [],
-        "objective": {"type": "sequence_optimization", "options": {"sequenceSettings": {}}},
+        "objective": {
+            "type": "sequence_optimization",
+            "options": {"sequenceSettings": {}},
+        },
     }
     seq_opts = {
         "agentType": "thompson",
@@ -63,6 +87,39 @@ def test_run_sequence_optimizer_job(monkeypatch):
 
     metrics = db.query(JobMetric).filter(JobMetric.job_id == job.id).all()
     assert len(metrics) <= seq_opts["trialBudget"]
+    result = db.query(JobResult).filter(JobResult.job_id == job.id).first()
+    assert result is not None
+    assert "best_sequence" in result.summary
+    db.close()
+
+
+def test_run_sequence_optimizer_job_simulate_only(monkeypatch):
+    cfg = {
+        "model": {},
+        "priors": {},
+        "designVariables": [],
+        "objective": {
+            "type": "sequence_optimization",
+            "template": "learning_curve",
+            "simulateOnly": True,
+            "options": {"sequenceSettings": {}},
+        },
+    }
+    seq_opts = {
+        "agentType": "thompson",
+        "explorationRate": 0.0,
+        "enableGPSurrogate": False,
+        "trialBudget": 5,
+        "stateWindow": 1,
+        "terminationCriterion": {"type": "trials_to_threshold", "threshold": 1},
+    }
+
+    monkeypatch.setattr(so, "load_model", lambda cfg, jid: DummyBernoulli([]))
+    monkeypatch.setattr(so, "sample_from_prior", lambda p: {k: 0.5 for k in p})
+
+    db, job, project = create_entities(cfg)
+    so.run_sequence_optimization_job(job, project, cfg, seq_opts, db)
+
     result = db.query(JobResult).filter(JobResult.job_id == job.id).first()
     assert result is not None
     assert "best_sequence" in result.summary

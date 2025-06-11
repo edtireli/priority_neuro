@@ -4,9 +4,10 @@
 **priority** is an open-source toolkit for machine-learning enhanced Bayesian Optimal Experimental Design (BOED). It combines generative modelling, neural density estimation and a modern web interface so that neuroscience researchers can efficiently optimise their experimental protocols.
 
 ## Features
-- Built-in templates for common generative models (e.g. psychometric and Poisson-rate) with the option to upload custom models.
+- Built-in templates for common generative models (e.g. psychometric, Poisson-rate and learning-curve) with the option to upload custom models.
 - Bayesian objectives including group separation, expected information gain (EIG) and training efficiency.
 - Sequential or single-shot optimisation using CPU or GPU workers via Celery.
+- Optional simulate-only mode for sequence optimisation to generate synthetic data when no observations are available.
 - Interactive result visualisations: utility surfaces, prior vs. posterior histograms and learning curves.
 - Personal user profile page with account details.
 - Upload a profile picture; images are automatically converted to black and white and stored securely.

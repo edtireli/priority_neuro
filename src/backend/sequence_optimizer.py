@@ -8,6 +8,7 @@ import numpy as np
 from models import JobResult, JobStatus, JobMetric, Job, Project
 from model_loader import load_model
 from boed_utils import sample_from_prior
+
 try:  # allow running as script without package context
     from .bandit import ThompsonBanditAgent, GPSurrogateAgent
 except ImportError:  # pragma: no cover - fallback for direct execution
@@ -19,6 +20,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 # ---------------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------------
+
 
 def extract_state(
     posterior: List[Dict[str, float]],
@@ -103,8 +105,6 @@ def compute_reward(
 # ---------------------------------------------------------------------------
 
 
-
-
 def optimize_sequence_local(
     config_model: Dict[str, Any],
     priors: Dict[str, Any],
@@ -113,6 +113,7 @@ def optimize_sequence_local(
     max_iters: int,
     job: Optional["Job"] = None,
     db=None,
+    simulated_perf: List[float] | None = None,
 ) -> List[Dict[str, Any]]:
     """Run the sequence optimisation loop locally and return the best sequence."""
 
@@ -142,7 +143,10 @@ def optimize_sequence_local(
         next_state = extract_state(particles, history + [{"action": action}], t + 1)
         agent.update(a_idx, reward, next_state)
         cumulative_reward += reward
-        history.append({"t": t, "action": action, "reward": reward})
+        record = {"t": t, "action": action, "reward": reward}
+        if simulated_perf is not None and t <= len(simulated_perf):
+            record["accuracy"] = float(simulated_perf[t - 1])
+        history.append(record)
         if job is not None and db is not None:
             metric = JobMetric(
                 job_id=job.id,
@@ -169,6 +173,20 @@ def run_sequence_optimization_job(
     """Execute a sequence optimisation job."""
     priors = config.get("priors", {})
     design_vars = config.get("designVariables", [])
+    objective = config.get("objective", {})
+    simulate_only = objective.get("simulateOnly", False)
+    template_name = objective.get("template")
+    simulated_perf = None
+    if simulate_only and template_name:
+        from template_models import template_registry
+
+        model_cls = template_registry.get(template_name)
+        if model_cls:
+            sim_model = model_cls()
+            params = sample_from_prior(model_cls.default_priors())
+            sessions = job.maxIterations or int(seq_opts.get("trialBudget", 1))
+            simulated_perf = sim_model.simulate(params, sessions)
+
     sequence = optimize_sequence_local(
         config.get("model", {}),
         priors,
@@ -177,6 +195,7 @@ def run_sequence_optimization_job(
         job.maxIterations or int(seq_opts.get("trialBudget", 1)),
         job,
         db,
+        simulated_perf=simulated_perf,
     )
 
     db.add(
@@ -200,12 +219,14 @@ class SequenceOptimizer:
         design_vars: List[Dict[str, Any]],
         posterior: Dict[str, Any],
         max_iterations: int,
+        simulated_perf: List[float] | None = None,
     ) -> None:
         self.config_model = config_model
         self.priors = priors
         self.design_vars = design_vars
         self.posterior = posterior
         self.max_iterations = max_iterations
+        self.simulated_perf = simulated_perf
 
     def optimize_sequence(self) -> List[Dict[str, Any]]:
         return optimize_sequence_local(
@@ -214,4 +235,5 @@ class SequenceOptimizer:
             self.design_vars,
             self.posterior,
             self.max_iterations,
+            simulated_perf=self.simulated_perf,
         )
