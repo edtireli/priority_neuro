@@ -334,8 +334,7 @@ def run_optimisation_task(self, job_id_str: str):
 
         project = db.query(Project).filter(Project.id == job.project_id).first()
         config = project.config_json
-        adv = config.get("advanced_options", {})
-        adv = config.get("advancedOptions", adv)
+        adv = config.get("advancedOptions", {})
         obj_type = config.get("objective", {}).get("type")
         seq_opts = (
             config.get("objective", {})
@@ -430,14 +429,14 @@ def run_optimisation_task(self, job_id_str: str):
             flow,
             config["priors"],
             model,
-            n_samples=adv.get("N_max", 10000),
+            n_samples=adv.get("N_max", 2000),
             use_control_variates=adv.get("use_control_variates", False),
             control_variate=adv.get("control_variate", "prior_loglik"),
             beta=adv.get("beta", 1.0),
             sampling_method=adv.get("sampling_method", "MC"),
             use_antithetic=adv.get("use_antithetic", False),
             ci_threshold=adv.get("ci_threshold"),
-            N_max=adv.get("N_max", 10000),
+            N_max=adv.get("N_max", 2000),
             use_optimal_beta=adv.get("use_optimal_beta", False),
             random_seed=adv.get("random_seed"),
         )
@@ -450,7 +449,7 @@ def run_optimisation_task(self, job_id_str: str):
             evaluated_designs, key=lambda r: r["utility"], reverse=True
         )[:10]
 
-        n_samples = adv.get("M_test", 2000)
+        n_samples = adv.get("N_max", 2000)
         prior_samples = [sample_from_prior(config["priors"]) for _ in range(n_samples)]
         theta0 = sample_from_prior(config["priors"])
         y_obs = model.simulate(theta0, best_design)
