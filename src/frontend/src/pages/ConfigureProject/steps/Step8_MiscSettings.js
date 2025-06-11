@@ -154,7 +154,12 @@ function Step8_MiscSettings({ config, setConfig }) {
             label="CI Threshold"
             type="number"
             value={adv.ci_threshold}
-            onChange={(e) => updateAdv("ci_threshold", e.target.value)}
+            onChange={(e) =>
+              updateAdv(
+                "ci_threshold",
+                e.target.value === "" ? "" : Number(e.target.value)
+              )
+            }
             fullWidth
           />
         </Grid>

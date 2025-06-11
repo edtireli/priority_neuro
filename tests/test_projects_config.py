@@ -138,3 +138,30 @@ def test_project_config_crud(client):
     assert returned["objective"]["template"] == "learning_curve"
     assert returned["objective"]["simulateOnly"] is True
 
+
+def test_project_config_invalid_advanced_options(client):
+    token = create_user(client)
+
+    resp = client.post(
+        "/api/projects/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "proj2", "description": "desc"},
+    )
+    project_id = resp.json()["id"]
+
+    cfg = {
+        "metadata": {"name": "x"},
+        "model": {"type": "built-in", "templateName": "psychometric", "parameters": []},
+        "priors": {},
+        "designVariables": [],
+        "objective": {"type": "group_separation"},
+        "constraints": {"sampleSize": 10, "trialLimit": 10, "costWeights": {"subject": 1, "trial": 1, "session": 1}},
+        "advancedOptions": {"ci_threshold": "bad", "N_max": "100"},
+    }
+    resp = client.put(
+        f"/api/projects/{project_id}/config",
+        headers={"Authorization": f"Bearer {token}"},
+        json=cfg,
+    )
+    assert resp.status_code == 422
+
