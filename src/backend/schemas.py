@@ -85,9 +85,6 @@ class ModelConfig(BaseModel):
         return v
 
 
-from pydantic import RootModel
-
-
 class PriorMap(RootModel[Dict[str, Dict[str, Any]]]):
     pass
 
@@ -195,3 +192,12 @@ class JobResultOut(BaseModel):
     """BOED result summary."""
 
     summary: Dict[str, Any]
+
+
+class TrialDatum(BaseModel):
+    condition: str
+    outcome: bool | int
+
+
+class NextDesign(BaseModel):
+    sequence: List[Dict[str, Any]]

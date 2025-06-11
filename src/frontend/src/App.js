@@ -11,6 +11,7 @@ import JobsPage from "./pages/JobsPage";
 import JobDetailsPage from "./pages/JobDetailsPage";
 import ProfilePage from "./pages/ProfilePage";
 import ResultsPage from "./pages/ResultsPage";
+import AdaptiveDesign from "./pages/AdaptiveDesign";
 import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
@@ -95,6 +96,14 @@ function App() {
           element={
             <PrivateRoute authenticated={isAuthenticated}>
               <ResultsPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/projects/:projectId/adaptive"
+          element={
+            <PrivateRoute authenticated={isAuthenticated}>
+              <AdaptiveDesign />
             </PrivateRoute>
           }
         />

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Container,
   Typography,
@@ -139,6 +139,13 @@ export default function RunOptimisationPage() {
               startIcon={starting ? <CircularProgress size={20} /> : null}
             >
               Start New Optimization
+            </Button>
+            <Button
+              component={Link}
+              to={`/projects/${projectId}/adaptive`}
+              variant="outlined"
+            >
+              Adaptive Design
             </Button>
             <Select value={filter} onChange={(e) => setFilter(e.target.value)} size="small">
               <MenuItem value="all">All</MenuItem>
