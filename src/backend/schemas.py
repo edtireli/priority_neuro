@@ -235,6 +235,7 @@ class JobResultOut(BaseModel):
     """BOED result summary."""
 
     summary: Dict[str, Any]
+    metrics: List[JobMetricOut]
 
 
 class TrialDatum(BaseModel):

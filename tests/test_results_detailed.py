@@ -109,3 +109,46 @@ def test_results_detailed_endpoint(client, tmp_path):
         lc = data["learningCurve"]
         assert len(lc["sessions"]) == len(lc["meanPerformance"])
 
+
+def test_results_detailed_utility_metric(client, tmp_path):
+    token = auth_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    proj = client.post("/api/projects", json={"name": "P2", "description": ""}, headers=headers).json()
+    pid = proj["id"]
+
+    cfg = {
+        "metadata": {"name": "P2", "description": ""},
+        "model": {
+            "type": "built-in",
+            "templateName": "psychometric",
+            "parameters": [
+                {"name": "threshold", "type": "float", "default_prior": {"dist": "Uniform", "low": 0.0, "high": 1.0}},
+            ],
+            "dependentVariables": ["y"],
+        },
+        "priors": {"threshold": {"dist": "Uniform", "low": 0.0, "high": 1.0}},
+        "designVariables": [{"name": "x", "type": "continuous", "range": [0.0, 1.0]}],
+        "advancedOptions": {"n_train": 50, "bo_budget": 1, "N_max": 20, "epochs": 1},
+        "experimentalMode": "batch",
+    }
+    client.put(f"/api/projects/{pid}/config", json=cfg, headers=headers)
+
+    job = client.post(
+        f"/api/projects/{pid}/jobs",
+        data={"config": json.dumps(cfg)},
+        headers=headers,
+    ).json()
+    jid = job["id"]
+    run_optimisation_task.run(jid)
+
+    res = client.get(f"/api/projects/{pid}/jobs/{jid}/results", headers=headers)
+    summary_data = res.json()
+    assert isinstance(summary_data["metrics"], list)
+    assert len(summary_data["metrics"]) > 0
+    assert summary_data["summary"]["utility"] == max(m["utility"] for m in summary_data["metrics"])
+
+    res = client.get(f"/api/projects/{pid}/jobs/{jid}/results-detailed", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["evaluatedDesigns"][0]["utility"] == summary_data["summary"]["utility"] > 0
+
