@@ -42,6 +42,26 @@ log = logging.getLogger(__name__)
 RESULTS_ROOT = os.getenv("RESULTS_ROOT", "results")
 UPLOADS_ROOT = os.getenv("UPLOADS_ROOT", "uploads")
 
+
+def _load_sequence_optimizer():
+    """Return the ``run_sequence_optimization_job`` callable.
+
+    When ``tasks`` is executed outside of the ``backend`` package the relative
+    import ``.sequence_optimizer`` fails.  This helper falls back to loading the
+    module directly from the current directory so Celery workers started from
+    ``src/backend`` continue to function.
+    """
+    try:
+        from .sequence_optimizer import run_sequence_optimization_job
+        return run_sequence_optimization_job
+    except Exception:
+        module_path = os.path.join(os.path.dirname(__file__), "sequence_optimizer.py")
+        spec = importlib.util.spec_from_file_location("sequence_optimizer", module_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+        return module.run_sequence_optimization_job
+
 conf = ConnectionConfig(
     MAIL_USERNAME="your_smtp_username",
     MAIL_PASSWORD="your_smtp_password",
