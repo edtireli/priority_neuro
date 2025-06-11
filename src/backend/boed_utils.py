@@ -165,6 +165,7 @@ def log_prior(theta_vec, prior_dict):
 
 def estimate_eig(
     *args,
+    n_samples: int | None = None,
     use_control_variates: bool = False,
     control_variate: str = "prior_loglik",
     beta: float = 1.0,
@@ -181,7 +182,7 @@ def estimate_eig(
 
     Supports two calling conventions:
     1) estimate_eig(prior_dict, design, model, n_samples=200)
-    2) estimate_eig(design, flow, prior_dict, model, M_test=2000)
+    2) estimate_eig(design, flow, prior_dict, model, n_samples=2000)
 
     Returns (mean, standard_error, ci_lower, ci_upper, N_used).
     """
@@ -196,12 +197,14 @@ def estimate_eig(
     if len(args) >= 4 and isinstance(args[1], Flow):
         # Fall back to Monte Carlo using the model log-likelihood for robustness
         design, flow, prior_dict, model = args[:4]
-        n_samples = args[4] if len(args) > 4 else kwargs.get("M_test", 2000)
+        n_local = args[4] if len(args) > 4 else (
+            n_samples if n_samples is not None else kwargs.get("M_test", N_max)
+        )
         return estimate_eig(
             prior_dict,
             design,
             model,
-            n_samples=n_samples,
+            n_samples=n_local,
             use_control_variates=use_control_variates,
             control_variate=control_variate,
             beta=beta,
@@ -215,7 +218,7 @@ def estimate_eig(
         )
     else:
         prior_dict, design, model = args[:3]
-        N = kwargs.get("n_samples", 200)
+        N = n_samples if n_samples is not None else kwargs.get("n_samples", 200)
 
         def sample_theta(n):
             if sampling_method == "QMC":
