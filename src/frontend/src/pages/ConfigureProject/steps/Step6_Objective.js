@@ -1,13 +1,41 @@
-import React, { useEffect } from "react";
-import { Typography, Radio, RadioGroup, FormControlLabel, Button, Box } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import api from "../../../api";
+import {
+  Typography,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  Button,
+  Box,
+  Checkbox,
+  Select,
+  MenuItem,
+  FormHelperText,
+} from "@mui/material";
 
 function Step6_Objective({ config, setConfig }) {
-  const [type, setType] = React.useState(config.objective.type || "");
-  const [options, setOptions] = React.useState(config.objective.options || {});
+  const [type, setType] = useState(config.objective.type || "");
+  const [options, setOptions] = useState(config.objective.options || {});
+  const [template, setTemplate] = useState(config.objective.template || "");
+  const [simulateOnly, setSimulateOnly] = useState(
+    config.objective.simulateOnly || false
+  );
+  const [templates, setTemplates] = useState([]);
 
   useEffect(() => {
-    setConfig((prev) => ({ ...prev, objective: { type, options } }));
-  }, [type, options, setConfig]);
+    api
+      .get("/templates")
+      .then((res) => setTemplates(res.data))
+      .catch(() => setTemplates([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    setConfig((prev) => ({
+      ...prev,
+      objective: { type, options, template, simulateOnly },
+    }));
+  }, [type, options, template, simulateOnly, setConfig]);
 
   return (
     <div>
@@ -70,6 +98,37 @@ function Step6_Objective({ config, setConfig }) {
           </Typography>
         </Box>
       </RadioGroup>
+      {type === "sequence_optimization" && (
+        <Box sx={{ mt: 2 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={simulateOnly}
+                onChange={(e) => setSimulateOnly(e.target.checked)}
+              />
+            }
+            label="Run on synthetic data"
+          />
+          <Box sx={{ mt: 2, width: 300 }}>
+            <Select
+              fullWidth
+              value={template}
+              displayEmpty
+              onChange={(e) => setTemplate(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>-- Select template --</em>
+              </MenuItem>
+              {templates.map((t) => (
+                <MenuItem key={t} value={t}>
+                  {t}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>Template</FormHelperText>
+          </Box>
+        </Box>
+      )}
       {/* Navigation handled by WizardNav */}
     </div>
   );

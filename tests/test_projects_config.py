@@ -110,7 +110,12 @@ def test_project_config_crud(client):
                 "units": "a.u.",
             }
         ],
-        "objective": {"type": "group_separation", "options": {}},
+        "objective": {
+            "type": "group_separation",
+            "options": {},
+            "template": "learning_curve",
+            "simulateOnly": True,
+        },
         "constraints": {
             "sampleSize": 20,
             "trialLimit": 100,
@@ -130,4 +135,6 @@ def test_project_config_crud(client):
     returned = resp.json()["config"]
     assert returned["metadata"]["name"] == "proj1"
     assert returned["model"]["templateName"] == "psychometric"
+    assert returned["objective"]["template"] == "learning_curve"
+    assert returned["objective"]["simulateOnly"] is True
 
