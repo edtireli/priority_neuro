@@ -7,9 +7,9 @@ import os
 from PIL import Image
 from fastapi.responses import FileResponse
 
-from database import SessionLocal
-from models import User
-from schemas import (
+from ..database import SessionLocal
+from ..models import User
+from ..schemas import (
     UserCreate,
     UserOut,
     Token,
@@ -18,11 +18,11 @@ from schemas import (
     MessageOut,
     ResendVerificationRequest,
 )
-from security import hash_password, verify_password
-from auth_utils import create_access_token
-from dependencies import get_db, get_current_user
-from tasks import send_verification_email
-from app import DEVELOPER_MODE
+from ..security import hash_password, verify_password
+from ..auth_utils import create_access_token
+from ..dependencies import get_db, get_current_user
+from ..tasks import send_verification_email
+from ..app import DEVELOPER_MODE
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 

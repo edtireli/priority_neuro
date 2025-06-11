@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy import Column, String, Boolean, DateTime, func, Text, ForeignKey, JSON, Enum, Integer, Float
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
-from database import Base
+from .database import Base
 import enum
 
 class User(Base):

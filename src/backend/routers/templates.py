@@ -3,7 +3,7 @@ from typing import List
 import os
 import importlib.util
 
-from template_models.templates import list_templates, get_template_schema
+from ..template_models.templates import list_templates, get_template_schema
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
 

@@ -5,12 +5,11 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import numpy as np
 
-from models import JobMetric, JobResult, JobStatus, BernoulliModel
-from tasks import load_model
-from boed_utils import sample_from_prior
+from .models import JobMetric, JobResult, JobStatus, BernoulliModel
+from .boed_utils import sample_from_prior
 
 if TYPE_CHECKING:
-    from models import Job, Project
+    from .models import Job, Project
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
 
@@ -160,6 +159,7 @@ def run_sequence_optimization_job(
     job: Job, project: Project, config: dict, seq_opts: dict, db
 ) -> None:
     """Execute a sequence optimisation job."""
+    from .tasks import load_model
     model = load_model(config.get("model", {}), job.id)
     true_theta = sample_from_prior(config.get("priors", {}))
 

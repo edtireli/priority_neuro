@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 import os, json
 
-from dependencies import get_db, get_current_user
-from models import Job, RunMode
+from ..dependencies import get_db, get_current_user
+from ..models import Job, RunMode
 
 router = APIRouter(prefix="/api/projects/{project_id}/jobs/{job_id}/data", tags=["data"])
 
