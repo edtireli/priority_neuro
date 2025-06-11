@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Plot from "react-plotly.js";
 import {
   Container,
@@ -70,6 +70,7 @@ function priorPdf(prior, xs) {
 
 export default function JobDetailsPage() {
   const { projectId, jobId } = useParams();
+  const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [metrics, setMetrics] = useState([]);
   const [result, setResult] = useState(null);
@@ -685,8 +686,15 @@ export default function JobDetailsPage() {
                       config={{ responsive: true }}
                     />
                   )}
-                  <Button sx={{ mt: 2 }} variant="outlined" onClick={downloadHtmlReport}>
+                  <Button sx={{ mt: 2, mr: 2 }} variant="outlined" onClick={downloadHtmlReport}>
                     Download HTML Report
+                  </Button>
+                  <Button
+                    sx={{ mt: 2 }}
+                    variant="outlined"
+                    onClick={() => navigate(`/projects/${projectId}/adaptive`)}
+                  >
+                    Adaptive Next Step
                   </Button>
                 </Box>
               )}

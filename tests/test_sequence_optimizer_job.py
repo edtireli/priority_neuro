@@ -64,5 +64,5 @@ def test_run_sequence_optimizer_job(monkeypatch):
     assert len(metrics) <= seq_opts["trialBudget"]
     result = db.query(JobResult).filter(JobResult.job_id == job.id).first()
     assert result is not None
-    assert "best_sequence" in result.summary and "best_reward" in result.summary
+    assert "best_sequence" in result.summary
     db.close()

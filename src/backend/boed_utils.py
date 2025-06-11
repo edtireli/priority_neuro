@@ -1,5 +1,8 @@
 import os
 import logging
+from uuid import UUID
+from typing import List, Dict, Any
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
@@ -13,6 +16,8 @@ from nflows.transforms.normalization import BatchNorm
 from nflows.nn.nets import ResidualNet
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
+from database import SessionLocal
+from models import Project
 from scipy.special import gammaln
 
 log = logging.getLogger(__name__)
@@ -605,3 +610,52 @@ def compute_group_separation_utility(priors, design, model, groups):
         for j in range(i + 1, len(post_means)):
             dists.append(np.linalg.norm(post_means[i] - post_means[j]))
     return float(np.mean(dists))
+
+
+# ---------------------------------------------------------------------
+# Adaptive experimental design utilities
+# ---------------------------------------------------------------------
+
+
+def update_posterior(project_id: UUID, trial_data: List[Dict]) -> Dict:
+    """Compute simple posterior parameters from trial data."""
+    cond_stats: Dict[str, Dict[str, float]] = {}
+    for row in trial_data:
+        cond = row.get("condition")
+        outcome = row.get("outcome")
+        if cond is None or outcome is None:
+            continue
+        stats = cond_stats.setdefault(cond, {"success": 0.0, "total": 0.0})
+        stats["total"] += 1
+        if bool(outcome):
+            stats["success"] += 1
+    posterior = {
+        c: {"alpha": s["success"] + 1, "beta": s["total"] - s["success"] + 1}
+        for c, s in cond_stats.items()
+    }
+    return posterior
+
+
+def optimize_design_with_posterior(
+    project_id: UUID, posterior: Dict | None = None, max_iterations: int = 1
+) -> Dict:
+    """Return a sequence design suggestion using the SequenceOptimizer."""
+    from sequence_optimizer import SequenceOptimizer
+    db = SessionLocal()
+    try:
+        project = db.query(Project).get(project_id)
+        if not project:
+            return {}
+        cfg: Dict[str, Any] = project.config_json or {}
+        post = posterior or project.current_posterior or {}
+    finally:
+        db.close()
+
+    seq_opt = SequenceOptimizer(
+        priors=cfg.get("priors", {}),
+        design_vars=cfg.get("design_vars", cfg.get("designVariables", [])),
+        posterior=post,
+        max_iterations=max_iterations,
+    )
+    sequence = seq_opt.optimize_sequence()
+    return {"sequence": sequence}

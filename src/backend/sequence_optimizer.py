@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from models import JobMetric, JobResult, JobStatus, BernoulliModel
+from models import JobResult, JobStatus, BernoulliModel, JobMetric, Job, Project
 from model_loader import load_model
 from boed_utils import sample_from_prior
-
-if TYPE_CHECKING:
-    from models import Job, Project
+try:  # allow running as script without package context
+    from .bandit import ThompsonBanditAgent, GPSurrogateAgent
+except ImportError:  # pragma: no cover - fallback for direct execution
+    from bandit import ThompsonBanditAgent, GPSurrogateAgent
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
 
@@ -98,134 +99,111 @@ def compute_reward(
 # Agents
 # ---------------------------------------------------------------------------
 
-class ThompsonBanditAgent:
-    """Simple Thompson sampling bandit agent for Bernoulli rewards."""
-
-    def __init__(
-        self,
-        n_actions: int,
-        prior_alpha: float = 1.0,
-        prior_beta: float = 1.0,
-        exploration_rate: float = 0.0,
-    ) -> None:
-        self.n_actions = n_actions
-        self.alpha = np.ones(n_actions) * prior_alpha
-        self.beta = np.ones(n_actions) * prior_beta
-        self.exploration_rate = exploration_rate
-
-    def select_action(self, state: Dict[str, Any] | None) -> int:
-        if np.random.rand() < self.exploration_rate:
-            return int(np.random.randint(self.n_actions))
-        samples = np.random.beta(self.alpha, self.beta)
-        return int(np.argmax(samples))
-
-    def update(self, action: int, reward: float, next_state: Dict[str, Any] | None) -> None:
-        self.alpha[action] += reward
-        self.beta[action] += 1.0 - reward
 
 
-class GPSurrogateAgent:
-    """Bandit agent using a Gaussian process surrogate and UCB acquisition."""
 
-    def __init__(self, actions: List[Dict[str, Any]], kappa: float = 1.0):
-        self.actions = actions
-        self.kappa = kappa
-        self.X: List[np.ndarray] = []
-        self.y: List[float] = []
-        kernel = RBF(length_scale=1.0) + WhiteKernel(noise_level=1e-6)
-        self.gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True)
+def optimize_sequence_local(
+    priors: Dict[str, Any],
+    design_vars: List[Dict[str, Any]],
+    posterior: Dict[str, Any],
+    max_iters: int,
+    job: Optional["Job"] = None,
+    db=None,
+) -> List[Dict[str, Any]]:
+    """Run the sequence optimisation loop locally and return the best sequence."""
 
-    def select_action(self, state: Dict[str, Any] | None) -> int:
-        if not self.X:
-            return 0
-        X_train = np.stack(self.X)
-        y_train = np.array(self.y)
-        self.gp.fit(X_train, y_train)
-        action_arr = np.stack([self._to_vec(a) for a in self.actions])
-        mu, sigma = self.gp.predict(action_arr, return_std=True)
-        acquisition = mu + self.kappa * sigma
-        return int(np.argmax(acquisition))
+    model = BernoulliModel([])
+    true_theta = sample_from_prior(priors)
+    n_particles = 100
+    particles = [sample_from_prior(priors) for _ in range(n_particles)]
+    history: List[Dict[str, Any]] = []
+    actions = enumerate_actions(design_vars)
+    agent = ThompsonBanditAgent(len(actions))
+    criterion = {"type": "trials_to_threshold", "threshold": max_iters}
+    best_reward = float("-inf")
+    best_sequence: Optional[List[Dict[str, Any]]] = None
+    cumulative_reward = 0.0
 
-    def update(self, action: int, reward: float, next_state: Dict[str, Any] | None) -> None:
-        self.X.append(self._to_vec(self.actions[action]))
-        self.y.append(reward)
+    for t in range(1, max_iters + 1):
+        state = extract_state(particles, history, t)
+        a_idx = agent.select_action(state)
+        action = actions[a_idx]
+        y = model.simulate(true_theta, action)
+        log_w = np.array([model.log_likelihood(y, th, action) for th in particles])
+        w = np.exp(log_w - np.max(log_w))
+        w = w / np.sum(w)
+        idx = np.random.choice(len(particles), size=len(particles), p=w)
+        particles = [particles[i] for i in idx]
+        reward, done = compute_reward(t, history, criterion)
+        next_state = extract_state(particles, history + [{"action": action}], t + 1)
+        agent.update(a_idx, reward, next_state)
+        cumulative_reward += reward
+        history.append({"t": t, "action": action, "reward": reward})
+        if job is not None and db is not None:
+            metric = JobMetric(
+                job_id=job.id,
+                iteration=t,
+                design_point=action,
+                utility=reward,
+                posterior_summary=None,
+            )
+            db.add(metric)
+            db.commit()
 
-    @staticmethod
-    def _to_vec(action: Dict[str, Any]) -> np.ndarray:
-        return np.array([action[k] for k in sorted(action.keys())], dtype=float)
+        if cumulative_reward > best_reward:
+            best_reward = cumulative_reward
+            best_sequence = [h["action"] for h in history]
+        if done:
+            break
 
+    return best_sequence or [h["action"] for h in history]
 
 
 def run_sequence_optimization_job(
     job: Job, project: Project, config: dict, seq_opts: dict, db
 ) -> None:
     """Execute a sequence optimisation job."""
-    model = load_model(config.get("model", {}), job.id)
-    true_theta = sample_from_prior(config.get("priors", {}))
+    priors = config.get("priors", {})
+    design_vars = config.get("designVariables", [])
+    sequence = optimize_sequence_local(
+        priors,
+        design_vars,
+        {},
+        job.maxIterations or int(seq_opts.get("trialBudget", 1)),
+        job,
+        db,
+    )
 
-    n_particles = seq_opts.get("n_particles", 100)
-    posterior = [sample_from_prior(config.get("priors", {})) for _ in range(n_particles)]
-    history: List[Dict[str, Any]] = []
-
-    actions = enumerate_actions(config.get("designVariables", []))
-    agent_type = seq_opts["agentType"]
-    if seq_opts.get("enableGPSurrogate") and agent_type == "gp":
-        agent = GPSurrogateAgent(actions)
-    else:
-        agent = ThompsonBanditAgent(
-            len(actions),
-            exploration_rate=float(seq_opts["explorationRate"]),
-        )
-
-    trial_budget = int(seq_opts["trialBudget"])
-    state_window = int(seq_opts["stateWindow"])
-    criterion_cfg = seq_opts["terminationCriterion"]
-
-    best_reward = float("-inf")
-    best_sequence: Optional[List[Dict[str, Any]]] = None
-
-    cumulative_reward = 0.0
-    for t in range(1, trial_budget + 1):
-        state = extract_state(posterior, history, t, state_window=state_window)
-        act_idx = agent.select_action(state)
-        action = actions[act_idx]
-        y = model.simulate(true_theta, action)
-        # simple particle filter style posterior update
-        log_w = np.array([model.log_likelihood(y, th, action) for th in posterior])
-        w = np.exp(log_w - np.max(log_w))
-        w = w / np.sum(w)
-        idx = np.random.choice(len(posterior), size=len(posterior), p=w)
-        posterior = [posterior[i] for i in idx]
-        reward, criterion_met = compute_reward(t, history, criterion_cfg)
-        next_state = extract_state(
-            posterior, history + [{"action": action}], t + 1, state_window=state_window
-        )
-        agent.update(act_idx, reward, next_state)
-        cumulative_reward += reward
-        history.append({"t": t, "action": action, "reward": reward})
-
-        if cumulative_reward > best_reward:
-            best_reward = cumulative_reward
-            best_sequence = [h["action"] for h in history]
-        metric = JobMetric(
-            job_id=job.id,
-            iteration=t,
-            design_point=action,
-            utility=reward,
-            posterior_summary=None,
-        )
-        db.add(metric)
-        db.commit()
-        if criterion_met:
-            break
-
-    best_sequence = best_sequence or [h["action"] for h in history]
     db.add(
         JobResult(
             job_id=job.id,
-            summary={"best_sequence": best_sequence, "best_reward": best_reward},
+            summary={"best_sequence": sequence},
         )
     )
     job.status = JobStatus.succeeded
     job.completed_at = datetime.now(timezone.utc)
     db.commit()
+
+
+class SequenceOptimizer:
+    """Sequence optimiser used for adaptive design suggestions."""
+
+    def __init__(
+        self,
+        priors: Dict[str, Any],
+        design_vars: List[Dict[str, Any]],
+        posterior: Dict[str, Any],
+        max_iterations: int,
+    ) -> None:
+        self.priors = priors
+        self.design_vars = design_vars
+        self.posterior = posterior
+        self.max_iterations = max_iterations
+
+    def optimize_sequence(self) -> List[Dict[str, Any]]:
+        return optimize_sequence_local(
+            self.priors,
+            self.design_vars,
+            self.posterior,
+            self.max_iterations,
+        )
