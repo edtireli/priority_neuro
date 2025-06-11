@@ -124,3 +124,36 @@ def test_run_sequence_optimizer_job_simulate_only(monkeypatch):
     assert result is not None
     assert "best_sequence" in result.summary
     db.close()
+
+
+def test_run_sequence_optimizer_job_calcium_simulate_only(monkeypatch):
+    cfg = {
+        "model": {},
+        "priors": {},
+        "designVariables": [],
+        "objective": {
+            "type": "sequence_optimization",
+            "template": "calcium_imaging",
+            "simulateOnly": True,
+            "options": {"sequenceSettings": {}},
+        },
+    }
+    seq_opts = {
+        "agentType": "thompson",
+        "explorationRate": 0.0,
+        "enableGPSurrogate": False,
+        "trialBudget": 5,
+        "stateWindow": 1,
+        "terminationCriterion": {"type": "trials_to_threshold", "threshold": 1},
+    }
+
+    monkeypatch.setattr(so, "load_model", lambda cfg, jid: DummyBernoulli([]))
+    monkeypatch.setattr(so, "sample_from_prior", lambda p: {k: 0.5 for k in p})
+
+    db, job, project = create_entities(cfg)
+    so.run_sequence_optimization_job(job, project, cfg, seq_opts, db)
+
+    result = db.query(JobResult).filter(JobResult.job_id == job.id).first()
+    assert result is not None
+    assert "best_sequence" in result.summary
+    db.close()

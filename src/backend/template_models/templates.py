@@ -1,4 +1,5 @@
 from .learning_curve import LearningCurveModel
+from .calcium_imaging import CalciumImagingModel
 
 BUILT_IN_TEMPLATES = {
     "psychometric": {
@@ -32,6 +33,7 @@ BUILT_IN_TEMPLATES = {
         ],
     },
     "learning_curve": LearningCurveModel.parameter_schema(),
+    "calcium_imaging": CalciumImagingModel.parameter_schema(),
 }
 
 
