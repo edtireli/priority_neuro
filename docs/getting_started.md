@@ -37,3 +37,12 @@ npm start
 Open `http://localhost:3000` with the backend API running at `http://localhost:8000/api`.
 
 For details on configuring projects and inspecting results see [usage.md](usage.md).
+
+Projects that analyse calcium imaging data can provide a `calciumData` section in the project configuration:
+
+```json
+{
+  "calciumData": {"path": "data/session1.nwb", "format": "NWB"}
+}
+```
+The backend will load the specified file when using the `calcium_imaging` template.

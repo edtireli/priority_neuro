@@ -4,6 +4,7 @@ import importlib.util
 from typing import Any
 
 from models.expressions import PsychometricModel, PoissonRateModel
+from template_models import CalciumImagingModel
 
 UPLOADS_ROOT = os.getenv("UPLOADS_ROOT", "uploads")
 
@@ -26,8 +27,11 @@ def load_model(model_cfg: dict, job_id: uuid.UUID) -> Any:
     design_name = model_cfg.get("designName", "x")
 
     if model_cfg.get("type") == "built-in":
-        if model_cfg.get("templateName") == "psychometric":
+        template = model_cfg.get("templateName")
+        if template == "psychometric":
             return PsychometricModel(parameters, design_name=design_name)
+        if template == "calcium_imaging":
+            return CalciumImagingModel()
         else:
             return PoissonRateModel(parameters, design_name=design_name)
 

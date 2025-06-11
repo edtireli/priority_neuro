@@ -114,6 +114,7 @@ def optimize_sequence_local(
     job: Optional["Job"] = None,
     db=None,
     simulated_perf: List[float] | None = None,
+    observed_data=None,
 ) -> List[Dict[str, Any]]:
     """Run the sequence optimisation loop locally and return the best sequence."""
 
@@ -133,7 +134,10 @@ def optimize_sequence_local(
         state = extract_state(particles, history, t)
         a_idx = agent.select_action(state)
         action = actions[a_idx]
-        y = model.simulate(true_theta, action)
+        if observed_data is None:
+            y = model.simulate(true_theta, action)
+        else:
+            y = observed_data
         log_w = np.array([model.log_likelihood(y, th, action) for th in particles])
         w = np.exp(log_w - np.max(log_w))
         w = w / np.sum(w)
@@ -185,7 +189,19 @@ def run_sequence_optimization_job(
             sim_model = model_cls()
             params = sample_from_prior(model_cls.default_priors())
             sessions = job.maxIterations or int(seq_opts.get("trialBudget", 1))
-            simulated_perf = sim_model.simulate(params, sessions)
+            if template_name == "calcium_imaging":
+                t = {"t": np.arange(sessions)}
+                simulated_perf = sim_model.simulate(params, t)
+            else:
+                simulated_perf = sim_model.simulate(params, sessions)
+
+    observed = None
+    if template_name == "calcium_imaging":
+        cal_cfg = config.get("calciumData")
+        if cal_cfg:
+            from data.calcium_loader import load_calcium_data
+            cal = load_calcium_data(cal_cfg["path"], cal_cfg["format"])
+            observed = cal["traces"]
 
     sequence = optimize_sequence_local(
         config.get("model", {}),
@@ -196,6 +212,7 @@ def run_sequence_optimization_job(
         job,
         db,
         simulated_perf=simulated_perf,
+        observed_data=observed,
     )
 
     db.add(
@@ -220,6 +237,7 @@ class SequenceOptimizer:
         posterior: Dict[str, Any],
         max_iterations: int,
         simulated_perf: List[float] | None = None,
+        observed_data=None,
     ) -> None:
         self.config_model = config_model
         self.priors = priors
@@ -227,6 +245,7 @@ class SequenceOptimizer:
         self.posterior = posterior
         self.max_iterations = max_iterations
         self.simulated_perf = simulated_perf
+        self.observed_data = observed_data
 
     def optimize_sequence(self) -> List[Dict[str, Any]]:
         return optimize_sequence_local(
@@ -236,4 +255,5 @@ class SequenceOptimizer:
             self.posterior,
             self.max_iterations,
             simulated_perf=self.simulated_perf,
+            observed_data=self.observed_data,
         )

@@ -136,6 +136,11 @@ class ConstraintsConfig(BaseModel):
         return v
 
 
+class CalciumDataConfig(BaseModel):
+    path: str
+    format: Literal["NWB", "TIFF"]
+
+
 class ProjectConfig(BaseModel):
     metadata: Dict[Literal["name", "description"], str | None]
     model: ModelConfig
@@ -143,6 +148,7 @@ class ProjectConfig(BaseModel):
     designVariables: List[DesignVariable]
     objective: ObjectiveConfig
     constraints: ConstraintsConfig
+    calciumData: CalciumDataConfig | None = None
 
 
 class JobCreate(BaseModel):
