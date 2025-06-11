@@ -423,6 +423,22 @@ def run_optimisation_task(self, job_id_str: str):
             model,
             flow,
             bo_budget=adv.get("bo_budget", 20),
+            util_fn=lambda d: estimate_eig(
+                d,
+                flow,
+                config["priors"],
+                model,
+                n_samples=adv.get("N_max", 2000),
+                use_control_variates=adv.get("use_control_variates", False),
+                control_variate=adv.get("control_variate", "prior_loglik"),
+                beta=adv.get("beta", 1.0),
+                sampling_method=adv.get("sampling_method", "MC"),
+                use_antithetic=adv.get("use_antithetic", False),
+                ci_threshold=adv.get("ci_threshold"),
+                N_max=adv.get("N_max", 2000),
+                use_optimal_beta=adv.get("use_optimal_beta", False),
+                random_seed=adv.get("random_seed"),
+            ),
         )
         best_u, best_se, ci_l, ci_u, N_used = estimate_eig(
             best_design,
@@ -443,6 +459,22 @@ def run_optimisation_task(self, job_id_str: str):
         log.info(
             f"EIG={best_u:.4f} \u00b1{best_se:.4f} ({ci_l:.4f}–{ci_u:.4f}), N={N_used}"
         )
+
+        for idx, rec in enumerate(eval_records, start=1):
+            m = JobMetric(
+                job_id=job.id,
+                iteration=rec.get("iteration", idx),
+                design_point=rec["design"],
+                utility=rec["utility"],
+                posterior_summary={
+                    "se": rec.get("se"),
+                    "ci_lower": rec.get("ci_lower"),
+                    "ci_upper": rec.get("ci_upper"),
+                    "n_samples": rec.get("N_used"),
+                },
+            )
+            db.add(m)
+        db.commit()
 
         evaluated_designs = eval_records
         top_designs = sorted(
@@ -540,6 +572,14 @@ def run_optimisation_task(self, job_id_str: str):
 
         with open(detailed_path, "w") as f:
             json.dump(result, f, indent=2)
+
+        db.add(
+            JobResult(
+                job_id=job.id,
+                summary={"best_design": best_design, "utility": best_u},
+            )
+        )
+        db.commit()
 
         job.status = JobStatus.succeeded
         job.completed_at = datetime.now(timezone.utc)

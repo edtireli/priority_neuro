@@ -225,7 +225,16 @@ def get_job_results(
     )
     if not result:
         raise HTTPException(status_code=404, detail="Results not found")
-    return result
+    metrics = (
+        db.query(JobMetric)
+        .filter(JobMetric.job_id == job_id)
+        .order_by(JobMetric.iteration)
+        .all()
+    )
+    return JobResultOut(
+        summary=result.summary,
+        metrics=[JobMetricOut.model_validate(m).model_dump() for m in metrics],
+    )
 
 
 @router.get("/{job_id}/results-detailed")
