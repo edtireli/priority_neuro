@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 import numpy as np
 
 from models import JobMetric, JobResult, JobStatus, BernoulliModel
-from tasks import load_model
+from model_loader import load_model
 from boed_utils import sample_from_prior
 
 if TYPE_CHECKING:

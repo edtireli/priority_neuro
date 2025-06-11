@@ -4,8 +4,9 @@ import uuid
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'backend'))
 
-import tasks
-from tasks import load_model, PsychometricModel
+import model_loader
+from model_loader import load_model
+from models.expressions import PsychometricModel
 
 
 def test_load_model_builtin_psychometric():
@@ -21,7 +22,7 @@ def test_load_model_builtin_psychometric():
 
 
 def test_load_model_custom(tmp_path, monkeypatch):
-    monkeypatch.setattr(tasks, 'UPLOADS_ROOT', str(tmp_path))
+    monkeypatch.setattr(model_loader, 'UPLOADS_ROOT', str(tmp_path))
     job_id = uuid.uuid4()
     model_dir = tmp_path / 'custom_models' / str(job_id)
     model_dir.mkdir(parents=True)
