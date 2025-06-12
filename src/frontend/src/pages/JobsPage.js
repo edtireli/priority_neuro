@@ -19,6 +19,7 @@ import {
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
 import JobSparkline from "../components/JobSparkline";
+import outcomeMeta from "../meta/outcomeMeta";
 
 export default function JobsPage() {
   const [projects, setProjects] = useState({});
@@ -29,7 +30,19 @@ export default function JobsPage() {
   const fetchJobs = async (arch = false) => {
     try {
       const res = await api.get("/jobs", { params: { archived: arch } });
-      setJobs(res.data);
+      const jobsWithConfig = await Promise.all(
+        res.data.map(async (job) => {
+          try {
+            const cfgRes = await api.get(
+              `/projects/${job.project_id}/jobs/${job.id}/config`
+            );
+            return { ...job, config: cfgRes.data.config };
+          } catch {
+            return job;
+          }
+        })
+      );
+      setJobs(jobsWithConfig);
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
     }
@@ -143,7 +156,11 @@ export default function JobsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {visibleJobs?.map((job) => (
+              {visibleJobs?.map((job) => {
+                const outcome = job.config?.objective?.type;
+                const meta = outcomeMeta[outcome] || {};
+                const key = meta.dataKey || "utility";
+                return (
                 <TableRow key={job.id}>
                   <TableCell>{projects[job.project_id] || job.project_id}</TableCell>
                   <TableCell>{job.id}</TableCell>
@@ -167,6 +184,9 @@ export default function JobsPage() {
                       projectId={job.project_id}
                       jobId={job.id}
                       status={job.status}
+                      yKey={key}
+                      label={meta.yAxisLabel}
+                      units={meta.units}
                     />
                   </TableCell>
                   <TableCell>{job.submitted_at ? new Date(job.submitted_at).toLocaleString() : "-"}</TableCell>
@@ -189,7 +209,8 @@ export default function JobsPage() {
                     </Box>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </Box>
