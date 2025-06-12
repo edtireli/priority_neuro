@@ -19,6 +19,7 @@ import {
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
 import JobSparkline from "../components/JobSparkline";
+import outcomeMeta from "../meta/outcomeMeta";
 
 export default function JobsPage() {
   const [projects, setProjects] = useState({});
@@ -143,7 +144,11 @@ export default function JobsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {visibleJobs?.map((job) => (
+              {visibleJobs?.map((job) => {
+                const outcome = job.config?.objective?.type;
+                const meta = outcomeMeta[outcome] || {};
+                const key = meta.dataKey || "utility";
+                return (
                 <TableRow key={job.id}>
                   <TableCell>{projects[job.project_id] || job.project_id}</TableCell>
                   <TableCell>{job.id}</TableCell>
@@ -167,6 +172,9 @@ export default function JobsPage() {
                       projectId={job.project_id}
                       jobId={job.id}
                       status={job.status}
+                      yKey={key}
+                      label={meta.yAxisLabel}
+                      units={meta.units}
                     />
                   </TableCell>
                   <TableCell>{job.submitted_at ? new Date(job.submitted_at).toLocaleString() : "-"}</TableCell>
@@ -189,7 +197,8 @@ export default function JobsPage() {
                     </Box>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </Box>
