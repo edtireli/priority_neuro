@@ -76,7 +76,7 @@ test('renders chart when tab selected and passes props', async () => {
   tabEl.click();
   await waitFor(() => expect(LineChart).toHaveBeenCalled());
   const props = LineChart.mock.calls[0][0];
-  expect(props).toMatchObject({ xKey: meta.xKey, yKey: meta.yKey, dataKey: meta.dataKey, units: meta.units });
+  expect(props).toMatchObject({ xKey: meta.xKey, yKey: meta.yKey, dataKey: meta.dataKey, units: meta.units, seKey: meta.seKey });
 });
 
 test('raw json tab', async () => {

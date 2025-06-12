@@ -4,6 +4,7 @@ export default {
     yKey: "separation",
     summaryMetrics: [{ label: "Separation", key: "separation" }],
     dataKey: "separation",
+    seKey: "se",
     yAxisLabel: "Separation",
     units: "",
     chartComponents: [
@@ -19,6 +20,7 @@ export default {
     yKey: "information_gain",
     summaryMetrics: [{ label: "Information gain", key: "information_gain" }],
     dataKey: "information_gain",
+    seKey: "se",
     yAxisLabel: "Information Gain",
     units: "bits",
     alphaBands: [
@@ -37,6 +39,7 @@ export default {
     yKey: "training_time",
     summaryMetrics: [{ label: "Training time", key: "training_time" }],
     dataKey: "training_time",
+    seKey: "se",
     yAxisLabel: "Training Time",
     units: "s",
     chartComponents: [
@@ -51,6 +54,7 @@ export default {
     yKey: "reward",
     summaryMetrics: [{ label: "Reward", key: "reward" }],
     dataKey: "reward",
+    seKey: "se",
     yAxisLabel: "Reward",
     units: "",
     chartComponents: [
