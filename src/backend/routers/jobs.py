@@ -169,7 +169,17 @@ async def upload_pilot_data(
 
     job.status = JobStatus.queued
     db.commit()
-    run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
+
+    cfg = job.project.config_json or {}
+    objective = cfg.get("objective", {}).get("type")
+    if job.mode == RunMode.sequential and objective in [
+        "information_gain",
+        "training_efficiency",
+    ]:
+        run_optimisation_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    else:
+        run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
+
     db.refresh(job)
     return job
 
@@ -317,7 +327,17 @@ def retry_job(
     job.started_at = None
     job.completed_at = None
     db.commit()
-    run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
+
+    cfg = job.project.config_json or {}
+    objective = cfg.get("objective", {}).get("type")
+    if job.mode == RunMode.sequential and objective in [
+        "information_gain",
+        "training_efficiency",
+    ]:
+        run_optimisation_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    else:
+        run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
+
     db.refresh(job)
     return job
 
