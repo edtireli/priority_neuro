@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 
 from data_validation import validate_pilot_data
+import csv
+import io
 from sqlalchemy.orm import Session
 from uuid import UUID
 import os
@@ -11,10 +13,12 @@ from models import Job, Project, JobStatus, RunMode, ComputeType, JobMetric, Job
 from schemas import JobOut, JobStatusOut, JobMetricOut, JobResultOut
 from celery_app import celery
 from tasks import run_boed_job, run_optimisation_task
+from utils.pilot_data import persist_pilot_json
 
 router = APIRouter(prefix="/api/projects/{project_id}/jobs", tags=["jobs"])
 
 all_jobs_router = APIRouter(prefix="/api/jobs", tags=["jobs"])
+
 
 
 @router.post("/", response_model=JobOut, status_code=status.HTTP_201_CREATED)
@@ -102,6 +106,10 @@ async def create_job(
         file_path = os.path.join(data_dir, f"{job.id}.csv")
         with open(file_path, "wb") as f:
             f.write(pilot_contents)
+        try:
+            persist_pilot_json(pilot_contents, job.id, uploads_root)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     if status_val == JobStatus.queued:
         objective = cfg.get("objective", {}).get("type")
@@ -166,7 +174,12 @@ async def upload_pilot_data(
     validate_pilot_data(contents, design_vars, dep_vars)
     with open(file_path, "wb") as f:
         f.write(contents)
-
+    try:
+        persist_pilot_json(contents, job.id, uploads_root)
+        if job.iteration == 0:
+            job.iteration = 1
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     job.status = JobStatus.queued
     db.commit()
 
