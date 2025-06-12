@@ -176,6 +176,14 @@ export default function ResultsPage() {
   const utilY = sortedMetrics.map((m) => m.utility);
   const utilErr = sortedMetrics.map((m) => m.se);
 
+  const seriesData = detailed?.series?.length
+    ? detailed.series
+    : sortedMetrics.map((m) => ({
+        iteration: m.iteration,
+        [meta.dataKey]: m[meta.dataKey],
+        se: m.se,
+      }));
+
   const flowEpochs = flowLog ? flowLog.map((r) => r.epoch) : [];
   const trainLoss = flowLog ? flowLog.map((r) => r.train_loss) : [];
   const valLoss = flowLog ? flowLog.map((r) => r.val_loss) : [];
@@ -407,12 +415,13 @@ export default function ResultsPage() {
           tab === i && (
             <Suspense key={c.name} fallback={<div>Loading...</div>}>
               <Comp
-                data={applyFilters(detailed?.series || [])}
+                data={applyFilters(seriesData)}
                 dataGrid={applyFilters(detailed?.grid || [])}
                 xKey={meta.xKey}
                 yKey={meta.yKey}
                 valueKey={meta.dataKey}
                 dataKey={meta.dataKey}
+                seKey={meta.seKey}
                 units={meta.units}
                 onPointClick={setSelectedIdx}
                 samples={detailed?.samples || []}
