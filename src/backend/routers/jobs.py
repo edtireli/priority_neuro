@@ -10,7 +10,7 @@ from dependencies import get_current_user, get_db
 from models import Job, Project, JobStatus, RunMode, ComputeType, JobMetric, JobResult
 from schemas import JobOut, JobStatusOut, JobMetricOut, JobResultOut
 from celery_app import celery
-from tasks import run_boed_job
+from tasks import run_boed_job, run_optimisation_task
 
 router = APIRouter(prefix="/api/projects/{project_id}/jobs", tags=["jobs"])
 
@@ -104,7 +104,17 @@ async def create_job(
             f.write(pilot_contents)
 
     if status_val == JobStatus.queued:
-        run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
+        objective = cfg.get("objective", {}).get("type")
+        mode = cfg.get("experimentalMode")
+        if mode == "sequential" and objective in [
+            "information_gain",
+            "training_efficiency",
+        ]:
+            run_optimisation_task.apply_async(
+                args=[str(job.id)], task_id=str(job.id)
+            )
+        else:
+            run_boed_job.apply_async(args=[str(job.id)], task_id=str(job.id))
 
     return job
 
