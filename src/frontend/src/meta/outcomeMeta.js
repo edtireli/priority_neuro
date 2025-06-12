@@ -1,0 +1,62 @@
+export default {
+  group_separation: {
+    xKey: "iteration",
+    yKey: "separation",
+    summaryMetrics: [{ label: "Separation", key: "separation" }],
+    dataKey: "separation",
+    yAxisLabel: "Separation",
+    units: "",
+    chartComponents: [
+      { name: "LineChart", label: "Separation vs Iteration" },
+      { name: "ROCChart", label: "ROC curve" },
+      { name: "ScatterPlot", label: "Separation scatter" },
+      { name: "Heatmap", label: "Separation heatmap" },
+      { name: "DistributionPlot", label: "Distribution" },
+    ],
+  },
+  information_gain: {
+    xKey: "iteration",
+    yKey: "information_gain",
+    summaryMetrics: [{ label: "Information gain", key: "information_gain" }],
+    dataKey: "information_gain",
+    yAxisLabel: "Information Gain",
+    units: "bits",
+    alphaBands: [
+      { upperKey: "ci_upper", lowerKey: "ci_lower", label: "95% CI" },
+    ],
+    chartComponents: [
+      { name: "LineChart", label: "Information gain vs Iteration" },
+      { name: "HistogramChart", label: "Histogram" },
+      { name: "ScatterPlot", label: "Information scatter" },
+      { name: "Heatmap", label: "Information heatmap" },
+      { name: "UncertaintyRibbon", label: "Uncertainty" },
+    ],
+  },
+  training_efficiency: {
+    xKey: "iteration",
+    yKey: "training_time",
+    summaryMetrics: [{ label: "Training time", key: "training_time" }],
+    dataKey: "training_time",
+    yAxisLabel: "Training Time",
+    units: "s",
+    chartComponents: [
+      { name: "LearningCurveChart", label: "Training time vs Iteration" },
+      { name: "ScatterPlot", label: "Efficiency scatter" },
+      { name: "BoxPlot", label: "Box plot" },
+      { name: "SensitivityMatrix", label: "Sensitivity" },
+    ],
+  },
+  sequence_optimization: {
+    xKey: "iteration",
+    yKey: "reward",
+    summaryMetrics: [{ label: "Reward", key: "reward" }],
+    dataKey: "reward",
+    yAxisLabel: "Reward",
+    units: "",
+    chartComponents: [
+      { name: "LineChart", label: "Reward vs Iteration" },
+      { name: "StepwiseBarChart", label: "Sequence steps" },
+      { name: "ParameterScatter", label: "Parameter scatter" },
+    ],
+  },
+};
