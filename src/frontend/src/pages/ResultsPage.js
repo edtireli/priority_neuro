@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, lazy, Suspense, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import Plot from "react-plotly.js";
 import {
@@ -9,9 +9,28 @@ import {
   Alert,
   Tabs,
   Tab,
+  Slider,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
+import outcomeMeta from "../meta/outcomeMeta";
+
+const componentImports = {
+  ScatterPlot: () => import("../charts/ScatterPlot"),
+  Heatmap: () => import("../charts/Heatmap"),
+  UncertaintyRibbon: () => import("../charts/UncertaintyRibbon"),
+  DistributionPlot: () => import("../charts/DistributionPlot"),
+  BoxPlot: () => import("../charts/BoxPlot"),
+  SensitivityMatrix: () => import("../charts/SensitivityMatrix"),
+  StepwiseBarChart: () => import("../charts/StepwiseBarChart"),
+  LineChart: () => import("../charts/LineChart"),
+  HistogramChart: () => import("../charts/HistogramChart"),
+  ROCChart: () => import("../charts/ROCChart"),
+  LearningCurveChart: () => import("../charts/LearningCurveChart"),
+  ParameterScatter: () => import("../charts/ParameterScatter"),
+};
 
 function gamma(z) {
   const g = 7;
@@ -62,24 +81,31 @@ export default function ResultsPage() {
   const { projectId, jobId } = useParams();
   const [metrics, setMetrics] = useState(null);
   const [result, setResult] = useState(null);
+  const [detailed, setDetailed] = useState(null);
   const [flowLog, setFlowLog] = useState(null);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState(0);
+  const [filters, setFilters] = useState({});
+  const [varRanges, setVarRanges] = useState({});
+  const [designVars, setDesignVars] = useState([]);
+  const [selectedIdx, setSelectedIdx] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [mRes, rRes, fRes, cRes] = await Promise.all([
+        const [mRes, rRes, dRes, fRes, cRes] = await Promise.all([
           api.get(`/projects/${projectId}/jobs/${jobId}/metrics`),
           api.get(`/projects/${projectId}/jobs/${jobId}/results`),
+          api.get(`/projects/${projectId}/jobs/${jobId}/results-detailed`).catch(() => ({ data: null })),
           api.get(`/projects/${projectId}/jobs/${jobId}/flow_log`),
           api.get(`/projects/${projectId}/config`),
         ]);
         setMetrics(mRes.data || []);
         setResult(rRes.data || null);
+        setDetailed(dRes.data || null);
         let log = fRes.data;
         if (typeof log === "string") {
           const rows = log.trim().split(/\n/).slice(1);
@@ -98,6 +124,25 @@ export default function ResultsPage() {
     };
     fetchData();
   }, [projectId, jobId]);
+
+  useEffect(() => {
+    const vars = config?.designVariables || [];
+    setDesignVars(vars);
+    const initial = {};
+    const ranges = {};
+    vars.forEach((v) => {
+      if (v.type === "categorical") {
+        initial[v.name] = v.levels?.[0] || "";
+        ranges[v.name] = v.levels || [];
+      } else {
+        const range = v.range || [0, 1];
+        initial[v.name] = [...range];
+        ranges[v.name] = [...range];
+      }
+    });
+    setFilters(initial);
+    setVarRanges(ranges);
+  }, [config]);
 
   if (loading)
     return (
@@ -141,6 +186,41 @@ export default function ResultsPage() {
     sortedMetrics.find(
       (m) => JSON.stringify(m.design_point) === JSON.stringify(bestDesign)
     )?.iteration;
+
+  const outcome = config?.objective?.type;
+  const meta = outcomeMeta[outcome] || {};
+
+  const lazyComponents = useMemo(() => {
+    const comps = {};
+    (meta.chartComponents || []).forEach((c) => {
+      comps[c.name] = lazy(componentImports[c.name]);
+    });
+    return comps;
+  }, [outcome]);
+
+  const formatValue = (v) => {
+    if (v === null || v === undefined) return "\u2013";
+    if (typeof v !== "number") return String(v);
+    if (meta.units === "%") {
+      return `${(v * 100).toFixed(1)}%`;
+    }
+    const abs = Math.abs(v);
+    const num = abs > 1000 || abs < 0.001 ? v.toExponential(2) : v.toFixed(2);
+    return meta.units ? `${num} ${meta.units}` : num;
+  };
+
+  const applyFilters = (data) => {
+    if (!data || !Object.keys(filters).length) return data;
+    return data.filter((d) =>
+      Object.entries(filters).every(([k, val]) => {
+        if (Array.isArray(val) && val.length === 2 && val.every((v) => typeof v === "number")) {
+          const [min, max] = val;
+          return d[k] === undefined || (d[k] >= min && d[k] <= max);
+        }
+        return true;
+      })
+    );
+  };
 
   const renderSlopePosterior = () => {
     if (!slopePrior) return null;
@@ -236,6 +316,7 @@ export default function ResultsPage() {
     return null;
   };
 
+
   return (
     <Container sx={{ py: 4 }}>
       {config?.objective && (
@@ -253,64 +334,101 @@ export default function ResultsPage() {
         </Box>
       )}
 
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>
-        <Tab label="Utility Trajectory" />
-        <Tab label="Flow Loss" />
-        <Tab label="Posterior Distributions" />
-        <Tab label="Design Space" />
-      </Tabs>
-
-      {tab === 0 && (
-        <Box>
-          <Plot
-            data={[{
-              x: utilX,
-              y: utilY,
-              error_y: { type: "data", array: utilErr },
-              mode: "lines+markers",
-              name: "Utility",
-            }]}
-            layout={{
-              hovermode: "closest",
-              xaxis: { title: "Iteration" },
-              yaxis: { title: "Utility" },
-              margin: { t: 30 },
-            }}
-            useResizeHandler
-            style={{ width: "100%", height: "400px" }}
-            config={{ responsive: true }}
-          />
-          {bestDesign && (
-            <Typography sx={{ mt: 2 }}>
-              Best design at iteration {bestIter ?? "-"}: {JSON.stringify(bestDesign)} →
-              utility = {bestUtility?.toFixed?.(2)}
-              {bestUtilitySE ? ` ± ${bestUtilitySE.toFixed(2)} (${bestUtilityCiLower?.toFixed?.(2)}–${bestUtilityCiUpper?.toFixed?.(2)})` : ""}
-            </Typography>
-          )}
+      {meta.summaryMetrics && (
+        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+          {meta.summaryMetrics.map((m) => (
+            <Box key={m.key} sx={{ p: 1, border: "1px solid", borderRadius: 1 }}>
+              <Typography variant="subtitle2">{m.label}</Typography>
+              <Typography>{formatValue(result?.summary?.[m.key])}</Typography>
+            </Box>
+          ))}
         </Box>
       )}
 
-      {tab === 1 && flowLog && (
-        <Plot
-          data={[
-            { x: flowEpochs, y: trainLoss, mode: "lines", name: "Train" },
-            { x: flowEpochs, y: valLoss, mode: "lines", name: "Validation" },
-          ]}
-          layout={{
-            hovermode: "closest",
-            xaxis: { title: "Epoch" },
-            yaxis: { title: "Loss" },
-            margin: { t: 30 },
-          }}
-          useResizeHandler
-          style={{ width: "100%", height: "400px" }}
-          config={{ responsive: true }}
-        />
+      {designVars.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          {designVars.map((v) => (
+            <Box key={v.name} sx={{ mb: 2 }}>
+              <Typography id={`label-${v.name}`} gutterBottom>
+                {v.name}
+              </Typography>
+              {v.type === "categorical" ? (
+                <Select
+                  labelId={`label-${v.name}`}
+                  value={filters[v.name] || ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, [v.name]: e.target.value }))
+                  }
+                >
+                  {(varRanges[v.name] || []).map((opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {opt}
+                    </MenuItem>
+                  ))}
+                </Select>
+              ) : (
+                <Slider
+                  value={filters[v.name] || [0, 0]}
+                  min={varRanges[v.name]?.[0]}
+                  max={varRanges[v.name]?.[1]}
+                  onChange={(_, val) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      [v.name]: val,
+                    }))
+                  }
+                  valueLabelDisplay="auto"
+                  aria-labelledby={`label-${v.name}`}
+                  aria-valuetext={`${filters[v.name]?.[0]} to ${filters[v.name]?.[1]}`}
+                />
+              )}
+            </Box>
+          ))}
+        </Box>
       )}
 
-      {tab === 2 && renderSlopePosterior()}
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        aria-label="Result charts"
+        sx={{ mb: 2 }}
+      >
+        {meta.chartComponents?.map((c) => (
+          <Tab key={c.name} label={c.label} aria-label={c.label} />
+        ))}
+        <Tab label="Raw JSON" aria-label="Raw JSON" />
+      </Tabs>
 
-      {tab === 3 && renderDesignSpace()}
+      {meta.chartComponents?.map((c, i) => {
+        const Comp = lazyComponents[c.name];
+        return (
+          tab === i && (
+            <Suspense key={c.name} fallback={<div>Loading...</div>}>
+              <Comp
+                data={applyFilters(detailed?.series || [])}
+                dataGrid={applyFilters(detailed?.grid || [])}
+                xKey={meta.xKey}
+                yKey={meta.yKey}
+                valueKey={meta.dataKey}
+                dataKey={meta.dataKey}
+                units={meta.units}
+                onPointClick={setSelectedIdx}
+                samples={detailed?.samples || []}
+                replicateMetrics={detailed?.replicates || []}
+                sequenceSteps={detailed?.sequence || []}
+                multiParamData={detailed?.matrix || []}
+              />
+            </Suspense>
+          )
+        );
+      })}
+      {tab === (meta.chartComponents?.length || 0) && (
+        <Box sx={{ maxHeight: 400, overflow: "auto", fontFamily: "monospace" }}>
+          <pre aria-label="Raw JSON data">{JSON.stringify(config, null, 2)}</pre>
+        </Box>
+      )}
     </Container>
   );
 }
