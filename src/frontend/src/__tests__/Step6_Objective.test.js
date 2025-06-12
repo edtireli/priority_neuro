@@ -44,3 +44,18 @@ test('checkbox and dropdown persistence', async () => {
   expect(screen.getByRole('combobox').textContent).toMatch(/learning_curve/i);
   expect(screen.getByLabelText(/Run on synthetic data/i)).toBeChecked();
 });
+
+test.each([
+  'group_separation',
+  'information_gain',
+  'training_efficiency',
+])('simulate controls for %s', async (objType) => {
+  const cfg = { objective: { type: objType, options: {} } };
+  api.get.mockResolvedValue({ data: ['learning_curve'] });
+  render(<Wrapper cfg={cfg} />);
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith('/templates'));
+  expect(screen.getByLabelText(/Run on synthetic data/i)).toBeInTheDocument();
+  expect(screen.getByRole('combobox')).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText(/Run on synthetic data/i));
+  expect(currentCfg.objective.simulateOnly).toBe(true);
+});

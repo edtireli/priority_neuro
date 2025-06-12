@@ -98,7 +98,12 @@ function Step6_Objective({ config, setConfig }) {
           </Typography>
         </Box>
       </RadioGroup>
-      {type === "sequence_optimization" && (
+      {[
+        "sequence_optimization",
+        "group_separation",
+        "information_gain",
+        "training_efficiency",
+      ].includes(type) && (
         <Box sx={{ mt: 2 }}>
           <FormControlLabel
             control={
