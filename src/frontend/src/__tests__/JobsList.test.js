@@ -19,7 +19,10 @@ const JobsPage = require('../pages/JobsPage').default;
 function setup() {
   api.get.mockImplementation((url) => {
     if (url === '/projects') return Promise.resolve({ data: [{ id: 1, name: 'P1' }] });
-    if (url === '/jobs') return Promise.resolve({ data: [{ id: 'j1', project_id: 1, status: 'succeeded', config: { objective: { type: 'information_gain' } } }] });
+    if (url === '/jobs')
+      return Promise.resolve({ data: [{ id: 'j1', project_id: 1, status: 'succeeded' }] });
+    if (url === '/projects/1/jobs/j1/config')
+      return Promise.resolve({ data: { config: { objective: { type: 'information_gain' } } } });
     if (url === '/projects/1/jobs/j1/metrics')
       return Promise.resolve({ data: [{ iteration: 1, information_gain: 0.5 }, { iteration: 2, information_gain: 0.7 }] });
     return Promise.resolve({ data: [] });

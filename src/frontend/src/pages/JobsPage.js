@@ -30,7 +30,19 @@ export default function JobsPage() {
   const fetchJobs = async (arch = false) => {
     try {
       const res = await api.get("/jobs", { params: { archived: arch } });
-      setJobs(res.data);
+      const jobsWithConfig = await Promise.all(
+        res.data.map(async (job) => {
+          try {
+            const cfgRes = await api.get(
+              `/projects/${job.project_id}/jobs/${job.id}/config`
+            );
+            return { ...job, config: cfgRes.data.config };
+          } catch {
+            return job;
+          }
+        })
+      );
+      setJobs(jobsWithConfig);
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
     }

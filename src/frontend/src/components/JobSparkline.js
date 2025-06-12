@@ -47,6 +47,7 @@ export default function JobSparkline({
   if (data.length < 2) return <Typography color="text.secondary" component="span">-</Typography>;
 
   const values = data.map((d) => (d[yKey] !== undefined ? d[yKey] : d.utility));
+  console.log(yKey, values);
   const max = Math.max(...values);
   const min = Math.min(...values);
   const width = 100;
