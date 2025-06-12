@@ -1,9 +1,12 @@
 import os
+import csv
+import io
 import json
 import logging
 from datetime import datetime, timezone
 import uuid
 from celery_app import celery
+from utils.pilot_data import persist_pilot_json
 from database import SessionLocal
 from models import Job, Project, JobStatus, RunMode, JobMetric, JobResult
 from fastapi.templating import Jinja2Templates
@@ -84,6 +87,8 @@ def simple_estimate_eig(priors, design, model):
     return 0.0
 
 
+
+
 @celery.task(name="run_boed_job")
 def run_boed_job(job_id: str):
     """Execute a Bayesian optimal experimental design job."""
@@ -140,12 +145,18 @@ def run_boed_job(job_id: str):
 
         # In sequential mode we may require pilot data before proceeding
         if job.mode == RunMode.sequential:
+            iter_no = job.iteration
             pilot_path = os.path.join(UPLOADS_ROOT, "pilot_data", f"{job.id}.csv")
-            if not os.path.exists(pilot_path):
+            json_path = os.path.join(UPLOADS_ROOT, "data", str(job.id), "iteration_0.json")
+            if os.path.exists(pilot_path) and not os.path.exists(json_path):
+                persist_pilot_json(open(pilot_path, "rb").read(), job.id, UPLOADS_ROOT)
+                job.iteration = 1
+                db.commit()
+                iter_no = job.iteration
+            if not os.path.exists(json_path):
                 job.status = JobStatus.paused_awaiting_data
                 db.commit()
                 return
-
         priors = config["priors"]
         design_vars = config["designVariables"]
 
@@ -353,6 +364,20 @@ def run_optimisation_task(self, job_id_str: str):
             max_iter = job.maxIterations or adv.get("max_iterations")
             job.maxIterations = max_iter
             iter_no = job.iteration
+            pilot_path = os.path.join(UPLOADS_ROOT, "pilot_data", f"{job.id}.csv")
+            json_path = os.path.join(UPLOADS_ROOT, "data", str(job.id), "iteration_0.json")
+            if os.path.exists(pilot_path) and not os.path.exists(json_path):
+                with open(pilot_path, "rb") as pf:
+                    persist_pilot_json(pf.read(), job.id, UPLOADS_ROOT)
+                log.info("Using pilot data for iteration 0 -> iteration_0.json")
+                if iter_no == 0:
+                    job.iteration = 1
+                    db.commit()
+                iter_no = job.iteration
+            if iter_no == 0 and not os.path.exists(json_path):
+                job.status = JobStatus.paused_awaiting_data
+                db.commit()
+                return
             if iter_no == 0:
                 designs = [
                     simple_sample_design(config["designVariables"])
@@ -366,10 +391,14 @@ def run_optimisation_task(self, job_id_str: str):
                 job.status = JobStatus.paused_awaiting_data
                 db.commit()
                 return
+
             data_path = os.path.join(
                 UPLOADS_ROOT, "data", str(job.id), f"iteration_{iter_no-1}.json"
             )
-            if not os.path.exists(data_path):
+
+            data_available = os.path.exists(data_path)
+
+            if not data_available:
                 job.log = (job.log or "") + f"\nMissing data for iteration {iter_no-1}"
                 job.status = JobStatus.paused_awaiting_data
                 db.commit()
