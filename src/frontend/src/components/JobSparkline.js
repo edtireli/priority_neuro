@@ -4,7 +4,14 @@ import api from "../api";
 
 const cache = {};
 
-export default function JobSparkline({ projectId, jobId, status }) {
+export default function JobSparkline({
+  projectId,
+  jobId,
+  status,
+  yKey = "utility",
+  label = "Utility",
+  units = "",
+}) {
   const theme = useTheme();
   const [data, setData] = useState(cache[jobId] || null);
   const [error, setError] = useState(false);
@@ -39,15 +46,15 @@ export default function JobSparkline({ projectId, jobId, status }) {
   if (!data) return <Typography component="span">-</Typography>;
   if (data.length < 2) return <Typography color="text.secondary" component="span">-</Typography>;
 
-  const utilities = data.map((d) => d.utility);
-  const max = Math.max(...utilities);
-  const min = Math.min(...utilities);
+  const values = data.map((d) => (d[yKey] !== undefined ? d[yKey] : d.utility));
+  const max = Math.max(...values);
+  const min = Math.min(...values);
   const width = 100;
   const height = 20;
   const norm = (u) =>
     height - ((u - min) / (max - min || 1)) * height;
-  const points = utilities
-    .map((u, i) => `${(i / (utilities.length - 1)) * width},${norm(u)}`)
+  const points = values
+    .map((u, i) => `${(i / (values.length - 1)) * width},${norm(u)}`)
     .join(" ");
 
   return (
@@ -56,6 +63,7 @@ export default function JobSparkline({ projectId, jobId, status }) {
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
         height={height}
+        aria-label={`${label} sparkline`}
         style={{ display: "block" }}
       >
         <polyline
@@ -67,11 +75,13 @@ export default function JobSparkline({ projectId, jobId, status }) {
         {data.map((m, i) => (
           <circle
             key={i}
-            cx={(i / (utilities.length - 1)) * width}
-            cy={norm(m.utility)}
+            cx={(i / (values.length - 1)) * width}
+            cy={norm(m[yKey] !== undefined ? m[yKey] : m.utility)}
             r={1.5}
           >
-            <title>{`Iteration ${m.iteration} \u2192 ${m.utility}`}</title>
+            <title>
+              {`Iteration ${m.iteration} \u2192 ${m[yKey] !== undefined ? m[yKey] : m.utility}${units ? ` ${units}` : ""}`}
+            </title>
           </circle>
         ))}
       </svg>
