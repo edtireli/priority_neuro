@@ -225,6 +225,8 @@ class JobMetricOut(BaseModel):
     iteration: int
     design_point: Dict[str, Any]
     utility: float
+    information_gain: float | None = None
+    se: float | None = None
     posterior_summary: Dict[str, Any] | None
     timestamp: datetime
 

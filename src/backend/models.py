@@ -1,9 +1,22 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, func, Text, ForeignKey, JSON, Enum, Integer, Float
+from sqlalchemy import (
+    Column,
+    String,
+    Boolean,
+    DateTime,
+    func,
+    Text,
+    ForeignKey,
+    JSON,
+    Enum,
+    Integer,
+    Float,
+)
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
 from sqlalchemy.orm import relationship
 from database import Base
 import enum
+
 
 class User(Base):
     __tablename__ = "users"
@@ -19,16 +32,23 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
 class Project(Base):
     __tablename__ = "projects"
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     config_json = Column(JSON, nullable=True)
     current_posterior = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), onupdate=func.now(), server_default=func.now()
+    )
     jobs = relationship("Job", back_populates="project", cascade="all, delete-orphan")
 
 
@@ -53,7 +73,11 @@ class RunMode(str, enum.Enum):
 class Job(Base):
     __tablename__ = "jobs"
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(PG_UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     job_name = Column(String, nullable=False)
     mode = Column(Enum(RunMode), nullable=False, default=RunMode.single_shot)
     compute_type = Column(Enum(ComputeType), nullable=False, default=ComputeType.cpu)
@@ -68,18 +92,26 @@ class Job(Base):
     archived = Column(Boolean, nullable=False, server_default="false")
 
     project = relationship("Project", back_populates="jobs")
-    metrics = relationship("JobMetric", back_populates="job", cascade="all, delete-orphan")
-    results = relationship("JobResult", back_populates="job", cascade="all, delete-orphan")
+    metrics = relationship(
+        "JobMetric", back_populates="job", cascade="all, delete-orphan"
+    )
+    results = relationship(
+        "JobResult", back_populates="job", cascade="all, delete-orphan"
+    )
 
 
 class JobMetric(Base):
     __tablename__ = "job_metrics"
 
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    job_id = Column(PG_UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    job_id = Column(
+        PG_UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False
+    )
     iteration = Column(Integer, nullable=False)
     design_point = Column(JSON, nullable=False)
     utility = Column(Float, nullable=False)
+    information_gain = Column(Float, nullable=True)
+    se = Column(Float, nullable=True)
     posterior_summary = Column(JSON, nullable=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -90,7 +122,9 @@ class JobResult(Base):
     __tablename__ = "job_results"
 
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    job_id = Column(PG_UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    job_id = Column(
+        PG_UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False
+    )
     summary = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

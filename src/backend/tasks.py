@@ -84,8 +84,6 @@ def simple_estimate_eig(priors, design, model):
     return 0.0
 
 
-
-
 @celery.task(name="run_boed_job")
 def run_boed_job(job_id: str):
     """Execute a Bayesian optimal experimental design job."""
@@ -107,9 +105,7 @@ def run_boed_job(job_id: str):
         adv = config.get("advancedOptions", {})
         obj_type = config.get("objective", {}).get("type")
         seq_opts = (
-            config.get("objective", {})
-            .get("options", {})
-            .get("sequenceSettings", {})
+            config.get("objective", {}).get("options", {}).get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
             run_sequence_optimization_job(job, project, config, seq_opts, db)
@@ -184,6 +180,8 @@ def run_boed_job(job_id: str):
                 iteration=1,
                 design_point=proposal,
                 utility=u,
+                information_gain=u,
+                se=None,
                 posterior_summary=post_sum,
             )
             db.add(metric)
@@ -248,6 +246,8 @@ def run_boed_job(job_id: str):
                     iteration=i,
                     design_point=proposal,
                     utility=u,
+                    information_gain=u,
+                    se=None,
                     posterior_summary=None,
                 )
                 db.add(metric)
@@ -302,9 +302,7 @@ def run_sequence_optimization_job_task(job_id: str):
         project = db.query(Project).get(job.project_id)
         config = project.config_json or {}
         seq_opts = (
-            config.get("objective", {})
-            .get("options", {})
-            .get("sequenceSettings", {})
+            config.get("objective", {}).get("options", {}).get("sequenceSettings", {})
         )
 
         run_sequence_optimization_job(job, project, config, seq_opts, db)
@@ -337,9 +335,7 @@ def run_optimisation_task(self, job_id_str: str):
         adv = config.get("advancedOptions", {})
         obj_type = config.get("objective", {}).get("type")
         seq_opts = (
-            config.get("objective", {})
-            .get("options", {})
-            .get("sequenceSettings", {})
+            config.get("objective", {}).get("options", {}).get("sequenceSettings", {})
         )
         if obj_type == "sequence_optimization":
             run_sequence_optimization_job(job, project, config, seq_opts, db)
@@ -466,6 +462,8 @@ def run_optimisation_task(self, job_id_str: str):
                 iteration=rec.get("iteration", idx),
                 design_point=rec["design"],
                 utility=rec["utility"],
+                information_gain=rec.get("utility"),
+                se=rec.get("se"),
                 posterior_summary={
                     "se": rec.get("se"),
                     "ci_lower": rec.get("ci_lower"),
@@ -538,6 +536,17 @@ def run_optimisation_task(self, job_id_str: str):
                 "ciUpper": upper.tolist(),
             }
 
+        series = [
+            {
+                "iteration": rec.get("iteration", idx),
+                "information_gain": rec.get("utility"),
+                "se": rec.get("se"),
+                "ci_lower": rec.get("ci_lower"),
+                "ci_upper": rec.get("ci_upper"),
+            }
+            for idx, rec in enumerate(eval_records, start=1)
+        ]
+
         result = {
             "job_id": job_id_str,
             "project_id": str(project.id),
@@ -551,6 +560,7 @@ def run_optimisation_task(self, job_id_str: str):
             "priorSamples": prior_samples,
             "posteriorSamples": post_samples,
             "learningCurve": learning_curve,
+            "series": series,
             "status": "succeeded",
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
