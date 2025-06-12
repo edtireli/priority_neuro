@@ -144,6 +144,17 @@ export default function ResultsPage() {
     setVarRanges(ranges);
   }, [config]);
 
+  const outcome = config?.objective?.type;
+  const meta = outcomeMeta[outcome] || {};
+
+  const lazyComponents = useMemo(() => {
+    const comps = {};
+    (meta.chartComponents || []).forEach((c) => {
+      comps[c.name] = lazy(componentImports[c.name]);
+    });
+    return comps;
+  }, [outcome]);
+
   if (loading)
     return (
       <Box display="flex" justifyContent="center" my={4}>
@@ -186,17 +197,6 @@ export default function ResultsPage() {
     sortedMetrics.find(
       (m) => JSON.stringify(m.design_point) === JSON.stringify(bestDesign)
     )?.iteration;
-
-  const outcome = config?.objective?.type;
-  const meta = outcomeMeta[outcome] || {};
-
-  const lazyComponents = useMemo(() => {
-    const comps = {};
-    (meta.chartComponents || []).forEach((c) => {
-      comps[c.name] = lazy(componentImports[c.name]);
-    });
-    return comps;
-  }, [outcome]);
 
   const formatValue = (v) => {
     if (v === null || v === undefined) return "\u2013";
