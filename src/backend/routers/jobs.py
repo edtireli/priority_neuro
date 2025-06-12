@@ -225,7 +225,11 @@ def get_job_results(
     )
     if not result:
         raise HTTPException(status_code=404, detail="Results not found")
-    return result
+    return {
+        "summary": result.summary,
+        "initialPosterior": result.summary.get("initialPosterior"),
+        "simulationHistory": result.summary.get("simulationHistory"),
+    }
 
 
 @router.get("/{job_id}/results-detailed")

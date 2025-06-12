@@ -9,6 +9,7 @@ import {
   Alert,
   Tabs,
   Tab,
+  Slider,
 } from "@mui/material";
 import api from "../api";
 import stringifyError from "../utils/stringifyError";
@@ -63,6 +64,9 @@ export default function ResultsPage() {
   const [metrics, setMetrics] = useState(null);
   const [result, setResult] = useState(null);
   const [flowLog, setFlowLog] = useState(null);
+  const [initialPosterior, setInitialPosterior] = useState([]);
+  const [simulationHistory, setSimulationHistory] = useState([]);
+  const [simIter, setSimIter] = useState(0);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -80,6 +84,9 @@ export default function ResultsPage() {
         ]);
         setMetrics(mRes.data || []);
         setResult(rRes.data || null);
+        setInitialPosterior(rRes.data.initialPosterior || []);
+        setSimulationHistory(rRes.data.simulationHistory || []);
+        setSimIter((rRes.data.simulationHistory || []).length);
         let log = fRes.data;
         if (typeof log === "string") {
           const rows = log.trim().split(/\n/).slice(1);
@@ -236,6 +243,104 @@ export default function ResultsPage() {
     return null;
   };
 
+  const renderSimulation = () => {
+    if (!simulationHistory.length && !initialPosterior.length) return null;
+    const vars = Object.keys(simulationHistory[0]?.design_point || {});
+    const xVar = vars[0];
+    const scatterData = [
+      {
+        x: simulationHistory.map((h) => h.design_point[xVar]),
+        y: simulationHistory.map((h) => h.simulated_perf),
+        mode: "markers",
+        marker: {
+          color: simulationHistory.map((h) => h.iteration),
+          colorscale: "Viridis",
+          size: simulationHistory.map((h) =>
+            h.iteration === simIter ? 12 : 8
+          ),
+          colorbar: { title: "Iter" },
+        },
+      },
+    ];
+    const eig = metrics?.find((m) => m.iteration === simIter)?.utility;
+
+    const params = Object.keys(config?.priors || {});
+    return (
+      <Box>
+        <Plot
+          data={scatterData}
+          layout={{
+            hovermode: "closest",
+            xaxis: { title: xVar },
+            yaxis: { title: "Simulated Perf" },
+            margin: { t: 30 },
+          }}
+          useResizeHandler
+          style={{ width: "100%", height: "400px" }}
+          config={{ responsive: true }}
+        />
+        {eig !== undefined && (
+          <Typography variant="subtitle2" sx={{ my: 1 }}>
+            EIG: {eig.toFixed(2)}
+          </Typography>
+        )}
+        {params.map((p) => {
+          const samples =
+            simIter === 0
+              ? initialPosterior.map((s) => s[p])
+              : simulationHistory[simIter - 1]?.posterior_samples.map((s) => s[p]) || [];
+          const prior = config.priors[p];
+          const minX = samples.length
+            ? Math.min(...samples)
+            : prior.low ?? prior.mean - 4 * (prior.sd || 1);
+          const maxX = samples.length
+            ? Math.max(...samples)
+            : prior.high ?? prior.mean + 4 * (prior.sd || 1);
+          const xs = [];
+          for (let i = 0; i < 100; i++) xs.push(minX + (i / 99) * (maxX - minX));
+          const priorYs = priorPdf(prior, xs);
+          const data = [
+            { x: xs, y: priorYs, type: "scatter", mode: "lines", name: "Prior" },
+          ];
+          if (samples.length) {
+            data.unshift({
+              x: samples,
+              type: "histogram",
+              histnorm: "probability density",
+              opacity: 0.6,
+              name: "Posterior",
+            });
+          }
+          return (
+            <Plot
+              key={p}
+              data={data}
+              layout={{
+                barmode: "overlay",
+                xaxis: { title: p },
+                yaxis: { title: "Density" },
+                margin: { t: 30 },
+              }}
+              useResizeHandler
+              style={{ width: "100%", height: "400px" }}
+              config={{ responsive: true }}
+            />
+          );
+        })}
+        <Box sx={{ my: 2 }}>
+          <Slider
+            value={simIter}
+            min={0}
+            max={simulationHistory.length}
+            step={1}
+            marks
+            onChange={(_, v) => setSimIter(v)}
+          />
+        </Box>
+      </Box>
+    );
+  };
+
   return (
     <Container sx={{ py: 4 }}>
       {config?.objective && (
@@ -258,6 +363,7 @@ export default function ResultsPage() {
         <Tab label="Flow Loss" />
         <Tab label="Posterior Distributions" />
         <Tab label="Design Space" />
+        <Tab label="Simulation & Posteriors" />
       </Tabs>
 
       {tab === 0 && (
@@ -311,6 +417,8 @@ export default function ResultsPage() {
       {tab === 2 && renderSlopePosterior()}
 
       {tab === 3 && renderDesignSpace()}
+
+      {tab === 4 && renderSimulation()}
     </Container>
   );
 }

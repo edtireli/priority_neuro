@@ -115,8 +115,14 @@ def optimize_sequence_local(
     db=None,
     simulated_perf: List[float] | None = None,
     observed_data=None,
-) -> List[Dict[str, Any]]:
-    """Run the sequence optimisation loop locally and return the best sequence."""
+    record_history: bool = False,
+) -> Any:
+    """Run the sequence optimisation loop locally and return the best sequence.
+
+    If ``record_history`` is ``True`` a tuple ``(sequence, history)`` is
+    returned where ``history`` contains posterior samples and simulated
+    performance for each iteration.
+    """
 
     model = load_model(config_model, job.id if job else None)
     true_theta = sample_from_prior(priors)
@@ -147,9 +153,14 @@ def optimize_sequence_local(
         next_state = extract_state(particles, history + [{"action": action}], t + 1)
         agent.update(a_idx, reward, next_state)
         cumulative_reward += reward
-        record = {"t": t, "action": action, "reward": reward}
-        if simulated_perf is not None and t <= len(simulated_perf):
-            record["accuracy"] = float(simulated_perf[t - 1])
+        record = {
+            "iteration": t,
+            "design_point": action,
+            "simulated_perf": float(simulated_perf[t - 1])
+            if simulated_perf is not None and t <= len(simulated_perf)
+            else None,
+            "posterior_samples": [p.copy() for p in particles],
+        }
         history.append(record)
         if job is not None and db is not None:
             metric = JobMetric(
@@ -168,7 +179,10 @@ def optimize_sequence_local(
         if done:
             break
 
-    return best_sequence or [h["action"] for h in history]
+    sequence = best_sequence or [h["design_point"] for h in history]
+    if record_history:
+        return sequence, history
+    return sequence
 
 
 def run_sequence_optimization_job(
@@ -203,7 +217,7 @@ def run_sequence_optimization_job(
             cal = load_calcium_data(cal_cfg["path"], cal_cfg["format"])
             observed = cal["traces"]
 
-    sequence = optimize_sequence_local(
+    sequence, history = optimize_sequence_local(
         config.get("model", {}),
         priors,
         design_vars,
@@ -213,12 +227,19 @@ def run_sequence_optimization_job(
         db,
         simulated_perf=simulated_perf,
         observed_data=observed,
+        record_history=True,
     )
+
+    posterior_list = [sample_from_prior(priors) for _ in range(100)]
 
     db.add(
         JobResult(
             job_id=job.id,
-            summary={"best_sequence": sequence},
+            summary={
+                "best_sequence": sequence,
+                "initialPosterior": posterior_list,
+                "simulationHistory": history,
+            },
         )
     )
     job.status = JobStatus.succeeded

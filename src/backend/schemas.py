@@ -235,6 +235,10 @@ class JobResultOut(BaseModel):
     """BOED result summary."""
 
     summary: Dict[str, Any]
+    initialPosterior: List[Dict[str, Any]] | None = None
+    simulationHistory: List[Dict[str, Any]] | None = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TrialDatum(BaseModel):
