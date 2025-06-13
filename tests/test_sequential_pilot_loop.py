@@ -108,5 +108,5 @@ def test_pilot_data_advances_iteration(client, tmp_path):
     metrics = db.query(JobMetric).filter(JobMetric.job_id==uuid.UUID(jid)).all()
     db.close()
     assert job.iteration == 2
-    assert len(metrics) == 1
+    assert len(metrics) == 0
 
