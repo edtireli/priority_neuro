@@ -354,7 +354,9 @@ def run_optimisation_task(self, job_id_str: str):
 
         import torch  # heavy import only when task actually runs
 
-        results_dir = os.path.join(RESULTS_ROOT, str(project.id), str(job.id))
+        results_root = os.getenv("RESULTS_ROOT", RESULTS_ROOT)
+        uploads_root = os.getenv("UPLOADS_ROOT", UPLOADS_ROOT)
+        results_dir = os.path.join(results_root, str(project.id), str(job.id))
         os.makedirs(results_dir, exist_ok=True)
         job.results_folder = results_dir
         db.commit()
@@ -364,20 +366,36 @@ def run_optimisation_task(self, job_id_str: str):
             max_iter = job.maxIterations or adv.get("max_iterations")
             job.maxIterations = max_iter
             iter_no = job.iteration
-            pilot_path = os.path.join(UPLOADS_ROOT, "pilot_data", f"{job.id}.csv")
-            json_path = os.path.join(UPLOADS_ROOT, "data", str(job.id), "iteration_0.json")
+            pilot_path = os.path.join(uploads_root, "pilot_data", f"{job.id}.csv")
+            json_path = os.path.join(uploads_root, "data", str(job.id), "iteration_0.json")
+
+            if max_iter is not None and iter_no >= max_iter:
+                log.info("Reached max iterations - finishing job")
+                with open(os.path.join(results_dir, "optimal.json"), "w") as f:
+                    json.dump({"final_iteration": iter_no}, f)
+                job.status = JobStatus.succeeded
+                job.completed_at = datetime.now(timezone.utc)
+                db.commit()
+                return
+
             if os.path.exists(pilot_path) and not os.path.exists(json_path):
-                with open(pilot_path, "rb") as pf:
-                    persist_pilot_json(pf.read(), job.id, UPLOADS_ROOT)
-                log.info("Using pilot data for iteration 0 -> iteration_0.json")
+                try:
+                    with open(pilot_path, "rb") as pf:
+                        persist_pilot_json(pf.read(), job.id, UPLOADS_ROOT)
+                    log.info("Using pilot data for iteration 0 -> iteration_0.json")
+                except Exception:
+                    log.exception("Failed to persist pilot data")
                 if iter_no == 0:
                     job.iteration = 1
                     db.commit()
                 iter_no = job.iteration
-            if iter_no == 0 and not os.path.exists(json_path):
+
+            if not os.path.exists(json_path):
+                log.info("Waiting for pilot data %s", json_path)
                 job.status = JobStatus.paused_awaiting_data
                 db.commit()
                 return
+
             if iter_no == 0:
                 designs = [
                     simple_sample_design(config["designVariables"])
@@ -393,21 +411,15 @@ def run_optimisation_task(self, job_id_str: str):
                 return
 
             data_path = os.path.join(
-                UPLOADS_ROOT, "data", str(job.id), f"iteration_{iter_no-1}.json"
+                uploads_root, "data", str(job.id), f"iteration_{iter_no-1}.json"
             )
 
             data_available = os.path.exists(data_path)
 
             if not data_available:
+                log.info("Missing data file %s", data_path)
                 job.log = (job.log or "") + f"\nMissing data for iteration {iter_no-1}"
                 job.status = JobStatus.paused_awaiting_data
-                db.commit()
-                return
-            if max_iter is not None and iter_no >= max_iter:
-                with open(os.path.join(results_dir, "optimal.json"), "w") as f:
-                    json.dump({"final_iteration": iter_no}, f)
-                job.status = JobStatus.succeeded
-                job.completed_at = datetime.now(timezone.utc)
                 db.commit()
                 return
             designs = [
