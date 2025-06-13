@@ -149,6 +149,19 @@ def list_jobs(
     )
 
 
+@router.get("/{job_id}/config")
+def get_job_config(
+    project_id: UUID,
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    job = db.query(Job).filter(Job.id == job_id, Job.project_id == project_id).first()
+    if not job or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"config": job.project.config_json}
+
+
 @router.post("/{job_id}/data", response_model=JobOut)
 async def upload_pilot_data(
     project_id: UUID,

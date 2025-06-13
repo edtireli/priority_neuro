@@ -150,6 +150,11 @@ def run_boed_job(job_id: str):
             json_path = os.path.join(UPLOADS_ROOT, "data", str(job.id), "iteration_0.json")
             if os.path.exists(pilot_path) and not os.path.exists(json_path):
                 persist_pilot_json(open(pilot_path, "rb").read(), job.id, UPLOADS_ROOT)
+                if not os.path.exists(json_path):
+                    log.error("iteration_0.json missing after persist")
+                    job.status = JobStatus.paused_awaiting_data
+                    db.commit()
+                    return
                 job.iteration = 1
                 db.commit()
                 iter_no = job.iteration
@@ -381,10 +386,17 @@ def run_optimisation_task(self, job_id_str: str):
             if os.path.exists(pilot_path) and not os.path.exists(json_path):
                 try:
                     with open(pilot_path, "rb") as pf:
-                        persist_pilot_json(pf.read(), job.id, UPLOADS_ROOT)
-                    log.info("Using pilot data for iteration 0 -> iteration_0.json")
+                        persist_pilot_json(pf.read(), job.id, uploads_root)
+                    log.info(
+                        "Using pilot data for iteration 0 -> iteration_0.json"
+                    )
                 except Exception:
                     log.exception("Failed to persist pilot data")
+                if not os.path.exists(json_path):
+                    log.error("iteration_0.json missing after persist")
+                    job.status = JobStatus.paused_awaiting_data
+                    db.commit()
+                    return
                 if iter_no == 0:
                     job.iteration = 1
                     db.commit()
@@ -405,6 +417,7 @@ def run_optimisation_task(self, job_id_str: str):
                 os.makedirs(idir, exist_ok=True)
                 with open(os.path.join(idir, "designs.json"), "w") as f:
                     json.dump(designs, f, indent=2)
+                log.info("Wrote designs for iteration %s", iter_no)
                 job.iteration = iter_no + 1
                 job.status = JobStatus.paused_awaiting_data
                 db.commit()
@@ -430,6 +443,7 @@ def run_optimisation_task(self, job_id_str: str):
             os.makedirs(idir, exist_ok=True)
             with open(os.path.join(idir, "designs.json"), "w") as f:
                 json.dump(designs, f, indent=2)
+            log.info("Wrote designs for iteration %s", iter_no)
             job.iteration = iter_no + 1
             db.commit()
             return
