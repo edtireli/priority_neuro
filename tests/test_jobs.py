@@ -120,6 +120,13 @@ def test_job_lifecycle(client, tmp_path):
     ).json()
     assert len(metrics) == 1
 
+    cfg_res = client.get(
+        f"/api/projects/{project_id}/jobs/{job_id}/config",
+        headers=headers,
+    )
+    assert cfg_res.status_code == 200
+    assert cfg_res.json()["config"]["objective"]["type"] == "information_gain"
+
 
 def test_sequential_paused_flow(client, tmp_path):
     token = get_auth_token(client)
